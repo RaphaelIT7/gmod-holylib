@@ -11,6 +11,7 @@
 #include <framesnapshot.h>
 #include <netadr_new.h> // Better than the normal sdk one as this one actually sets stuff properly.
 #include <shareddefs.h>
+#include <unordered_set>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -692,100 +693,43 @@ LUA_FUNCTION_STATIC(CBaseClient_HasNetChannel)
 	return 1;
 }
 
-static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target);
-static int FindFreeClientSlot();
+struct QueuePromotionResult
+{
+	bool ok;
+	bool retryable;
+	int newSlot;
+	const char* reason;
+};
 
-/*
- * Atomically promote the Lua-selected parked client into an empty real slot.
- * Lua owns queue order; native code owns pointer/slot validation and the
- * netchannel handoff.  The four return values deliberately distinguish a
- * retryable capacity race (the source was not touched) from a stale/consumed
- * source that Lua must discard:
- *
- *   true,  newSlot, false, nil
- *   false, slot|nil, retryable, reason
- */
+static QueuePromotionResult PromoteQueueClient(CGameClient* origin);
+static QueuePromotionResult PromoteQueueClientIntoTarget(CGameClient* origin, CGameClient* target);
+
+static int PushQueuePromotionResult(GarrysMod::Lua::ILuaInterface* pLua, const QueuePromotionResult& result)
+{
+	pLua->PushBool(result.ok);
+	if (result.newSlot >= 0)
+		pLua->PushNumber(result.newSlot);
+	else
+		pLua->PushNil();
+
+	pLua->PushBool(result.retryable);
+	if (result.reason)
+		pLua->PushString(result.reason);
+	else
+		pLua->PushNil();
+
+	return 4;
+}
+
 LUA_FUNCTION_STATIC(CBaseClient_PromoteFromQueue)
 {
-	auto Fail = [LUA](int nSlot, bool bRetryable, const char* pReason)
-	{
-		LUA->PushBool(false);
-		if (nSlot >= 0)
-			LUA->PushNumber(nSlot);
-		else
-			LUA->PushNil();
-		LUA->PushBool(bRetryable);
-		LUA->PushString(pReason);
-		return 4;
-	};
-
-	// Ignore IsValid() initially: it is based on IsConnected(), while this API
-	// must return a structured failure for a stale userdata instead of throwing.
-	CBaseClient* pSource = Get_CBaseClient(LUA, 1, false, true);
-	if (!pSource)
-		return Fail(-1, false, "invalid_source");
-
-	// Establish ownership by pointer identity before dereferencing the source.
-	// A userdata from a cleared/reused real slot is not a promotion candidate.
-	auto pQueueIt = std::find(g_pQueueClients.begin(), g_pQueueClients.end(), (CGameClient*)pSource);
-	if (pQueueIt == g_pQueueClients.end())
-		return Fail(-1, false, "source_not_in_queue_pool");
-
-	CBaseServer* pServer = (CBaseServer*)Util::server;
-	if (!pServer || !pServer->IsActive() || !gpGlobals)
-		return Fail(-1, false, "server_unavailable");
-	if (g_bClientLayoutMismatch)
-		return Fail(-1, false, "queue_parking_disabled");
-	if (pServer->m_Clients.Find(pSource) != -1)
-		return Fail(pSource->m_nClientSlot, false, "source_already_in_server_pool");
-	if (pSource->GetServer() != pServer || !IsParkedQueueClient(pSource))
-		return Fail(pSource->m_nClientSlot, false, "source_not_parked");
-	if (pSource->m_nClientSlot >= ABSOLUTE_PLAYER_LIMIT)
-		return Fail(pSource->m_nClientSlot, false, "source_slot_out_of_range");
-	if (!pSource->IsConnected() || pSource->IsFakeClient() || pSource->GetServer()->IsHLTV())
-		return Fail(pSource->m_nClientSlot, false, "source_not_connected_human");
-	if (pSource->m_nSignonState < SIGNONSTATE_CONNECTED || pSource->m_nSignonState > SIGNONSTATE_PRESPAWN)
-		return Fail(pSource->m_nClientSlot, false, "source_signon_state_invalid");
-	if (!pSource->m_NetChannel)
-		return Fail(pSource->m_nClientSlot, false, "source_missing_netchannel");
-
-	// A queue userdata must never be promoted if the same authenticated Steam
-	// identity already owns a real client.  Lua checks CBasePlayers too, but the
-	// native scan also covers in-flight real-slot loaders.
-	const int nRealClientCount = std::min(pServer->GetClientCount(), gpGlobals->maxClients);
-	for (int i = 0; i < nRealClientCount; ++i)
-	{
-		CBaseClient* pRealClient = (CBaseClient*)pServer->GetClient(i);
-		if (pRealClient && pRealClient != pSource && pRealClient->IsConnected() &&
-			pRealClient->m_SteamID == pSource->m_SteamID)
-			return Fail(pRealClient->m_nClientSlot, false, "steamid_already_in_real_slot");
-	}
-
-	const int nTargetEntity = FindFreeClientSlot();
-	if (nTargetEntity <= 0 || nTargetEntity > gpGlobals->maxClients)
-		return Fail(-1, true, "no_free_real_slot");
-
-	CGameClient* pTarget = (CGameClient*)Util::GetClientByIndex(nTargetEntity - 1);
-	if (!pTarget || pTarget == pSource || pServer->m_Clients.Find(pTarget) == -1)
-		return Fail(nTargetEntity - 1, true, "target_not_owned_by_server");
-	if (pTarget->m_nClientSlot != nTargetEntity - 1 || pTarget->m_nClientSlot >= gpGlobals->maxClients)
-		return Fail(nTargetEntity - 1, true, "target_slot_mismatch");
-	if (pTarget->m_nSignonState != SIGNONSTATE_NONE || pTarget->IsConnected())
-		return Fail(pTarget->m_nClientSlot, true, "target_slot_became_occupied");
-
-	const int nNewSlot = pTarget->m_nClientSlot;
-	MoveCGameClientIntoCGameClient((CGameClient*)pSource, pTarget);
-
-	// Connect/gameevent Lua can synchronously tear down the handed-off channel.
-	// At that point the queue source is already consumed, so failure is final.
-	if (!pTarget->m_NetChannel)
-		return Fail(nNewSlot, false, "target_lost_netchannel");
-
-	LUA->PushBool(true);
-	LUA->PushNumber(nNewSlot);
-	LUA->PushBool(false);
-	LUA->PushNil();
-	return 4;
+	// Ignore the regular IsValid/IsConnected filter here so the native API can
+	// fail closed with a stable reason instead of raising a Lua argument error.
+	// Pointer identity is established against g_pQueueClients before the
+	// promotion implementation dereferences the candidate.
+	LuaUserData* pData = Get_CBaseClient_Data(LUA, 1, false);
+	CBaseClient* pClient = pData ? (CBaseClient*)pData->GetData() : nullptr;
+	return PushQueuePromotionResult(LUA, PromoteQueueClient((CGameClient*)pClient));
 }
 
 LUA_FUNCTION_STATIC(CBaseClient_MoveIntoClient)
@@ -801,7 +745,15 @@ LUA_FUNCTION_STATIC(CBaseClient_MoveIntoClient)
 	if (pTargetClient->GetServer()->IsHLTV())
 		LUA->ArgError(1, "the target client is a HLTV client!");
 
-	MoveCGameClientIntoCGameClient((CGameClient*)pSourceClient, (CGameClient*)pTargetClient);
+	const QueuePromotionResult result = PromoteQueueClientIntoTarget(
+		(CGameClient*)pSourceClient,
+		(CGameClient*)pTargetClient
+	);
+	if (!result.ok)
+	{
+		Warning(PROJECT_NAME " - gameserver: legacy MoveIntoClient rejected queue promotion (%s)\n",
+			result.reason ? result.reason : "unknown");
+	}
 	return 0;
 }
 
@@ -3178,6 +3130,19 @@ static bool g_bSafeCVarIteratorInstalled = false;
 static bool g_bWarnedNullConVar = false;
 using CVarIteratorGetFn = ConCommandBase* (*)(void*);
 
+static ConCommandBase* GetNullCVarIteratorFallback()
+{
+	// This HolyLib-owned ConVar is constructed with flags=0 at file scope. A
+	// zero-flag entry is rejected by every non-zero Host_* flag query, unlike the
+	// engine's "developer" ConVar whose non-replicated flags can legitimately
+	// match other global iterator consumers hooked through the same Get method.
+	ConCommandBase* pFallback = &gameserver_disablespawnsafety;
+	if (pFallback->IsCommand() || pFallback->GetFlags() != 0)
+		return nullptr;
+
+	return pFallback;
+}
+
 /*
  * sourcesdk-minimal still declares ICVarIteratorInternal without its virtual
  * destructor. GMod 260709 has the destructor, shifting SetFirst/Next/IsValid/Get
@@ -3257,8 +3222,8 @@ static ConCommandBase* hook_CVarIterator_Get(void* pIterator)
 	if (pCommand)
 		return pCommand;
 
-	ConCommandBase* pFallback = g_pCVar ? g_pCVar->FindCommandBase("developer") : nullptr;
-	if (!pFallback || pFallback->IsCommand() || pFallback->IsFlagSet(FCVAR_REPLICATED))
+	ConCommandBase* pFallback = GetNullCVarIteratorFallback();
+	if (!pFallback)
 		return nullptr;
 
 	if (!g_bWarnedNullConVar)
@@ -3773,207 +3738,651 @@ public:
 	INetMessageHandler *m_pMessageHandler;
 };
 
-/*
- * Moving a entire CGameClient into another CGameClient to hopefully not make the engine too angry.
- * This is required to preserve the logic of m_nEntityIndex = m_nClientSlot + 1
- * We don't copy everything, like the baseline and such.
- *
- * Current State: It works
- * Previous Bugs:
- * - The Client's LocalPlayer is a NULL Entity.....
- */
-static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target)
+static std::unordered_set<CGameClient*> g_PromotingQueueClients;
+static bool g_bQueuePromotionSlotTableCorrupt = false;
+
+static QueuePromotionResult QueuePromotionFailure(const char* reason, bool retryable = false, int newSlot = -1)
 {
-	if (g_pGameServerModule.InDebug())
-		Msg(PROJECT_NAME ": Reassigned client to from slot %i to %i\n", origin->m_nClientSlot, target->m_nClientSlot);
+	return { false, retryable, newSlot, reason };
+}
 
-	target->Inactivate();
-	target->Clear();
+static QueuePromotionResult QueuePromotionSuccess(int newSlot)
+{
+	return { true, false, newSlot, nullptr };
+}
 
-	/*
-	 * NOTE: This will fire the player_connect and player_connect_client gameevents.
-	 * BUG: Their Name will have (1) at the beginning because of some funny engine behavior.
-	 */
-	target->Connect( origin->m_Name, origin->m_UserID, origin->m_NetChannel, origin->m_bFakePlayer, origin->m_clientChallenge );
+static bool IsRegisteredQueueClient(CGameClient* candidate)
+{
+	if (!candidate)
+		return false;
 
-	/*
-	 * Basic CBaseClient::Connect setup
-	 */
-
-	//target->m_ConVars = origin->m_ConVars;
-	//target->m_bInitialConVarsSet = origin->m_bInitialConVarsSet;
-	//target->m_UserID = origin->m_UserID;
-	//target->m_bFakePlayer = origin->m_bFakePlayer;
-	//target->m_NetChannel = origin->m_NetChannel;
-	//target->m_clientChallenge = origin->m_clientChallenge;
-	//target->edict = Util::engineserver->PEntityOfEntIndex( target->m_nEntityIndex );
-	//target->m_PackInfo.m_pClientEnt = target->edict;
-	//target->m_PackInfo.m_nPVSSize = sizeof( target->m_PackInfo.m_PVS );
-
-	target->SetName( origin->m_Name ); // Required thingy
-	target->m_nSignonState = origin->m_nSignonState;
-
-	/*
-	 * Copy over other things
-	 */
-
-	//for (int i = 0; i < MAX_CUSTOM_FILES; ++i)
-	//	target->m_nCustomFiles[i] = origin->m_nCustomFiles[i];
-
-	target->m_SteamID = origin->m_SteamID;
-	target->m_nFriendsID = origin->m_nFriendsID;
-	target->m_nFilesDownloaded = origin->m_nFilesDownloaded;
-	target->m_nSignonTick = origin->m_nSignonTick;
-	target->m_nStringTableAckTick = origin->m_nStringTableAckTick;
-	target->m_nDeltaTick = origin->m_nDeltaTick;
-	target->m_nSendtableCRC = origin->m_nSendtableCRC;
-	target->m_fNextMessageTime = origin->m_fNextMessageTime;
-	target->m_fSnapshotInterval = origin->m_fSnapshotInterval;
-	target->m_nForceWaitForTick = origin->m_nForceWaitForTick;
-	target->m_bReportFakeClient = origin->m_bReportFakeClient;
-	target->m_bReceivedPacket = origin->m_bReceivedPacket;
-	target->m_bFullyAuthenticated = origin->m_bFullyAuthenticated;
-	target->m_OwnerSteamID = origin->m_OwnerSteamID;
-
-	memcpy(target->m_FriendsName, origin->m_FriendsName, sizeof(origin->m_FriendsName));
-	memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));
-
-	target->m_fTimeLastNameChange = origin->m_fTimeLastNameChange;
-	memcpy(target->m_szPendingNameChange, origin->m_szPendingNameChange, sizeof(origin->m_szPendingNameChange));
-
-	/*
-	 * Update CNetChan and CNetMessage's properly to not crash.
-	 */
-
-	// NCG: guard the netchannel deref. origin->m_NetChannel is handed to target
-	// via Connect() above; if the origin was a queue client in a transient
-	// half-connected state its channel can be NULL, and dereferencing
-	// chan->m_MessageHandler segfaults. The SpawnPlayer detour below refuses a
-	// null-channel client before reaching here, but MoveCGameClientIntoCGameClient
-	// is also reachable via the MoveIntoClient Lua binding, so guard defensively.
-	CNetChan* chan = (CNetChan*)target->m_NetChannel;
-	if (chan)
+	for (CGameClient* queueClient : g_pQueueClients)
 	{
-		chan->m_MessageHandler = (INetChannelHandler*)target;
+		if (queueClient == candidate)
+			return true;
+	}
 
-		FOR_EACH_VEC(chan->m_NetMessages, i)
+	return false;
+}
+
+static QueuePromotionResult ValidateQueuePromotionSource(CGameClient* origin)
+{
+	if (!Util::server || !Util::server->IsActive() || !gpGlobals)
+		return QueuePromotionFailure("server_inactive");
+
+	if (g_bClientLayoutMismatch)
+		return QueuePromotionFailure("layout_mismatch");
+
+	// Establish ownership by pointer identity before any source dereference.
+	if (!IsRegisteredQueueClient(origin))
+		return QueuePromotionFailure("not_queue_client");
+
+	if (origin->GetServer() != Util::server || origin->GetServer()->IsHLTV() || origin->IsHLTV() || origin->IsFakeClient())
+		return QueuePromotionFailure("not_queue_client");
+
+	if (origin->m_nClientSlot < gpGlobals->maxClients ||
+		origin->m_nClientSlot < 0 || origin->m_nClientSlot >= ABSOLUTE_PLAYER_LIMIT)
+	{
+		return QueuePromotionFailure("invalid_queue_slot");
+	}
+
+	if (!origin->IsConnected())
+		return QueuePromotionFailure("source_not_connected");
+
+	if (!origin->m_NetChannel)
+		return QueuePromotionFailure("source_no_netchannel");
+
+	// Lua blocks the requested PRESPAWN transition before the engine commits it,
+	// so a legitimately parked client may still report CONNECTED or NEW here.
+	if (origin->m_nSignonState < SIGNONSTATE_CONNECTED ||
+		origin->m_nSignonState > SIGNONSTATE_PRESPAWN)
+	{
+		return QueuePromotionFailure("source_wrong_signon_state");
+	}
+
+	// A reconnect can leave the same authenticated Steam identity represented
+	// by both a parked queue source and an in-flight real-slot client. Never
+	// commit a second real-slot owner; Lua deliberately treats this as final and
+	// drops the duplicate queue entry.
+	CBaseServer* server = (CBaseServer*)Util::server;
+	const int realClientCount = MIN(server->m_Clients.Count(), gpGlobals->maxClients);
+	for (int i = 0; i < realClientCount; ++i)
+	{
+		CBaseClient* realClient = (CBaseClient*)server->GetClient(i);
+		if (realClient && realClient != origin && realClient->IsConnected() &&
+			realClient->m_SteamID == origin->m_SteamID)
 		{
-			CExtendedNetMessage* msg = (CExtendedNetMessage*)chan->m_NetMessages[i];
-			if (!msg)
-				continue;
-
-			msg->m_pMessageHandler = target;
-
-			if (msg->GetType() == clc_CmdKeyValues)
-			{
-				Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
-				if (keyVal->m_pKeyValues)
-				{
-					keyVal->m_pKeyValues = nullptr; // Will leak memory but we can't safely delete it currently.
-					// ToDo: Fix this small memory leak.
-				}
-			}
+			return QueuePromotionFailure("steamid_already_in_real_slot", false,
+				realClient->m_nClientSlot);
 		}
 	}
 
-	/*
-	 * Nuke the origin client
-	 */
-
-	origin->m_NetChannel = nullptr; // Nuke the net channel or else it might touch it.
-	//origin->m_ConVars = nullptr; // Same here
-	// Normally detached on the first CONNECTED acknowledgement. Repeat at the
-	// retirement boundary as defense against raw/manual sign-on manipulation.
-	DetachParkedQueueClientEdict(origin);
-	origin->Inactivate();
-	origin->Clear();
-
-	if (Lua::PushHook("HolyLib:OnPlayerChangedSlot"))
-	{
-		g_Lua->PushNumber(origin->m_nClientSlot);
-		g_Lua->PushNumber(target->m_nClientSlot);
-		g_Lua->CallFunctionProtected(3, 0, true);
-	}
-
-	/*
-	 * target->Connect() above fires the player_connect gameevents - Lua runs
-	 * synchronously in that window (and again in the hook right here) and can tear
-	 * either client down (dup-SteamID kicks & co). If the handed-over channel died,
-	 * hook_CNetChan_D2 has scrubbed our pointers - don't touch the dead client
-	 * any further.
-	 */
-	if (!target->m_NetChannel)
-	{
-		Warning(PROJECT_NAME " - gameserver: relocation target lost its netchannel mid-move! Skipping post-move client update.\n");
-		return;
-	}
-
-	/*
-	 * Update Client about it's playerSlot or else it will see the wrong entity as it's local player.
-	 */
-
-	SVC_ServerInfo info;
-	CBaseServer* pServer = (CBaseServer*)target->GetServer();
-	pServer->FillServerInfo(info);
-
-	info.m_nPlayerSlot = target->m_nClientSlot;
-
-	target->SendNetMsg(info, true);
-
-	/*
-	 * Reconnecting the client to let it go through the loading process again since it became unstable when we sent the ServerInfo.
-	 */
-
-	target->Reconnect();
+	return { true, false, -1, nullptr };
 }
 
-static int FindFreeClientSlot()
+static QueuePromotionResult LatchSlotTableCorruption(
+	int index,
+	CBaseClient* client,
+	const char* detail,
+	int newSlot = -1
+)
 {
-	int nextFreeEntity = ABSOLUTE_PLAYER_LIMIT;
-	int count = Util::server->GetClientCount();
-	if (count > gpGlobals->maxClients)
-		count = gpGlobals->maxClients;
-
-	for (int iClientIndex=0; iClientIndex<count; ++iClientIndex)
+	g_bQueuePromotionSlotTableCorrupt = true;
+	if (client)
 	{
-		CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
-
-		if (pClient->m_nSignonState != SIGNONSTATE_NONE)
-			continue;
-
-		if (pClient->m_nEntityIndex < nextFreeEntity)
-			nextFreeEntity = pClient->m_nEntityIndex;
+		Warning(PROJECT_NAME " - gameserver: slot table corrupt at index %i: client=%p slot=%i entity=%i (%s); queue promotion disabled until full restart\n",
+			index, (void*)client, client->m_nClientSlot, client->m_nEntityIndex, detail);
+	} else {
+		Warning(PROJECT_NAME " - gameserver: slot table corrupt at index %i: NULL client (%s); queue promotion disabled until full restart\n",
+			index, detail);
 	}
 
-	// We didn't fully fill yet soo the server has an free slot yet no allocated CGameClient
-	// ToDo:
-	// Consider if we want to just always call GetFreeClient instead of iterating ourselves.
-	// This was done originally like this, as the original queue implementation mixed server game clients and queue clients into the same list.
-	if (count < gpGlobals->maxClients && nextFreeEntity > MAX_PLAYERS)
-	{
-		CBaseServer* pServer = (CBaseServer*)Util::server;
+	return QueuePromotionFailure("slot_table_corrupt", false, newSlot);
+}
 
-		// We must fill the adr with some random stuff just to avoid that any fake clients may be falsely kicked
+static QueuePromotionResult ValidateRealClientSlotTable()
+{
+	if (g_bQueuePromotionSlotTableCorrupt)
+		return QueuePromotionFailure("slot_table_corrupt");
+
+	if (!Util::server || !Util::server->IsActive() || !gpGlobals)
+		return QueuePromotionFailure("server_inactive");
+
+	CBaseServer* server = (CBaseServer*)Util::server;
+	if (server->m_Clients.Count() > gpGlobals->maxClients)
+	{
+		return LatchSlotTableCorruption(
+			gpGlobals->maxClients,
+			server->m_Clients[gpGlobals->maxClients],
+			"m_Clients contains objects beyond the real-slot range"
+		);
+	}
+
+	const int count = MIN(server->m_Clients.Count(), gpGlobals->maxClients);
+	for (int i = 0; i < count; ++i)
+	{
+		CBaseClient* client = server->m_Clients[i];
+		if (!client)
+			return LatchSlotTableCorruption(i, nullptr, "missing real-slot object");
+
+		if (client->m_nClientSlot != i)
+			return LatchSlotTableCorruption(i, client, "m_nClientSlot != array index");
+
+		if (client->m_nEntityIndex != i + 1)
+			return LatchSlotTableCorruption(i, client, "m_nEntityIndex != array index + 1");
+
+		if ((CBaseClient*)server->GetClient(i) != client)
+			return LatchSlotTableCorruption(i, client, "IServer lookup disagrees with m_Clients");
+	}
+
+	return { true, false, -1, nullptr };
+}
+
+static bool IsFreeRealClientTarget(CGameClient* target)
+{
+	if (!target || !Util::server || !gpGlobals)
+		return false;
+
+	CBaseServer* server = (CBaseServer*)Util::server;
+	const int slot = target->m_nClientSlot;
+	if (target->GetServer() != Util::server || target->GetServer()->IsHLTV() ||
+		slot < 0 || slot >= gpGlobals->maxClients || slot >= server->m_Clients.Count())
+	{
+		return false;
+	}
+
+	if (server->m_Clients[slot] != target || target->m_nEntityIndex != slot + 1)
+		return false;
+
+	return target->m_nSignonState == SIGNONSTATE_NONE &&
+		!target->IsConnected() &&
+		target->m_NetChannel == nullptr &&
+		!target->IsHLTV() &&
+		!target->IsFakeClient();
+}
+
+class ScopedFreeClientLookupFlags
+{
+public:
+	ScopedFreeClientLookupFlags() :
+		m_OldNoQueueLookup(g_bNoQueueLookup),
+		m_OldDontRunLua(g_bDontRunLuaInFreeClient)
+	{
+		g_bNoQueueLookup = true;
+		g_bDontRunLuaInFreeClient = true;
+	}
+
+	~ScopedFreeClientLookupFlags()
+	{
+		g_bNoQueueLookup = m_OldNoQueueLookup;
+		g_bDontRunLuaInFreeClient = m_OldDontRunLua;
+	}
+
+private:
+	bool m_OldNoQueueLookup;
+	bool m_OldDontRunLua;
+};
+
+static CGameClient* FindSafeFreeRealClientSlot(const char** reason)
+{
+	if (reason)
+		*reason = nullptr;
+
+	const QueuePromotionResult tableResult = ValidateRealClientSlotTable();
+	if (!tableResult.ok)
+	{
+		if (reason)
+			*reason = tableResult.reason;
+		return nullptr;
+	}
+
+	CBaseServer* server = (CBaseServer*)Util::server;
+	int count = MIN(server->m_Clients.Count(), gpGlobals->maxClients);
+	for (int i = 0; i < count; ++i)
+	{
+		CGameClient* target = (CGameClient*)server->m_Clients[i];
+		if (IsFreeRealClientTarget(target))
+			return target;
+	}
+
+	if (server->m_Clients.Count() < gpGlobals->maxClients)
+	{
+		if (!detour_CBaseServer_GetFreeClient.IsEnabled())
+		{
+			if (reason)
+				*reason = "get_free_client_unavailable";
+			return nullptr;
+		}
+
+		// Ask the original engine implementation to allocate the next real-slot
+		// object. The scoped flags are still set as defence in depth if an engine
+		// branch re-enters GetFreeClient; every exit restores their prior values.
 		netadrnew_s adr;
 		adr.SetType(netadrtype_t::NA_IP);
 		adr.SetIP(127, 0, 0, 1);
 		adr.SetPort(count);
 
-		// We call GetFreeClient as it will create a new CGameClient as no slots are free
-		g_bDontRunLuaInFreeClient = true; // Don't let lua mess with us!
-		g_bNoQueueLookup = true; // Don't return queue slots
-		CBaseClient* pClient = pServer->GetFreeClient(*((netadr_t*)&adr));
-		g_bNoQueueLookup = false;
-		g_bDontRunLuaInFreeClient = false;
-		if (pClient)
-			nextFreeEntity = pClient->m_nEntityIndex;
+		CBaseClient* created = nullptr;
+		{
+			ScopedFreeClientLookupFlags guard;
+			created = detour_CBaseServer_GetFreeClient.GetTrampoline<Symbols::CBaseServer_GetFreeClient>()(
+				server,
+				*((netadr_t*)&adr)
+			);
+		}
+
+		const QueuePromotionResult postCreateTableResult = ValidateRealClientSlotTable();
+		if (!postCreateTableResult.ok)
+		{
+			if (reason)
+				*reason = postCreateTableResult.reason;
+			return nullptr;
+		}
+
+		CGameClient* target = (CGameClient*)created;
+		if (!target)
+		{
+			if (reason)
+				*reason = "no_free_slot";
+			return nullptr;
+		}
+
+		if (!IsFreeRealClientTarget(target))
+		{
+			Warning(PROJECT_NAME " - gameserver: target_not_free after real-slot allocation (target=%p slot=%i entity=%i signon=%i connected=%i channel=%p)\n",
+				(void*)target,
+				target->m_nClientSlot,
+				target->m_nEntityIndex,
+				target->m_nSignonState,
+				target->IsConnected() ? 1 : 0,
+				(void*)target->m_NetChannel);
+			if (reason)
+				*reason = "target_not_free";
+			return nullptr;
+		}
+
+		return target;
 	}
 
-	return nextFreeEntity;
+	if (reason)
+		*reason = "no_free_slot";
+	return nullptr;
+}
+
+struct QueueClientTransferState
+{
+	char name[MAX_PLAYER_NAME_LENGTH];
+	char networkID[64];
+	char friendsName[MAX_PLAYER_NAME_LENGTH];
+	char guid[SIGNED_GUID_LEN + 1];
+	char pendingNameChange[MAX_PLAYER_NAME_LENGTH];
+	int userID;
+	int clientChallenge;
+	int signonState;
+	int filesDownloaded;
+	int signonTick;
+	int stringTableAckTick;
+	int deltaTick;
+	int forceWaitForTick;
+	uint32 friendsID;
+	CRC32_t sendtableCRC;
+	double nextMessageTime;
+	double timeLastNameChange;
+	float snapshotInterval;
+	bool fakePlayer;
+	bool reportFakeClient;
+	bool receivedPacket;
+	bool fullyAuthenticated;
+	CSteamID steamID;
+	CSteamID ownerSteamID;
+	INetChannel* channel;
+};
+
+static QueueClientTransferState CaptureQueueClientTransferState(CGameClient* origin)
+{
+	QueueClientTransferState state = {};
+	memcpy(state.name, origin->m_Name, sizeof(state.name));
+	state.name[sizeof(state.name) - 1] = '\0';
+	const char* networkID = origin->GetNetworkIDString();
+	strncpy(state.networkID, networkID ? networkID : "", sizeof(state.networkID));
+	state.networkID[sizeof(state.networkID) - 1] = '\0';
+	memcpy(state.friendsName, origin->m_FriendsName, sizeof(state.friendsName));
+	memcpy(state.guid, origin->m_GUID, sizeof(state.guid));
+	memcpy(state.pendingNameChange, origin->m_szPendingNameChange, sizeof(state.pendingNameChange));
+	state.userID = origin->m_UserID;
+	state.clientChallenge = origin->m_clientChallenge;
+	state.signonState = origin->m_nSignonState;
+	state.filesDownloaded = origin->m_nFilesDownloaded;
+	state.signonTick = origin->m_nSignonTick;
+	state.stringTableAckTick = origin->m_nStringTableAckTick;
+	state.deltaTick = origin->m_nDeltaTick;
+	state.forceWaitForTick = origin->m_nForceWaitForTick;
+	state.friendsID = origin->m_nFriendsID;
+	state.sendtableCRC = origin->m_nSendtableCRC;
+	state.nextMessageTime = origin->m_fNextMessageTime;
+	state.timeLastNameChange = origin->m_fTimeLastNameChange;
+	state.snapshotInterval = origin->m_fSnapshotInterval;
+	state.fakePlayer = origin->m_bFakePlayer;
+	state.reportFakeClient = origin->m_bReportFakeClient;
+	state.receivedPacket = origin->m_bReceivedPacket;
+	state.fullyAuthenticated = origin->m_bFullyAuthenticated;
+	state.steamID = origin->m_SteamID;
+	state.ownerSteamID = origin->m_OwnerSteamID;
+	state.channel = origin->m_NetChannel;
+	return state;
+}
+
+class ScopedQueuePromotion
+{
+public:
+	explicit ScopedQueuePromotion(CGameClient* origin) : m_Origin(origin)
+	{
+		g_PromotingQueueClients.insert(origin);
+	}
+
+	~ScopedQueuePromotion()
+	{
+		g_PromotingQueueClients.erase(m_Origin);
+	}
+
+private:
+	CGameClient* m_Origin;
+};
+
+static void DebugQueuePromotion(
+	const QueuePromotionResult& result,
+	CGameClient* origin,
+	CGameClient* target,
+	const QueueClientTransferState* state = nullptr
+)
+{
+	if (!g_pGameServerModule.InDebug())
+		return;
+
+	const bool sourceKnown = IsRegisteredQueueClient(origin);
+	Msg(PROJECT_NAME " - gameserver: queue promotion source=%p slot=%i entity=%i signon=%i userid=%i steamid=%s target=%p slot=%i entity=%i signon=%i status=%s reason=%s retryable=%i\n",
+		(void*)origin,
+		sourceKnown ? origin->m_nClientSlot : -1,
+		sourceKnown ? origin->m_nEntityIndex : -1,
+		state ? state->signonState : (sourceKnown ? origin->m_nSignonState : -1),
+		state ? state->userID : (sourceKnown ? origin->m_UserID : -1),
+		state ? state->networkID : (sourceKnown ? origin->GetNetworkIDString() : "unknown"),
+		(void*)target,
+		target ? target->m_nClientSlot : -1,
+		target ? target->m_nEntityIndex : -1,
+		target ? target->m_nSignonState : -1,
+		result.ok ? "success" : "failure",
+		result.reason ? result.reason : "none",
+		result.retryable ? 1 : 0);
+}
+
+static void RetirePromotedQueueClient(CGameClient* origin)
+{
+	// The target owns the channel and all of its handlers before this function is
+	// called. Nuke the source reference first so Clear cannot touch that channel.
+	origin->m_NetChannel = nullptr;
+
+	// Normally detached on the first CONNECTED acknowledgement. Repeat at the
+	// retirement boundary as defense against raw/manual sign-on manipulation.
+	DetachParkedQueueClientEdict(origin);
+
+	// A queue slot can alias an unrelated map edict. Never invoke Inactivate or
+	// any game-DLL player-removal lifecycle for this reusable parked shell.
+	origin->Clear();
+}
+
+static QueuePromotionResult CommitQueuePromotion(CGameClient* origin, CGameClient* target)
+{
+	QueuePromotionResult sourceResult = ValidateQueuePromotionSource(origin);
+	if (!sourceResult.ok)
+	{
+		DebugQueuePromotion(sourceResult, origin, target);
+		return sourceResult;
+	}
+
+	const int oldSlot = origin->m_nClientSlot;
+	const int newSlot = target->m_nClientSlot;
+	const QueueClientTransferState state = CaptureQueueClientTransferState(origin);
+	ScopedQueuePromotion promotionGuard(origin);
+
+	// Final phase-A checks immediately before the first write. Nothing above has
+	// cleared either object or transferred the channel.
+	if (!IsFreeRealClientTarget(target))
+	{
+		// No source or target field has been changed yet, so Lua may safely restore
+		// this exact queue source at its original position.
+		const QueuePromotionResult result = QueuePromotionFailure("target_not_free", true, newSlot);
+		Warning(PROJECT_NAME " - gameserver: target_not_free after queue promotion selection (source=%p slot=%i target=%p slot=%i)\n",
+			(void*)origin, oldSlot, (void*)target, newSlot);
+		DebugQueuePromotion(result, origin, target, &state);
+		return result;
+	}
+
+	if (origin->m_NetChannel != state.channel || !state.channel)
+	{
+		const QueuePromotionResult result = QueuePromotionFailure("source_no_netchannel");
+		DebugQueuePromotion(result, origin, target, &state);
+		return result;
+	}
+
+	// Phase B starts here. target is a verified empty real slot; invoking the
+	// game-DLL-facing Inactivate path on it is unnecessary and unsafe.
+	target->Clear();
+	target->Connect(state.name, state.userID, state.channel, state.fakePlayer, state.clientChallenge);
+
+	// Connect synchronously fires game events/Lua. The channel destructor hook
+	// scrubs both clients if those callbacks disconnect it, so compare before any
+	// channel dereference.
+	if (!target->m_NetChannel || target->m_NetChannel != state.channel)
+	{
+		const QueuePromotionResult result = QueuePromotionFailure("channel_lost_during_promotion", false, newSlot);
+		Warning(PROJECT_NAME " - gameserver: channel_lost_during_promotion after Connect (source=%p slot=%i target=%p slot=%i)\n",
+			(void*)origin, oldSlot, (void*)target, newSlot);
+		DebugQueuePromotion(result, origin, target, &state);
+		return result;
+	}
+
+	// Connect has attached the saved channel to target. Rebind every handler
+	// immediately, before any later post-commit validation can return: once the
+	// target owns the channel, no live message may continue dispatching through
+	// the queue source that will be cleared below.
+	CNetChan* chan = (CNetChan*)target->m_NetChannel;
+	chan->m_MessageHandler = (INetChannelHandler*)target;
+	FOR_EACH_VEC(chan->m_NetMessages, i)
+	{
+		CExtendedNetMessage* msg = (CExtendedNetMessage*)chan->m_NetMessages[i];
+		if (!msg)
+			continue;
+
+		msg->m_pMessageHandler = target;
+		if (msg->GetType() == clc_CmdKeyValues)
+		{
+			Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
+			if (keyVal->m_pKeyValues)
+			{
+				// Ownership cannot be proven after the handler move; retaining the
+				// existing defensive null avoids a double free at the cost of the
+				// same small leak as the legacy path.
+				keyVal->m_pKeyValues = nullptr;
+			}
+		}
+	}
+
+	if (target->m_nClientSlot != newSlot || target->m_nEntityIndex != newSlot + 1)
+	{
+		const QueuePromotionResult result = LatchSlotTableCorruption(newSlot, target, "target mapping changed during Connect", newSlot);
+		// Connect already attached the saved channel to target, so consume only
+		// the parked shell. Never invoke its aliased-edict Inactivate path.
+		RetirePromotedQueueClient(origin);
+		DebugQueuePromotion(result, origin, target, &state);
+		return result;
+	}
+
+	// Preserve the identity/authentication state that belongs to the connection.
+	// Connect establishes the target object's slot-local resources; these fields
+	// keep Steam auth, downloads, name-change policy and ownership attached to the
+	// same human across the handoff.
+	target->SetName(state.name);
+	target->m_SteamID = state.steamID;
+	target->m_nFriendsID = state.friendsID;
+	memcpy(target->m_FriendsName, state.friendsName, sizeof(state.friendsName));
+	memcpy(target->m_GUID, state.guid, sizeof(state.guid));
+	target->m_nFilesDownloaded = state.filesDownloaded;
+	target->m_nSendtableCRC = state.sendtableCRC;
+	target->m_bReportFakeClient = state.reportFakeClient;
+	target->m_bReceivedPacket = state.receivedPacket;
+	target->m_bFullyAuthenticated = state.fullyAuthenticated;
+	target->m_OwnerSteamID = state.ownerSteamID;
+	target->m_fTimeLastNameChange = state.timeLastNameChange;
+	memcpy(target->m_szPendingNameChange, state.pendingNameChange, sizeof(state.pendingNameChange));
+
+	// Preserve the existing, production-proven signon cursor set. Reconnect below
+	// restarts the client handshake, while these values keep its pre-reconnect
+	// delta/string-table acknowledgement and send cadence coherent until that
+	// transition is processed. Baselines/snapshots remain target-slot-local and
+	// are intentionally not copied.
+	target->m_nSignonState = state.signonState;
+	target->m_nSignonTick = state.signonTick;
+	target->m_nStringTableAckTick = state.stringTableAckTick;
+	target->m_nDeltaTick = state.deltaTick;
+	target->m_fNextMessageTime = state.nextMessageTime;
+	target->m_fSnapshotInterval = state.snapshotInterval;
+	target->m_nForceWaitForTick = state.forceWaitForTick;
+
+	// The handoff is committed. A parked queue source may alias a map edict, so
+	// never route it through Inactivate/game-DLL player cleanup. It remains in
+	// g_pQueueClients as a disconnected object for GetFreeQueueClient to reuse.
+	RetirePromotedQueueClient(origin);
+
+	if (Lua::PushHook("HolyLib:OnPlayerChangedSlot"))
+	{
+		g_Lua->PushNumber(oldSlot);
+		g_Lua->PushNumber(newSlot);
+		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	if (!target->m_NetChannel || target->m_NetChannel != state.channel)
+	{
+		const QueuePromotionResult result = QueuePromotionFailure("channel_lost_during_promotion", false, newSlot);
+		Warning(PROJECT_NAME " - gameserver: channel_lost_during_promotion after slot-change hook (source=%p slot=%i target=%p slot=%i)\n",
+			(void*)origin, oldSlot, (void*)target, newSlot);
+		DebugQueuePromotion(result, origin, target, &state);
+		return result;
+	}
+
+	SVC_ServerInfo info;
+	CBaseServer* server = (CBaseServer*)target->GetServer();
+	server->FillServerInfo(info);
+	info.m_nPlayerSlot = newSlot;
+	if (!target->SendNetMsg(info, true))
+	{
+		const QueuePromotionResult result = QueuePromotionFailure("send_server_info_failed", false, newSlot);
+		Warning(PROJECT_NAME " - gameserver: send_server_info_failed during queue promotion (source=%p slot=%i target=%p slot=%i)\n",
+			(void*)origin, oldSlot, (void*)target, newSlot);
+		DebugQueuePromotion(result, origin, target, &state);
+		return result;
+	}
+
+	// SendNetMsg can synchronously overflow or tear down the channel. Do not
+	// enter Reconnect with a channel pointer that the destructor sweep removed.
+	if (!target->m_NetChannel || target->m_NetChannel != state.channel)
+	{
+		const QueuePromotionResult result = QueuePromotionFailure("channel_lost_during_promotion", false, newSlot);
+		Warning(PROJECT_NAME " - gameserver: channel_lost_during_promotion after ServerInfo send (source=%p slot=%i target=%p slot=%i)\n",
+			(void*)origin, oldSlot, (void*)target, newSlot);
+		DebugQueuePromotion(result, origin, target, &state);
+		return result;
+	}
+
+	target->Reconnect();
+	if (!target->m_NetChannel || target->m_NetChannel != state.channel)
+	{
+		const QueuePromotionResult result = QueuePromotionFailure("channel_lost_during_promotion", false, newSlot);
+		Warning(PROJECT_NAME " - gameserver: channel_lost_during_promotion after Reconnect (source=%p slot=%i target=%p slot=%i)\n",
+			(void*)origin, oldSlot, (void*)target, newSlot);
+		DebugQueuePromotion(result, origin, target, &state);
+		return result;
+	}
+
+	const QueuePromotionResult result = QueuePromotionSuccess(newSlot);
+	DebugQueuePromotion(result, origin, target, &state);
+	return result;
+}
+
+static QueuePromotionResult PromoteQueueClientInternal(CGameClient* origin, CGameClient* requestedTarget)
+{
+	QueuePromotionResult result = ValidateQueuePromotionSource(origin);
+	if (!result.ok)
+	{
+		if (result.reason && strcmp(result.reason, "layout_mismatch") == 0)
+			Warning(PROJECT_NAME " - gameserver: layout_mismatch refused queue promotion\n");
+		DebugQueuePromotion(result, origin, nullptr);
+		return result;
+	}
+
+	if (g_PromotingQueueClients.find(origin) != g_PromotingQueueClients.end())
+	{
+		result = QueuePromotionFailure("promotion_reentrant");
+		DebugQueuePromotion(result, origin, requestedTarget);
+		return result;
+	}
+
+	CGameClient* target = requestedTarget;
+	if (target)
+	{
+		result = ValidateRealClientSlotTable();
+		if (!result.ok)
+		{
+			DebugQueuePromotion(result, origin, target);
+			return result;
+		}
+
+		if (!IsFreeRealClientTarget(target))
+		{
+			result = QueuePromotionFailure("target_not_free", false,
+				target ? target->m_nClientSlot : -1);
+			Warning(PROJECT_NAME " - gameserver: target_not_free for explicit queue promotion (source=%p target=%p)\n",
+				(void*)origin, (void*)target);
+			DebugQueuePromotion(result, origin, target);
+			return result;
+		}
+	} else {
+		const char* reason = nullptr;
+		target = FindSafeFreeRealClientSlot(&reason);
+		if (!target)
+		{
+			// These failures happen before CommitQueuePromotion performs its first
+			// write. Preserve the selected queue source for a later capacity retry.
+			const bool retryable = reason && (
+				strcmp(reason, "no_free_slot") == 0 ||
+				strcmp(reason, "target_not_free") == 0 ||
+				strcmp(reason, "get_free_client_unavailable") == 0
+			);
+			result = QueuePromotionFailure(reason ? reason : "no_free_slot", retryable);
+			if (result.reason && strcmp(result.reason, "target_not_free") == 0)
+			{
+				Warning(PROJECT_NAME " - gameserver: target_not_free after safe-slot allocation (source=%p slot=%i)\n",
+					(void*)origin, origin->m_nClientSlot);
+			}
+			DebugQueuePromotion(result, origin, nullptr);
+			return result;
+		}
+	}
+
+	return CommitQueuePromotion(origin, target);
+}
+
+static QueuePromotionResult PromoteQueueClient(CGameClient* origin)
+{
+	return PromoteQueueClientInternal(origin, nullptr);
+}
+
+static QueuePromotionResult PromoteQueueClientIntoTarget(CGameClient* origin, CGameClient* target)
+{
+	return PromoteQueueClientInternal(origin, target);
 }
 
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
-#if PLATFORM_64BITS
 static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
 	// m_nClientSlot = player slot! (entIndex - 1)
@@ -3983,73 +4392,10 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 		return;
 	}
 
-	// ent index! can be 128!
-	int nextFreeEntity = FindFreeClientSlot();
-	if (nextFreeEntity > gpGlobals->maxClients)
-	{
-		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
-		return;
-	}
-
-	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
-	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
-	{
-		// It really didn't like what we had planned.
-		Warning(PROJECT_NAME ": Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
-		return;
-	}
-
-	// NCG: a queue client can lose its netchannel (mid-disconnect / already nuked)
-	// while still passing IsConnected(). MoveCGameClientIntoCGameClient hands
-	// origin->m_NetChannel to the target slot and then dereferences it unguarded
-	// (target->m_NetChannel->m_MessageHandler = ...) -> segfault. Refuse the spawn;
-	// the ply_queue PendingMoves/RecoverFailedSpawn path re-queues it cleanly.
-	if (!client->m_NetChannel)
-	{
-		Warning(PROJECT_NAME ": Refusing spawn - client has NULL netchannel! (slot %i, uid %i)\n", client->m_nClientSlot, client->GetUserID());
-		return;
-	}
-
-	MoveCGameClientIntoCGameClient(client, pClient);
+	// Legacy callers retain their SpawnPlayer entry point, but queue slots now
+	// share the same fail-closed implementation as PromoteFromQueue.
+	PromoteQueueClient(client);
 }
-#else
-static void hook_CGameClient_SpawnPlayer(CGameClient* client)
-{
-	// m_nClientSlot = player slot! (entIndex - 1)
-	if (client->m_nClientSlot < gpGlobals->maxClients || gameserver_disablespawnsafety.GetBool())
-	{
-		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
-		return;
-	}
-
-	// ent index! can be 128!
-	int nextFreeEntity = FindFreeClientSlot();
-	if (nextFreeEntity > gpGlobals->maxClients)
-	{
-		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
-		return;
-	}
-
-	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
-	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
-	{
-		// It really didn't like what we had planned.
-		Warning(PROJECT_NAME ": Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
-		return;
-	}
-
-	// NCG: see 64-bit variant above — refuse to relocate a client with no
-	// netchannel, which MoveCGameClientIntoCGameClient would dereference unguarded.
-	if (!client->m_NetChannel)
-	{
-		Warning(PROJECT_NAME ": Refusing spawn - client has NULL netchannel! (slot %i, uid %i)\n", client->m_nClientSlot, client->GetUserID());
-		return;
-	}
-
-	MoveCGameClientIntoCGameClient(client, pClient);
-	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
-}
-#endif
 
 // Called by Util from CSteam3Server::NotifyClientDisconnect
 void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
@@ -4245,11 +4591,11 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 #if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
 	void* pHostBuildConVarUpdateMessage = Detour::GetFunction(engine_loader.GetModule(), Symbols::Host_BuildConVarUpdateMessageSym);
-	ConCommandBase* pIteratorFallback = g_pCVar ? g_pCVar->FindCommandBase("developer") : nullptr;
+	ConCommandBase* pIteratorFallback = GetNullCVarIteratorFallback();
 	CX64CVarIterator260709 pIterator(g_pCVar);
 	void* pIteratorGet = pIterator.GetMethod(5);
 	if (!pHostBuildConVarUpdateMessage || !pIterator.IsAvailable() || !pIteratorGet ||
-		!pIteratorFallback || pIteratorFallback->IsCommand() || pIteratorFallback->IsFlagSet(FCVAR_REPLICATED))
+		!pIteratorFallback)
 	{
 		g_bClientLayoutMismatch = true;
 		Warning(PROJECT_NAME " - gameserver: could not verify the x86-64 ConVar iterator ABI - queue-client parking DISABLED!\n");
