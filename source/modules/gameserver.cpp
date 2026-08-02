@@ -693,6 +693,101 @@ LUA_FUNCTION_STATIC(CBaseClient_HasNetChannel)
 }
 
 static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target);
+static int FindFreeClientSlot();
+
+/*
+ * Atomically promote the Lua-selected parked client into an empty real slot.
+ * Lua owns queue order; native code owns pointer/slot validation and the
+ * netchannel handoff.  The four return values deliberately distinguish a
+ * retryable capacity race (the source was not touched) from a stale/consumed
+ * source that Lua must discard:
+ *
+ *   true,  newSlot, false, nil
+ *   false, slot|nil, retryable, reason
+ */
+LUA_FUNCTION_STATIC(CBaseClient_PromoteFromQueue)
+{
+	auto Fail = [LUA](int nSlot, bool bRetryable, const char* pReason)
+	{
+		LUA->PushBool(false);
+		if (nSlot >= 0)
+			LUA->PushNumber(nSlot);
+		else
+			LUA->PushNil();
+		LUA->PushBool(bRetryable);
+		LUA->PushString(pReason);
+		return 4;
+	};
+
+	// Ignore IsValid() initially: it is based on IsConnected(), while this API
+	// must return a structured failure for a stale userdata instead of throwing.
+	CBaseClient* pSource = Get_CBaseClient(LUA, 1, false, true);
+	if (!pSource)
+		return Fail(-1, false, "invalid_source");
+
+	// Establish ownership by pointer identity before dereferencing the source.
+	// A userdata from a cleared/reused real slot is not a promotion candidate.
+	auto pQueueIt = std::find(g_pQueueClients.begin(), g_pQueueClients.end(), (CGameClient*)pSource);
+	if (pQueueIt == g_pQueueClients.end())
+		return Fail(-1, false, "source_not_in_queue_pool");
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	if (!pServer || !pServer->IsActive() || !gpGlobals)
+		return Fail(-1, false, "server_unavailable");
+	if (g_bClientLayoutMismatch)
+		return Fail(-1, false, "queue_parking_disabled");
+	if (pServer->m_Clients.Find(pSource) != -1)
+		return Fail(pSource->m_nClientSlot, false, "source_already_in_server_pool");
+	if (pSource->GetServer() != pServer || !IsParkedQueueClient(pSource))
+		return Fail(pSource->m_nClientSlot, false, "source_not_parked");
+	if (pSource->m_nClientSlot >= ABSOLUTE_PLAYER_LIMIT)
+		return Fail(pSource->m_nClientSlot, false, "source_slot_out_of_range");
+	if (!pSource->IsConnected() || pSource->IsFakeClient() || pSource->GetServer()->IsHLTV())
+		return Fail(pSource->m_nClientSlot, false, "source_not_connected_human");
+	if (pSource->m_nSignonState < SIGNONSTATE_CONNECTED || pSource->m_nSignonState > SIGNONSTATE_PRESPAWN)
+		return Fail(pSource->m_nClientSlot, false, "source_signon_state_invalid");
+	if (!pSource->m_NetChannel)
+		return Fail(pSource->m_nClientSlot, false, "source_missing_netchannel");
+
+	// A queue userdata must never be promoted if the same authenticated Steam
+	// identity already owns a real client.  Lua checks CBasePlayers too, but the
+	// native scan also covers in-flight real-slot loaders.
+	const int nRealClientCount = min(pServer->GetClientCount(), gpGlobals->maxClients);
+	for (int i = 0; i < nRealClientCount; ++i)
+	{
+		CBaseClient* pRealClient = (CBaseClient*)pServer->GetClient(i);
+		if (pRealClient && pRealClient != pSource && pRealClient->IsConnected() &&
+			pRealClient->m_SteamID == pSource->m_SteamID)
+			return Fail(pRealClient->m_nClientSlot, false, "steamid_already_in_real_slot");
+	}
+
+	const int nTargetEntity = FindFreeClientSlot();
+	if (nTargetEntity <= 0 || nTargetEntity > gpGlobals->maxClients)
+		return Fail(-1, true, "no_free_real_slot");
+
+	CGameClient* pTarget = (CGameClient*)Util::GetClientByIndex(nTargetEntity - 1);
+	if (!pTarget || pTarget == pSource || pServer->m_Clients.Find(pTarget) == -1)
+		return Fail(nTargetEntity - 1, true, "target_not_owned_by_server");
+	if (pTarget->m_nClientSlot != nTargetEntity - 1 || pTarget->m_nClientSlot >= gpGlobals->maxClients)
+		return Fail(nTargetEntity - 1, true, "target_slot_mismatch");
+	if (pTarget->m_nSignonState != SIGNONSTATE_NONE || pTarget->IsConnected())
+		return Fail(pTarget->m_nClientSlot, true, "target_slot_became_occupied");
+
+	const int nNewSlot = pTarget->m_nClientSlot;
+	MoveCGameClientIntoCGameClient((CGameClient*)pSource, pTarget);
+
+	// Connect/gameevent Lua can synchronously tear down the handed-off channel.
+	// At that point the queue source is already consumed, so failure is final.
+	if (!pTarget->m_NetChannel)
+		return Fail(nNewSlot, false, "target_lost_netchannel");
+
+	LUA->PushBool(true);
+	LUA->PushNumber(nNewSlot);
+	LUA->PushBool(false);
+	LUA->PushNil();
+	return 4;
+}
+
 LUA_FUNCTION_STATIC(CBaseClient_MoveIntoClient)
 {
 	Util::DoUnsafeCodeCheck(LUA);
@@ -1107,6 +1202,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient_OnRequestFullUpdate, "OnRequestFullUpdate");
 	Util::AddFunc(pLua, CBaseClient_SetSteamID, "SetSteamID");
 	Util::AddFunc(pLua, CBaseClient_HasNetChannel, "HasNetChannel");
+	Util::AddFunc(pLua, CBaseClient_PromoteFromQueue, "PromoteFromQueue");
 	Util::AddFunc(pLua, CBaseClient_MoveIntoClient, "MoveIntoClient");
 	Util::AddFunc(pLua, CBaseClient_AddToQueueList, "AddToQueueList");
 	Util::AddFunc(pLua, CBaseClient_AddToServerList, "AddToServerList");
