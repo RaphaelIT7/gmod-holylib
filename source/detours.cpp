@@ -45,6 +45,12 @@ static unordered_map<Detouring::Hook*, DetourEntry> pDetourInfo;
 static unordered_map<unsigned int, unordered_set<Detouring::Hook*>> g_pDetours = {};
 void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category, bool bEnable)
 {
+	void* func = Detour::GetFunction(pModule, pSymbol);
+	Detour::CreateAtAddress(pHook, strName, func, pHookFunc, category, bEnable);
+}
+
+void Detour::CreateAtAddress(Detouring::Hook* pHook, const char* strName, void* pTargetFunc, void* pHookFunc, unsigned int category, bool bEnable)
+{
 	if (pDisabledDetours.find(strName) != pDisabledDetours.end())
 	{
 		Msg(PROJECT_NAME ": Detour %s was disabled!\n", strName);
@@ -57,14 +63,13 @@ void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, 
 		// Do not return since that could still break it. Though still warn others!
 	}
 
-	void* func = Detour::GetFunction(pModule, pSymbol);
-	if (!CheckFunction(func, strName))
+	if (!CheckFunction(pTargetFunc, strName))
 		return;
 
-	pHook->Create(func, pHookFunc);
+	pHook->Create(pTargetFunc, pHookFunc);
 
 	if (pDetourInfo.find(pHook) == pDetourInfo.end())
-		pDetourInfo[pHook] = {strName, category, pHookFunc, func};
+		pDetourInfo[pHook] = {strName, category, pHookFunc, pTargetFunc};
 
 	if (!DETOUR_ISVALID((*pHook)))
 	{

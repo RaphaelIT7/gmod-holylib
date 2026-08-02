@@ -771,6 +771,8 @@ namespace Symbols
 	using CCvar_FindCommandBase = ConCommandBase* (GMCOMMON_CALLING_CONVENTION*)(ICvar*, const char* name);
 	extern const std::vector<Symbol> CCvar_FindCommandBaseSym;
 
+	extern const std::vector<Symbol> Host_BuildConVarUpdateMessageSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: AutoRefresh Symbols
 	//---------------------------------------------------------------------------------

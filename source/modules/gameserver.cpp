@@ -3066,10 +3066,114 @@ static void hook_CVEngineServer_GMOD_SendToClient(void* _this, int client, void 
 	pClient->m_NetChannel->SendNetMsg(msg, true, false);
 }
 
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+static Detouring::Hook detour_CVarIterator_Get;
+static bool g_bSafeCVarIteratorInstalled = false;
+static bool g_bWarnedNullConVar = false;
+using CVarIteratorGetFn = ConCommandBase* (*)(void*);
+
+/*
+ * sourcesdk-minimal still declares ICVarIteratorInternal without its virtual
+ * destructor. GMod 260709 has the destructor, shifting SetFirst/Next/IsValid/Get
+ * from vtable slots 0..3 to 2..5. Use the ABI verified in the engine helper we
+ * detour instead of ICvar::Iterator, whose stale declaration would call every
+ * iterator method two slots early.
+ */
+class CX64CVarIterator260709
+{
+public:
+	explicit CX64CVarIterator260709(ICvar* pCVar)
+	{
+		if (!pCVar)
+			return;
+
+		void** pVTable = *reinterpret_cast<void***>(pCVar);
+		m_pIterator = reinterpret_cast<void* (*)(ICvar*)>(pVTable[42])(pCVar); // FactoryInternalIterator @ +0x150
+	}
+
+	~CX64CVarIterator260709()
+	{
+		if (!m_pIterator)
+			return;
+
+		void** pVTable = *reinterpret_cast<void***>(m_pIterator);
+		reinterpret_cast<void (*)(void*)>(pVTable[1])(m_pIterator); // deleting destructor @ +0x08
+	}
+
+	bool IsAvailable() const { return m_pIterator != nullptr; }
+	void* GetMethod(size_t nSlot) const
+	{
+		if (!m_pIterator)
+			return nullptr;
+
+		return (*reinterpret_cast<void***>(m_pIterator))[nSlot];
+	}
+	void SetFirst() { CallVoid(2); }
+	void Next() { CallVoid(3); }
+	bool IsValid() { return Call<bool (*)(void*)>(4, false); }
+	ConCommandBase* Get() { return Call<ConCommandBase* (*)(void*)>(5, (ConCommandBase*)nullptr); }
+
+private:
+	void CallVoid(size_t nSlot)
+	{
+		if (!m_pIterator)
+			return;
+
+		void** pVTable = *reinterpret_cast<void***>(m_pIterator);
+		reinterpret_cast<void (*)(void*)>(pVTable[nSlot])(m_pIterator);
+	}
+
+	template<typename TFn, typename TResult>
+	TResult Call(size_t nSlot, TResult pFallback)
+	{
+		if (!m_pIterator)
+			return pFallback;
+
+		void** pVTable = *reinterpret_cast<void***>(m_pIterator);
+		return reinterpret_cast<TFn>(pVTable[nSlot])(m_pIterator);
+	}
+
+	void* m_pIterator = nullptr;
+};
+
+/*
+ * GMod x86-64's Host_CountVariablesWithFlags and
+ * Host_BuildConVarUpdateMessage share ICvar's factory iterator. Build 260709
+ * can report IsValid() while Get() returns nullptr during a connect burst; both
+ * stock helpers immediately dereference that result. Detour only Get() and
+ * substitute a verified flagless ConVar for a null entry. The engine then
+ * rejects that entry through its normal flag filter while retaining its own
+ * string cleanup, 129-entry batching and bit-buffer serialization unchanged.
+ */
+static ConCommandBase* hook_CVarIterator_Get(void* pIterator)
+{
+	ConCommandBase* pCommand = detour_CVarIterator_Get.GetTrampoline<CVarIteratorGetFn>()(pIterator);
+	if (pCommand)
+		return pCommand;
+
+	ConCommandBase* pFallback = g_pCVar ? g_pCVar->FindCommandBase("developer") : nullptr;
+	if (!pFallback || pFallback->IsCommand() || pFallback->IsFlagSet(FCVAR_REPLICATED))
+		return nullptr;
+
+	if (!g_bWarnedNullConVar)
+	{
+		g_bWarnedNullConVar = true;
+		Warning(PROJECT_NAME " - gameserver: replaced a null ConVar iterator entry while building server info (engine crash prevented)\n");
+	}
+
+	return pFallback;
+}
+#endif
+
 static void SendPendingServerInfos(CBaseServer* pServer)
 {
 	if (g_pQueueClients.empty())
 		return;
+
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	if (!g_bSafeCVarIteratorInstalled)
+		return;
+#endif
 
 	// SendServerInfo can fail internally and Disconnect the client; Lua hooks
 	// running off that may mutate g_pQueueClients - iterate a snapshot.
@@ -3996,6 +4100,32 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader engine_loader("engine");
+
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	void* pHostBuildConVarUpdateMessage = Detour::GetFunction(engine_loader.GetModule(), Symbols::Host_BuildConVarUpdateMessageSym);
+	ConCommandBase* pIteratorFallback = g_pCVar ? g_pCVar->FindCommandBase("developer") : nullptr;
+	CX64CVarIterator260709 pIterator(g_pCVar);
+	void* pIteratorGet = pIterator.GetMethod(5);
+	if (!pHostBuildConVarUpdateMessage || !pIterator.IsAvailable() || !pIteratorGet ||
+		!pIteratorFallback || pIteratorFallback->IsCommand() || pIteratorFallback->IsFlagSet(FCVAR_REPLICATED))
+	{
+		g_bClientLayoutMismatch = true;
+		Warning(PROJECT_NAME " - gameserver: could not verify the x86-64 ConVar iterator ABI - queue-client parking DISABLED!\n");
+	} else {
+		Detour::CreateAtAddress(
+			&detour_CVarIterator_Get, "ICvar::IteratorInternal::Get",
+			pIteratorGet, (void*)hook_CVarIterator_Get, m_pID
+		);
+		if (detour_CVarIterator_Get.IsEnabled())
+		{
+			g_bSafeCVarIteratorInstalled = true;
+			Msg(PROJECT_NAME " - gameserver: installed null-safe x86-64 ConVar iterator for queue sign-on\n");
+		} else {
+			g_bClientLayoutMismatch = true;
+			Warning(PROJECT_NAME " - gameserver: failed to install the x86-64 ConVar iterator guard - queue-client parking DISABLED!\n");
+		}
+	}
+#endif
 
 #if PLATFORM_64BITS
 	/*

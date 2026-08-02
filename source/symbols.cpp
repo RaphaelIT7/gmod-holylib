@@ -976,6 +976,11 @@ namespace Symbols
 		Symbol::FromName("_ZN5CCvar15FindCommandBaseEPKc"),
 	};
 
+	const std::vector<Symbol> Host_BuildConVarUpdateMessageSym = {
+		Symbol::FromName("_Z29Host_BuildConVarUpdateMessageP13NET_SetConVarib"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xFF\x41\x56\x41\x55\x41\x54\x41\x89\xD4\x53\x48\x81\xEC\x88\x02\x00\x00"), // GMod x86-64 260709
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
