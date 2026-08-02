@@ -52,10 +52,12 @@ extern CGlobalVars* gpGlobals;
  * edict to the game DLL's ClientDisconnect path and removes/corrupts an
  * unrelated map entity (observed live with the singleton soundent).
  *
- * Do not clear the parked client's edict while it is held at PRESPAWN. Engine
- * sign-on handlers still use it until the client is promoted. The relocation
- * path clears the alias only at the final retirement boundary, immediately
- * before Inactivate/Clear.
+ * A parked client must keep the alias only until the first CONNECTED sign-on
+ * acknowledgement. Stock CGameClient::SetSignonState would then hand that map
+ * entity to the game DLL's ClientConnect callback. Queue clients are not real
+ * players yet, so the hook below performs only the CBaseClient CONNECTED work
+ * and detaches both edict references before any game-DLL callback can see them.
+ * The real ClientConnect runs after relocation, against the real player edict.
  */
 static bool IsParkedQueueClient(CBaseClient* pCandidate)
 {
@@ -66,6 +68,19 @@ static bool IsParkedQueueClient(CBaseClient* pCandidate)
 	// ownership is the authoritative boundary here: vector membership is only
 	// bookkeeping and can change during re-entrant disconnect/promotion hooks.
 	return pCandidate->m_nClientSlot >= gpGlobals->maxClients;
+}
+
+static void DetachParkedQueueClientEdict(CBaseClient* pCandidate)
+{
+	if (!IsParkedQueueClient(pCandidate))
+		return;
+
+	CGameClient* pClient = (CGameClient*)pCandidate;
+	if (pClient->edict || pClient->m_PackInfo.m_pClientEnt)
+		Msg(PROJECT_NAME " - gameserver: detached aliased edict while parking queue slot %i\n", pClient->m_nClientSlot);
+
+	pClient->edict = nullptr;
+	pClient->m_PackInfo.m_pClientEnt = nullptr;
 }
 
 // Set by InitDetour when the compiled CBaseClient mirror disagrees with the
@@ -3338,6 +3353,20 @@ static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spaw
 	if (!IsKnownClient(cl))
 		return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
 
+	const bool bParkedQueueClient = IsParkedQueueClient(cl);
+	if (bParkedQueueClient)
+	{
+		/*
+		 * CGameClient::Connect assigns EDICT_NUM(slot + 1), which is a map
+		 * entity for every queue slot. Detach it before Lua or the game DLL can
+		 * mistake that entity for a player. For the first CONNECTED ack below we
+		 * deliberately skip CGameClient::CheckConnect; it calls the game DLL's
+		 * ClientConnect(edict, ...) and must run only after relocation gives the
+		 * client a real player edict.
+		 */
+		DetachParkedQueueClientEdict(cl);
+	}
+
 	if (Lua::PushHook("HolyLib:OnSetSignonState"))
 	{
 		Push_CBaseClient(g_Lua, cl);
@@ -3357,6 +3386,21 @@ static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spaw
 	if (GMODDataPack_SetSignOnState(cl, state))
 		return false;
 #endif
+
+	if (bParkedQueueClient && state == SIGNONSTATE_CONNECTED)
+	{
+		// Mirror CGameClient's CONNECTED network setup and CBaseClient's
+		// CONNECTED transition without invoking CheckConnect on a map edict.
+		INetChannel* pNetChannel = cl->GetNetChannel();
+		if (!pNetChannel)
+			return false;
+
+		pNetChannel->SetTimeout(SIGNON_TIME_OUT);
+		pNetChannel->SetFileTransmissionMode(false);
+		pNetChannel->SetMaxBufferSize(true, NET_MAX_PAYLOAD);
+		cl->m_bSendServerInfo = true;
+		return true;
+	}
 
 	return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
 }
@@ -3742,17 +3786,9 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 
 	origin->m_NetChannel = nullptr; // Nuke the net channel or else it might touch it.
 	//origin->m_ConVars = nullptr; // Same here
-	if (IsParkedQueueClient(origin))
-	{
-		// CGameClient::Connect derives edict from slot + 1 even for queue slots,
-		// so this points at a map entity rather than a player. The origin is being
-		// retired now and no longer needs the alias. Clearing both references makes
-		// Inactivate skip CGameServer::RemoveClientFromGame even if its detour was
-		// disabled or a re-entrant hook changed queue-list bookkeeping.
-		Msg(PROJECT_NAME " - gameserver: detached aliased edict before promoting queue slot %i\n", origin->m_nClientSlot);
-		origin->edict = nullptr;
-		origin->m_PackInfo.m_pClientEnt = nullptr;
-	}
+	// Normally detached on the first CONNECTED acknowledgement. Repeat at the
+	// retirement boundary as defense against raw/manual sign-on manipulation.
+	DetachParkedQueueClientEdict(origin);
 	origin->Inactivate();
 	origin->Clear();
 
@@ -4058,6 +4094,11 @@ static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net
 static Detouring::Hook detour_CGameClient_ExecuteStringCommand;
 static bool hook_CGameClient_ExecuteStringCommand(CGameClient* pClient, const char* pCmd)
 {
+	// Parked clients intentionally have no player edict. Do not forward their
+	// pre-spawn commands to the game DLL's ClientCommand(edict, ...) callback.
+	if (IsParkedQueueClient(pClient))
+		return false;
+
 	if (Lua::PushHook("HolyLib:OnClientExecuteStringCommand"))
 	{
 		Push_CBaseClient(g_Lua, pClient);
