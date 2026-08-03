@@ -53,12 +53,11 @@ extern CGlobalVars* gpGlobals;
  * edict to the game DLL's ClientDisconnect path and removes/corrupts an
  * unrelated map entity (observed live with the singleton soundent).
  *
- * A parked client must keep the alias only until the first CONNECTED sign-on
- * acknowledgement. Stock CGameClient::SetSignonState would then hand that map
- * entity to the game DLL's ClientConnect callback. Queue clients are not real
- * players yet, so the hook below performs only the CBaseClient CONNECTED work
- * and detaches both edict references before any game-DLL callback can see them.
- * The real ClientConnect runs after relocation, against the real player edict.
+ * A parked client keeps that alias for the engine's own bookkeeping until the
+ * queue shell is retired. It must never reach a game-DLL player callback:
+ * CGameClient::SetSignonState is intercepted before CheckConnect, commands are
+ * blocked, and RemoveClientFromGame is guarded. The edict references are
+ * detached only at the final retirement boundary, immediately before Clear.
  */
 static bool IsParkedQueueClient(CBaseClient* pCandidate)
 {
@@ -3414,20 +3413,6 @@ static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spaw
 	if (!IsKnownClient(cl))
 		return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
 
-	const bool bParkedQueueClient = IsParkedQueueClient(cl);
-	if (bParkedQueueClient)
-	{
-		/*
-		 * CGameClient::Connect assigns EDICT_NUM(slot + 1), which is a map
-		 * entity for every queue slot. Detach it before Lua or the game DLL can
-		 * mistake that entity for a player. For the first CONNECTED ack below we
-		 * deliberately skip CGameClient::CheckConnect; it calls the game DLL's
-		 * ClientConnect(edict, ...) and must run only after relocation gives the
-		 * client a real player edict.
-		 */
-		DetachParkedQueueClientEdict(cl);
-	}
-
 	if (Lua::PushHook("HolyLib:OnSetSignonState"))
 	{
 		Push_CBaseClient(g_Lua, cl);
@@ -3448,22 +3433,38 @@ static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spaw
 		return false;
 #endif
 
-	if (bParkedQueueClient && state == SIGNONSTATE_CONNECTED)
-	{
-		// Mirror CGameClient's CONNECTED network setup and CBaseClient's
-		// CONNECTED transition without invoking CheckConnect on a map edict.
-		INetChannel* pNetChannel = cl->GetNetChannel();
-		if (!pNetChannel)
-			return false;
+	return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
+}
 
-		pNetChannel->SetTimeout(SIGNON_TIME_OUT);
-		pNetChannel->SetFileTransmissionMode(false);
-		pNetChannel->SetMaxBufferSize(true, NET_MAX_PAYLOAD);
-		cl->m_bSendServerInfo = true;
-		return true;
+static Detouring::Hook detour_CGameClient_SetSignonState;
+static bool hook_CGameClient_SetSignonState(CGameClient* client, int state, int spawncount)
+{
+	// CGameClient performs CheckConnect (and therefore game-DLL ClientConnect)
+	// before delegating to CBaseClient. Intercept the derived method so a parked
+	// queue client's aliased map edict can never reach that callback.
+	if (!IsKnownClient(client) || !IsParkedQueueClient(client) || state != SIGNONSTATE_CONNECTED)
+	{
+		return detour_CGameClient_SetSignonState.GetTrampoline<Symbols::CGameClient_SetSignonState>()(
+			client,
+			state,
+			spawncount
+		);
 	}
 
-	return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
+	// The parked CONNECTED path needs the real base implementation after the
+	// HolyLib/datapack hooks, but must bypass CGameClient::CheckConnect entirely.
+	if (!detour_CBaseClient_SetSignonState.IsEnabled())
+		return false;
+
+	INetChannel* channel = client->GetNetChannel();
+	if (!channel)
+		return false;
+
+	channel->SetTimeout(SIGNON_TIME_OUT);
+	channel->SetFileTransmissionMode(false);
+	channel->SetMaxBufferSize(true, NET_MAX_PAYLOAD);
+
+	return hook_CBaseClient_SetSignonState(client, state, spawncount);
 }
 
 static Detouring::Hook detour_CBaseServer_IsMultiplayer;
@@ -3800,23 +3801,6 @@ static QueuePromotionResult ValidateQueuePromotionSource(CGameClient* origin)
 		return QueuePromotionFailure("source_wrong_signon_state");
 	}
 
-	// A reconnect can leave the same authenticated Steam identity represented
-	// by both a parked queue source and an in-flight real-slot client. Never
-	// commit a second real-slot owner; Lua deliberately treats this as final and
-	// drops the duplicate queue entry.
-	CBaseServer* server = (CBaseServer*)Util::server;
-	const int realClientCount = MIN(server->m_Clients.Count(), gpGlobals->maxClients);
-	for (int i = 0; i < realClientCount; ++i)
-	{
-		CBaseClient* realClient = (CBaseClient*)server->GetClient(i);
-		if (realClient && realClient != origin && realClient->IsConnected() &&
-			realClient->m_SteamID == origin->m_SteamID)
-		{
-			return QueuePromotionFailure("steamid_already_in_real_slot", false,
-				realClient->m_nClientSlot);
-		}
-	}
-
 	return { true, false, -1, nullptr };
 }
 
@@ -3876,6 +3860,26 @@ static QueuePromotionResult ValidateRealClientSlotTable()
 	}
 
 	return { true, false, -1, nullptr };
+}
+
+static int FindConnectedRealClientWithSteamID(CGameClient* origin)
+{
+	if (!origin || !Util::server || !gpGlobals || !origin->m_SteamID.IsValid())
+		return -1;
+
+	CBaseServer* server = (CBaseServer*)Util::server;
+	const int count = MIN(server->m_Clients.Count(), gpGlobals->maxClients);
+	for (int i = 0; i < count; ++i)
+	{
+		CBaseClient* realClient = server->m_Clients[i];
+		if (realClient != origin && realClient->IsConnected() &&
+			realClient->m_SteamID.IsValid() && realClient->m_SteamID == origin->m_SteamID)
+		{
+			return i;
+		}
+	}
+
+	return -1;
 }
 
 static bool IsFreeRealClientTarget(CGameClient* target)
@@ -4122,8 +4126,8 @@ static void RetirePromotedQueueClient(CGameClient* origin)
 	// called. Nuke the source reference first so Clear cannot touch that channel.
 	origin->m_NetChannel = nullptr;
 
-	// Normally detached on the first CONNECTED acknowledgement. Repeat at the
-	// retirement boundary as defense against raw/manual sign-on manipulation.
+	// Keep the alias while parked, then detach it at the one boundary where the
+	// reusable source shell is about to be cleared.
 	DetachParkedQueueClientEdict(origin);
 
 	// A queue slot can alias an unrelated map edict. Never invoke Inactivate or
@@ -4327,16 +4331,29 @@ static QueuePromotionResult PromoteQueueClientInternal(CGameClient* origin, CGam
 		return result;
 	}
 
+	// Validate the real slot table before trusting an identity match or its slot.
+	result = ValidateRealClientSlotTable();
+	if (!result.ok)
+	{
+		DebugQueuePromotion(result, origin, requestedTarget);
+		return result;
+	}
+
+	// A reconnect can leave the same authenticated identity in a real slot and a
+	// parked queue slot. This is final for the queue source: disconnect it here so
+	// Lua cannot drop its business entry while leaving a ghost NetChannel behind.
+	const int duplicateSlot = FindConnectedRealClientWithSteamID(origin);
+	if (duplicateSlot >= 0)
+	{
+		result = QueuePromotionFailure("steamid_already_in_real_slot", false, duplicateSlot);
+		DebugQueuePromotion(result, origin, nullptr);
+		origin->Disconnect("Duplicate SteamID already active in real slot %i", duplicateSlot);
+		return result;
+	}
+
 	CGameClient* target = requestedTarget;
 	if (target)
 	{
-		result = ValidateRealClientSlotTable();
-		if (!result.ok)
-		{
-			DebugQueuePromotion(result, origin, target);
-			return result;
-		}
-
 		if (!IsFreeRealClientTarget(target))
 		{
 			result = QueuePromotionFailure("target_not_free", false,
@@ -4535,8 +4552,8 @@ static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net
 static Detouring::Hook detour_CGameClient_ExecuteStringCommand;
 static bool hook_CGameClient_ExecuteStringCommand(CGameClient* pClient, const char* pCmd)
 {
-	// Parked clients intentionally have no player edict. Do not forward their
-	// pre-spawn commands to the game DLL's ClientCommand(edict, ...) callback.
+	// Parked clients retain an aliased edict for engine bookkeeping. Never
+	// forward it to the game DLL's ClientCommand(edict, ...) callback.
 	if (IsParkedQueueClient(pClient))
 		return false;
 
@@ -4570,6 +4587,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC0(hook_CBaseServer_CheckTimeouts, CheckTimeouts, CBaseServer*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CGameClient_SpawnPlayer, SpawnPlayer, CGameClient*);
 	DETOUR_THISCALL_ADDRETFUNC2(hook_CBaseClient_SetSignonState, bool, SetSignonState, CBaseClient*, int, int);
+	DETOUR_THISCALL_ADDRETFUNC2(hook_CGameClient_SetSignonState, bool, Game_SetSignonState, CGameClient*, int, int);
 	DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseServer_IsMultiplayer, bool, IsMultiplayer, CBaseServer*);
 	DETOUR_THISCALL_ADDRETFUNC0(hook_GModDataPack_IsSingleplayer, bool, IsSingleplayer, void*);
 	DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseClient_ShouldSendMessages, bool, ShouldSendMessages, CGameClient*);
@@ -4743,6 +4761,22 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym,
 		(void*)DETOUR_THISCALL(hook_CBaseClient_SetSignonState, SetSignonState), m_pID
 	);
+	if (!detour_CBaseClient_SetSignonState.IsEnabled())
+	{
+		g_bClientLayoutMismatch = true;
+		Warning(PROJECT_NAME " - gameserver: failed to install CBaseClient::SetSignonState hook - queue-client parking DISABLED!\n");
+	}
+
+	Detour::Create(
+		&detour_CGameClient_SetSignonState, "CGameClient::SetSignonState",
+		engine_loader.GetModule(), Symbols::CGameClient_SetSignonStateSym,
+		(void*)DETOUR_THISCALL(hook_CGameClient_SetSignonState, Game_SetSignonState), m_pID
+	);
+	if (!detour_CGameClient_SetSignonState.IsEnabled())
+	{
+		g_bClientLayoutMismatch = true;
+		Warning(PROJECT_NAME " - gameserver: failed to install the pre-CheckConnect queue sign-on hook - queue-client parking DISABLED!\n");
+	}
 
 	// Previously x86-gated; the x64 signature resolves (verified unique on GMod
 	// x86-64 build 260709, function base 0x61f30 = the exact frame in the
@@ -4783,6 +4817,11 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CGameClient_ExecuteStringCommandSym,
 		(void*)DETOUR_THISCALL(hook_CGameClient_ExecuteStringCommand, ExecuteStringCommand), m_pID
 	);
+	if (!detour_CGameClient_ExecuteStringCommand.IsEnabled())
+	{
+		g_bClientLayoutMismatch = true;
+		Warning(PROJECT_NAME " - gameserver: failed to install the queue ClientCommand guard - queue-client parking DISABLED!\n");
+	}
 
 	SourceSDK::FactoryLoader server_loader("server");
 	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this.

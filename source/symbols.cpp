@@ -1026,6 +1026,15 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\x87\xA0\x01\x00\x00\x48"), // 55 8B 87 A0 01 00 00 48 (x64 260706; reverified 260709, m_nSignonState [rdi+0x1A0]; was +0x1A8)
 	};
 
+	const std::vector<Symbol> CGameClient_SetSignonStateSym = {
+		Symbol::FromName("_ZN11CGameClient14SetSignonStateEii"),
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+		// GMod x86-64 build 260709/260803, engine.so+0xB0CF0. This is the
+		// derived method that executes CheckConnect before calling CBaseClient.
+		Symbol::FromSignature("\x55\x83\xFE\x02\x48\x89\xE5\x41\x56\x41\x55\x41\x89\xD5\x41\x54\x49\x89\xFC\x53\x89\xF3"), // 55 83 FE 02 48 89 E5 41 56 41 55 41 89 D5 41 54 49 89 FC 53 89 F3
+#endif
+	};
+
 	const std::vector<Symbol> CBaseServer_IsMultiplayerSym = {
 		Symbol::FromName("_ZNK11CBaseServer13IsMultiplayerEv"),
 		Symbol::FromSignature("\x55\x83\xBF\x34\x01\x00\x00\x01"), // 55 83 BF 34 01 00 00 01

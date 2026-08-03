@@ -696,6 +696,9 @@ namespace Symbols
 	using CBaseClient_SetSignonState = bool (GMCOMMON_CALLING_CONVENTION*)(void* client, int state, int spawncount);
 	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
 
+	using CGameClient_SetSignonState = bool (GMCOMMON_CALLING_CONVENTION*)(void* client, int state, int spawncount);
+	extern const std::vector<Symbol> CGameClient_SetSignonStateSym;
+
 	using CBaseServer_IsMultiplayer = bool (GMCOMMON_CALLING_CONVENTION*)(void* srv);
 	extern const std::vector<Symbol> CBaseServer_IsMultiplayerSym;
 
