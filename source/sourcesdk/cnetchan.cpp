@@ -18,6 +18,7 @@
 #include "net_chan.h"
 #include <lz4/lz4_compression.h>
 #include <memory>
+#include <string>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

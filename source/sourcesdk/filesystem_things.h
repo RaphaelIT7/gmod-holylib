@@ -57,24 +57,6 @@ class CPathIDInfo
 		const char *m_pDebugPathID;
 	};
 
-enum CPathGroupName_t
-{
-	GN_DEFAULT,
-	GN_ENGINECORE,
-	GN_LUA,
-	GN_MAP,
-	GN_ADDONCONTENT,
-	GN_GMCONTENT,
-	GN_GMODCORE,
-	GN_CURRENTGAME,
-	GN_SOURCESDK,
-	GN_BADDONCONTENT,
-	GN_GAMECONTENT,
-	GN_MOUNTCFG,
-	GN_DOWNLOADS,
-	GN_FALLBACKS
-};
-
 class CPackFile;
 class CPackedStore;
 // For verifying check CBaseFileSystem::CSearchPath::CSearchPath initialization order in IDA
@@ -99,7 +81,7 @@ class CSearchPath
 	// So if you want to insert a new path using PATH_ADD_TO_HEAD then if you for example use GN_LUA
 	// then it's added after GN_DEFAULT & GN_ENGINECORE but before the first GN_LUA
 	// Same goes for using PATH_ADD_TO_TAIL
-	CPathGroupName_t m_PriorityGroupID;
+	CPathPriorityGroup_t m_PriorityGroupID;
 	CPathIDInfo *m_pPathIDInfo;
 	bool m_bIsRemotePath;
 	bool m_bIsTrustedForPureServer;
@@ -126,7 +108,7 @@ class CSearchPathOld
 	int32_t m_storeId;
 	CPathIDInfo *m_pPathIDInfo;
 	uint32_t _flag0;
-	CPathGroupName_t m_GroupID;
+	CPathPriorityGroup_t m_GroupID;
 	CUtlSymbol m_Path;
 	const char *m_pDebugPath;
 	CPackFile *m_pPackFile;
