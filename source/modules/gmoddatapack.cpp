@@ -454,8 +454,8 @@ static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t
 	pScopes[0].start = start;
 	pScopeIDs.push_back(0);
 
-	int lastNonEmpty = 0; // To avoid backtracking! (Now it just is a very small save in backtracking I guess)
-	while (tokens[start].type != TK_THEN && tokens[start].type != TK_DO && start < tokens.size())
+	size_t lastNonEmpty = 0; // To avoid backtracking! (Now it just is a very small save in backtracking I guess)
+	while (start < tokens.size() && tokens[start].type != TK_THEN && tokens[start].type != TK_DO)
 	{
 		if (!tokens[start].isSpace && tokens[start].type != TK_PARENTHESIS)
 			pScopes[pScopeIDs.back()].isEmpty = false;
@@ -499,6 +499,14 @@ static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t
 				}
 
 				pScopeIDs.pop_back();
+				if (pScopeIDs.empty())
+				{
+					if (g_pGModDataPackModule.InDebug())
+						Warning(PROJECT_NAME " - GModDataPack: How did we pop too many scopes???\n");
+
+					return false;
+				}
+
 				pScopes[pScopeIDs.back()].isServer[pScopes[pScopeIDs.back()].isServer.size()-1] = wasServer;
 			}
 		}
@@ -580,6 +588,9 @@ static size_t RemoveServerScoped(size_t j, std::vector<Token> &tokens, std::stri
 {
 	bool hasLineBreaks = false;
 	size_t i = RemoveScoped(j, tokens, ss, tok, hasLineBreaks);
+
+	if (i >= tokens.size())
+		return i;
 
 	if (tokens[i].type == TK_ELSEIF)
 		tokens[i].content = tok == TK_IF ? "if" : "elseif";
