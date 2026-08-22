@@ -123,7 +123,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 	size_t i = 0;
 	while (i < content.size())
 	{
-		char c = content[i];
+		unsigned char c = (unsigned char)content[i];
 		if (c == '\n')
 		{
 			tokens.push_back({TK_LINEEND, std::string(1, c), true});
@@ -365,7 +365,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		if (std::isdigit(c))
 		{
 			size_t start = i;
-			while (i < content.size() && std::isdigit(content[i]))
+			while (i < content.size() && std::isdigit((unsigned char)content[i]))
 				i++;
 
 			std::string strWord = content.substr(start, i - start);
@@ -376,7 +376,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		if (std::isalpha(c) || c == '_')
 		{
 			size_t start = i;
-			while (i < content.size() && (std::isalnum(content[i]) || content[i]=='_'))
+			while (i < content.size() && (std::isalnum((unsigned char)content[i]) || content[i]=='_'))
 				i++;
 
 			std::string strWord = content.substr(start, i - start);
