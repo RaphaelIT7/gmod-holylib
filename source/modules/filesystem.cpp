@@ -28,7 +28,7 @@ public:
 	void Shutdown() override;
 	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
 	const char* Name() override { return "filesystem"; };
-	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	int Compatibility() override { return LINUX32 | WINDOWS32; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
