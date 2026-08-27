@@ -438,10 +438,28 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseFileSystem_HandleOpenRegularFileSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem21HandleOpenRegularFileER13CFileOpenInfob"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x0C\x53\x56\x8B\xF1\x57\x8B\x7D\x08"), // 55 8B EC 83 EC 0C 53 56 8B F1 57 8B 7D 08
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_Trace_FOpenSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem11Trace_FOpenEPKcS1_jPx"),
+	};
+
+	const std::vector<Symbol> CBaseFileSystem_NewSearchPathSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem13NewSearchPathEj"),
+	};
+
+	const std::vector<Symbol> CFileHandle_ConstructorSym = {
+		Symbol::FromName("_ZN11CFileHandleC1EP15CBaseFileSystem"),
+	};
+
+	const std::vector<Symbol> Addon_FileSystem_GetFileEntrySym = {
+		Symbol::FromName("_ZN5Addon10FileSystem12GetFileEntryEPKc"),
+	};
+
+	const std::vector<Symbol> Addon_FileHandle_SizeSym = {
+		Symbol::FromName("_ZN5Addon10FileHandle4SizeEv"),
 	};
 
 	const std::vector<Symbol> g_PathIDTableSym = {

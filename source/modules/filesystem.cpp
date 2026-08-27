@@ -491,6 +491,75 @@ private:
 };
 static CachedFileSystem g_pCachedFileSystem;
 
+// RaphaelIT7:
+// Hack! When comparing openInfo.m_AbsolutePath against m_AddonFileSystem.ModPath() we may differ in slashes!
+static bool PathStartsWith( const char *pszPath, const char *pszPrefix )
+{
+	if ( !pszPath || !pszPrefix )
+		return false;
+
+	while ( *pszPrefix )
+	{
+		char a = *pszPath++;
+		char b = *pszPrefix++;
+		if ( a == '\\' )
+			a = '/';
+
+		if ( b == '\\' )
+			b = '/';
+
+		if ( tolower( static_cast<unsigned char>( a ) ) != tolower( static_cast<unsigned char>( b ) ) )
+			return false;
+	}
+
+	return true;
+}
+
+// RaphaelIT7:
+// Try to deal with bs paths like materials\\..\\backgrounds
+// V_RemoveDotSlashes exists BUT it doesn't do both seperators unlike this one
+static void NormalizeGamePath( char *pszPath )
+{
+    char* src = pszPath;
+    char* dst = pszPath;
+    while ( *src )
+    {
+        if ( src[0] == '.' && ( src[1] == '\\' || src[1] == '/' ) )
+        {
+            src += 2;
+            continue;
+        }
+
+        if ( src[0] == '.' && src[1] == '.' && ( src[2] == '\\' || src[2] == '/' ) )
+        {
+            // Remove previous component.
+            if ( dst > pszPath )
+            {
+                --dst;
+
+                while ( dst > pszPath && dst[-1] != '\\' && dst[-1] != '/' )
+                    --dst;
+            }
+
+            src += 3;
+            continue;
+        }
+
+        *dst++ = *src++;
+    }
+
+    *dst = '\0';
+}
+
+// RaphaelIT7:
+// Using printf( "%s%s" ) is a real waste! So we replact it with this
+// This only now becomes a bit noticeable in performance results thanks to our cache making lookups fast already
+inline void ComposeSearchPath( char *pOut, size_t nOutSize, const char *pSearchPath, const char *pFileName )
+{
+	V_strncpy( pOut, pSearchPath, nOutSize );
+	V_strcat( pOut, pFileName, nOutSize );
+}
+
 /*
 	FileSystem module
 */
@@ -532,147 +601,134 @@ static inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
 }
 #endif
 
-static Detouring::Hook detour_CBaseFileSystem_Trace_FOpen;
-static void* hook_CBaseFileSystem_Trace_FOpen(void* fs, const char *filenameT, const char *options, unsigned flags, int64 *size)
+class Addon::FileSystem : IAddonSystem
 {
-	return detour_CBaseFileSystem_Trace_FOpen.GetTrampoline<Symbols::CBaseFileSystem_Trace_FOpen>()(fs, filenameT, options, flags, size);
-}
+public:
+	const std::string& ModPath() { return m_strModPath; };
+
+private:
+	std::map<std::string, std::map<std::string, std::string>> m_NotImportant;
+	std::list<std::string> m_NotImportant2;
+	std::string m_strModPath;
+};
 
 // IMPORTANT:
 // GMod touched HandleOpenRegularFile and of course put a std::string in there causing an allocation every fking time it's called and a file is missing on disk!
 static Detouring::Hook detour_CBaseFileSystem_HandleOpenRegularFile;
-static void hook_CBaseFileSystem_HandleOpenRegularFile(void* fs, CFileOpenInfo& info, bool bIsAbsolutePath)
+static Symbols::Addon_FileHandle_Size func_Addon_FileHandle_Size = nullptr;
+static Symbols::Addon_FileSystem_GetFileEntry func_Addon_FileSystem_GetFileEntry = nullptr;
+static Symbols::CBaseFileSystem_Trace_FOpen func_CBaseFileSystem_Trace_FOpen = nullptr;
+static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, CFileOpenInfo& openInfo, bool bIsAbsolutePath)
 {
-	detour_CBaseFileSystem_HandleOpenRegularFile.GetTrampoline<Symbols::CBaseFileSystem_HandleOpenRegularFile>()(fs, info, bIsAbsolutePath);
-	if (info.m_pFileHandle && info.m_pSearchPath && !bIsAbsolutePath)
-		g_pCachedFileSystem.AddFileToCache(info.m_pFileName, info.m_pSearchPath, info.m_pOptions);
-}
+	openInfo.m_pFileHandle = nullptr;
 
-/*struct SearchCacheEntry
-{
-	unsigned char pathLength;
-	char* path;
-	unsigned char absolutePathLength;
-	char* absolutePath;
-};*/
+	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
 
-#define SearchCacheVersion 2
-// #define MaxSearchCacheEntries (1 << 16) // 64k max files
-struct SearchCache {
-	unsigned int version = SearchCacheVersion;
-	unsigned int usedPaths = 0;
-	//SearchCacheEntry paths[MaxSearchCacheEntries];
-};
+	// RaphaelIT7:
+	// When mounting the map_pack.bsp we may try when reading it the absolute path! So we must lookup in workshop
+	bool bIsWorkshop = false;
+	if ( bIsAbsolutePath && !m_AddonFileSystem->ModPath().empty() ) // We check for empty as it may have not been set early on!
+		bIsWorkshop = PathStartsWith( openInfo.m_AbsolutePath, m_AddonFileSystem->ModPath().c_str() );
 
-static inline void WriteStringIntoFile(FileHandle_t pHandle, const std::string_view& pValue)
-{
-	// NOTE: We use unsigned char which is NOT MAX_PATH, though I'm not gonna use 1 byte for just 5 extra length
-	unsigned char valueLength = (unsigned char)pValue.length();
-	const char* value = pValue.data();
-	g_pFullFileSystem->Write(&valueLength, sizeof(valueLength), pHandle);
-	g_pFullFileSystem->Write(value, valueLength, pHandle);
-}
-
-static inline void WriteStringIntoFile(FileHandle_t pHandle, const char* value, unsigned char valueLength)
-{
-	// NOTE: We use unsigned char which is NOT MAX_PATH, though I'm not gonna use 1 byte for just 5 extra length
-	g_pFullFileSystem->Write(&valueLength, sizeof(valueLength), pHandle);
-	g_pFullFileSystem->Write(value, valueLength, pHandle);
-}
-
-enum class FileSystemStatus
-{
-	None,
-	Writing,
-	Reading
-};
-
-static FileSystemStatus eFileSystemStatus = FileSystemStatus::None;
-static void WriteSearchCache()
-{
-	VPROF_BUDGET("HolyLib - WriteSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-	if (!holylib_filesystem_savesearchcache.GetBool() || !g_pFullFileSystem)
-		return;
-
-	if (eFileSystemStatus != FileSystemStatus::None)
+	// GMod
+	if ( openInfo.m_pSearchPath && openInfo.m_pSearchPath->m_bIsWorkshop || bIsWorkshop )
 	{
-		Msg("HolyLib - WriteSearchCache | eFileSystemStatus is not none!\n");
-		return;
-	}
-
-	eFileSystemStatus = FileSystemStatus::Writing;
-
-	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "wb", "MOD_WRITE");
-	if (handle)
-	{
-		SearchCache searchCache;
-		g_pFullFileSystem->Write(&searchCache, sizeof(SearchCache), handle);
-
-		g_pFullFileSystem->Close(handle);
-		Msg(PROJECT_NAME ": successfully wrote searchcache file (%i)\n", searchCache.usedPaths);
-	} else {
-		Warning(PROJECT_NAME ": Failed to open searchcache file!\n");
-	}
-	eFileSystemStatus = FileSystemStatus::None;
-}
-
-static inline const char* ReadStringFromFile(FileHandle_t pHandle, unsigned char* nLength)
-{
-	g_pFullFileSystem->Read(nLength, sizeof(*nLength), pHandle);
-
-	char* pValue = new char[*nLength + 1];
-	g_pFullFileSystem->Read(pValue, *nLength, pHandle);
-	pValue[*nLength] = '\0';
-
-	return pValue;
-}
-
-static void ReadSearchCache()
-{
-	VPROF_BUDGET("HolyLib - ReadSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-	if (eFileSystemStatus != FileSystemStatus::None)
-	{
-		Msg("HolyLib - ReadSearchCache | eFileSystemStatus is not none!\n");
-		return;
-	}
-	eFileSystemStatus = FileSystemStatus::Reading;
-
-	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "rb", "MOD_WRITE");
-	if (handle)
-	{
-		SearchCache searchCache;
-		g_pFullFileSystem->Read(&searchCache, sizeof(SearchCache), handle);
-		if (searchCache.version != SearchCacheVersion)
+		Addon::FileHandle *pHandle = (Addon::FileHandle*)func_Addon_FileSystem_GetFileEntry( m_AddonFileSystem, openInfo.m_AbsolutePath );
+		if ( pHandle )
 		{
-			g_pFullFileSystem->Close(handle);
-			Warning(PROJECT_NAME " - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache.version, SearchCacheVersion);
-			eFileSystemStatus = FileSystemStatus::None;
-			return;
+			openInfo.m_pFileHandle = new CFileHandle( _this );
+			openInfo.m_pFileHandle->m_pAddonFileHandle = pHandle;
+			openInfo.m_pFileHandle->m_type = FT_NORMAL;
+			openInfo.m_pFileHandle->m_nLength = func_Addon_FileHandle_Size(pHandle);
+
+			openInfo.SetResolvedFilename( openInfo.m_AbsolutePath );
 		}
 
-		g_pFullFileSystem->Close(handle);
+		// RaphaelIT7: We avoid disk lookup for workshop/ as we expect it to not exist anyways
+		return;
+	}
 
-		/*for (auto& [key, val] : g_pAbsoluteSearchCache)
+	// RaphaelIT7:
+	// We do not use the cache for absolute paths!
+	// Absolute paths are used by GMod for example when mounting a gma
+	// The path will be somewhere in the steamapps/workshop/4000 which we did not scan (and never will)
+	/*if ( !bIsAbsolutePath )
+	{
+		FileCacheEntry eCacheEntry = g_pBaseFileSystem->m_DiskFileTree.ContainsPath( openInfo.m_AbsolutePath );
+
+		// openInfo.m_pFileName is a mess due to \\..\\ not yet being normalized!
+		// eCacheEntry = openInfo.m_pSearchPath->ContainsPath( openInfo.m_pFileName );
+		if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
+			return;
+	}*/
+
+	int64 size;
+	FILE *fp = (FILE*)func_CBaseFileSystem_Trace_FOpen( _this, openInfo.m_AbsolutePath, openInfo.m_pOptions, openInfo.m_Flags, &size );
+	if ( fp )
+	{
+		/*if ( m_pLogFile )
 		{
-			Msg("Key: %s\nValue: %s\n", key.data(), val.data());
+			LogFileAccess( openInfo.m_AbsolutePath );
+		}
+
+		if ( m_bOutputDebugString )
+		{
+			// dimhotepus: Use Plat_DebugString everywhere.
+			Plat_DebugString( "fs_debug: " );
+			Plat_DebugString( openInfo.m_AbsolutePath );
+			Plat_DebugString( "\n" );
 		}*/
 
-		//if (g_pFileSystemModule.InDebug())
-		Msg("holylib - filesystem: Loaded searchcache file (%i)\n", searchCache.usedPaths);
+		// RaphaelIT7: Debugging
+		/* if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
+		{
+			__debugbreak();
+			openInfo.m_pSearchPath->ContainsPath( openInfo.m_pFileName );
+			__debugbreak();
+		}*/
+
+		openInfo.m_pFileHandle = new CFileHandle(_this);
+		openInfo.m_pFileHandle->m_pFile = fp;
+		openInfo.m_pFileHandle->m_type = FT_NORMAL;
+		openInfo.m_pFileHandle->m_nLength = size;
+
+		openInfo.SetResolvedFilename( openInfo.m_AbsolutePath );
+		
+		// LogFileOpen( "Loose", openInfo.m_pFileName, openInfo.m_AbsolutePath );
+
+		// GMod - Returns on hit
+		return;
 	}
-	else {
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - filesystem: Failed to find searchcache file\n");
-	}
-	eFileSystemStatus = FileSystemStatus::None;
+
+	// RaphaelIT7: If this happens then the file was removed from disk and we didn't know yet
+	// g_pBaseFileSystem->m_DiskFileTree.RemovePath( openInfo.m_AbsolutePath );
+}
+
+// RaphaelIT7: A special flag to mark the workshop/ path
+#define PATH_FLAG_ISWORKSHOP (1<<9)
+
+static Symbols::CFileHandle_Constructor func_Constructor = nullptr;
+CFileHandle::CFileHandle(CBaseFileSystem* fs)
+{
+	// Our Layout matches GMod so this should have no side effects :3
+	func_Constructor(this, fs);
+}
+
+static Detouring::Hook detour_CBaseFileSystem_NewSearchPath;
+CSearchPath* hook_CBaseFileSystem_NewSearchPath(void* _this, int addType)
+{
+	// RaphaelIT7:
+	// We MUST do addType & 0x1FF as GMod uses a vague mask where we can easily corrupt the priority group if we don't clear the custom flag bits
+	// This is since GMod only skips bit 8 when getting the priority group but they don't skip the bits after...
+	// GMod uses 0xFFFFFEFF when it should be using 0xFE
+	CSearchPath* pPath = (CSearchPath*)detour_CBaseFileSystem_NewSearchPath.GetTrampoline<Symbols::CBaseFileSystem_NewSearchPath>()(_this, addType & 0x1FF);
+	pPath->m_bIsWorkshop = (addType & PATH_FLAG_ISWORKSHOP) != 0;
+
+	return pPath;
 }
 
 void CFileSystemModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
-	if (pFileSystemPool)
-		pFileSystemPool->QueueCall(WriteSearchCache);
-	else
-		WriteSearchCache();
 }
 
 static void GetPathFromIDCmd(const CCommand &args)
@@ -709,21 +765,6 @@ static void DumpCacheCmd(const CCommand &args)
 }
 static ConCommand dumpfilecache("holylib_filesystem_dumpcache", DumpCacheCmd, "Dumps the filecache", 0);
 
-static void WriteSearchCacheCmd(const CCommand& args)
-{
-	if (pFileSystemPool)
-		pFileSystemPool->QueueCall(WriteSearchCache);
-	else
-		WriteSearchCache();
-}
-static ConCommand writesearchcache("holylib_filesystem_writesearchcache", WriteSearchCacheCmd, "Writes the search cache into a file", 0);
-
-static void ReadSearchCacheCmd(const CCommand& args)
-{
-	ReadSearchCache();
-}
-static ConCommand readsearchcache("holylib_filesystem_readsearchcache", ReadSearchCacheCmd, "Reads the search cache from a file", 0);
-
 static bool bShutdown = false;
 
 static void InitFileSystem(IFileSystem* pFileSystem)
@@ -732,14 +773,6 @@ static void InitFileSystem(IFileSystem* pFileSystem)
 		return;
 
 	g_pFullFileSystem = pFileSystem;
-
-	if (holylib_filesystem_savesearchcache.GetBool())
-	{
-		if (pFileSystemPool)
-			pFileSystemPool->QueueCall(ReadSearchCache);
-		else
-			ReadSearchCache();
-	}
 
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - filesystem: Initialized filesystem\n");
@@ -758,26 +791,6 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 
 	if (g_pFileSystemModule.InDebug())
 		Msg("FindFileInSearchPath: trying to find %s -> %p (%s)\n", openInfo.m_pFileName, openInfo.m_pSearchPath, openInfo.m_pSearchPath->GetPathIDString());
-
-	if (g_pCachedFileSystem.FindCacheEntry(openInfo.m_pFileName, openInfo.m_pSearchPath))
-	{
-		if (!g_pCacheResult.IsValid())
-			return nullptr;
-
-		VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-		const CSearchPath* origPath = openInfo.m_pSearchPath;
-		openInfo.m_pSearchPath = g_pCacheResult.GetSearchPath();
-		FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
-		if (file)
-			return file;
-
-		openInfo.m_pSearchPath = origPath;
-		g_pCachedFileSystem.InvalidateFileFromCache(openInfo.m_pFileName, openInfo.m_pSearchPath);
-	} else {
-		if (g_pFileSystemModule.InDebug())
-			Msg("FindFileInSearchPath: Failed to find cachePath! (%s)\n", openInfo.m_pFileName);
-	}
 
 	return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 }
@@ -800,28 +813,9 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 	bool bIsAbsolute = V_IsAbsolutePath(pFileName);
 	if (!bIsAbsolute)
 	{
-		if (g_pCachedFileSystem.FindCacheEntry(pFileName, path))
-		{
-			if (!g_pCacheResult.IsValid())
-				return 0L;
-
-			VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-			long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, g_pCacheResult.GetSearchPath(), pFileName);
-			if (time != 0L)
-				return time;
-
-			g_pCachedFileSystem.InvalidateFileFromCache(pFileName, path);
-		} else {
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - FastFileTime: Failed to find cachePath! (%s)\n", pFileName);
-		}
 	}
 
 	long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
-	if (time != 0L && !bIsAbsolute)
-		g_pCachedFileSystem.AddFileToCache(pFileName, path, "rb");
-
 	return time;
 }
 
@@ -858,31 +852,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
-	if (g_pCachedFileSystem.FindCacheEntry(pFileName, pathID))
-	{
-		if (!g_pCacheResult.IsValid())
-			return nullptr;
-
-		if (g_pFileSystemModule.InDebug())
-			Msg("Found Cache Entry %s -> %s\n", pFileName, g_pCacheResult.GetAbsolutePath());
-
-		if (g_pCacheResult.GetAbsolutePath())
-		{
-			CFileOpenInfo openInfo(filesystem, g_pCacheResult.GetAbsolutePath(), nullptr, pOptions, flags, ppszResolvedFilename);
-			V_strncpy(openInfo.m_AbsolutePath, g_pCacheResult.GetAbsolutePath(), MIN(g_pCacheResult.GetAbsolutePathLength(), sizeof(openInfo.m_AbsolutePath)));
-
-			hook_CBaseFileSystem_HandleOpenRegularFile(filesystem, openInfo, true);
-			if (openInfo.m_pFileHandle)
-				return openInfo.m_pFileHandle;
-
-			Msg("Absolute Path Cache miss! (%s)\n", openInfo.m_AbsolutePath);
-			// g_pCachedFileSystem.InvalidateFileFromCache()
-		}
-	}
-
 	FileHandle_t fh = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-	if (!fh)
-		g_pCachedFileSystem.MarkFileMissing(pFileName, pathID);
 
 	return fh;
 }
@@ -1332,7 +1302,6 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_AddSearchPath, AddSearchPath, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t );
 	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_AddVPKFile, AddVPKFile, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t );
 	DETOUR_THISCALL_ADDFUNC2( hook_CBaseFileSystem_HandleOpenRegularFile, HandleOpenRegularFile, CBaseFileSystem*, CFileOpenInfo&, bool);
-	DETOUR_THISCALL_ADDRETFUNC4( hook_CBaseFileSystem_Trace_FOpen, void*, Trace_FOpen, CBaseFileSystem*, const char*, const char*, unsigned, int64*);
 DETOUR_THISCALL_FINISH();
 #endif
 
@@ -1414,12 +1383,6 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_HandleOpenRegularFile, "CBaseFileSystem::HandleOpenRegularFile",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_HandleOpenRegularFileSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_HandleOpenRegularFile, HandleOpenRegularFile), m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseFileSystem_Trace_FOpen, "CBaseFileSystem::Trace_FOpen",
-		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_Trace_FOpenSym,
-		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_Trace_FOpen, Trace_FOpen), m_pID
 	);
 
 #if SYSTEM_LINUX

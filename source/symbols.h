@@ -415,6 +415,18 @@ namespace Symbols
 	using CBaseFileSystem_Trace_FOpen = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, const char *filenameT, const char *options, unsigned flags, int64 *size);
 	extern const std::vector<Symbol> CBaseFileSystem_Trace_FOpenSym;
 
+	using CBaseFileSystem_NewSearchPath = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, unsigned int addType);
+	extern const std::vector<Symbol> CBaseFileSystem_NewSearchPathSym;
+
+	using CFileHandle_Constructor = void (GMCOMMON_CALLING_CONVENTION*)(void* handle, void* fs);
+	extern const std::vector<Symbol> CFileHandle_ConstructorSym;
+
+	using Addon_FileSystem_GetFileEntry = void* (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
+	extern const std::vector<Symbol> Addon_FileSystem_GetFileEntrySym;
+
+	using Addon_FileHandle_Size = unsigned int (GMCOMMON_CALLING_CONVENTION*)(void* handle);
+	extern const std::vector<Symbol> Addon_FileHandle_SizeSym;
+
 	extern const std::vector<Symbol> g_PathIDTableSym;
 
 	//---------------------------------------------------------------------------------
