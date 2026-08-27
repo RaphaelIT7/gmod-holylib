@@ -86,6 +86,7 @@ class CSearchPath
 	bool m_bIsRemotePath;
 	bool m_bIsTrustedForPureServer;
 	bool m_bVPKHack; // GMOD - I assume it's related to https://garry.net/posts/vpk-search-paths
+	bool m_bIsWorkshop; // HOLYLIB - GMod has free padding here which we can use for this flag :3
 	CUtlSymbol m_Path;
 	const char *m_pDebugPath;
 	CPackFile *m_pPackFile;
@@ -329,6 +330,11 @@ public:
 	IFileList *GetFilesToUnloadForWhitelistChange( IPureServerWhitelist *pNewWhiteList ) { return NULL; }
 };
 
+namespace Addon
+{
+	class FileHandle;
+}
+
 class CPackFile;
 class CPackFileHandle;
 class CCompiledKeyValuesReader;
@@ -346,13 +352,13 @@ public:
 	void	Flush();
 	void	SetBufferSize( int nBytes );
 
-	int		Read( void* pBuffer, int nLength );
-	int		Read( void* pBuffer, int nDestSize, int nLength );
+	int Read( OUT_BYTECAP(nLength) void* pBuffer, int nLength );
+	int Read( void* pBuffer, int nDestSize, int nLength );
 
-	int		Write( const void* pBuffer, int nLength );
-	int		Seek( int64 nOffset, int nWhence );
-	int		Tell();
-	int		Size();
+	int Write( IN_BYTECAP(nLength) const void* pBuffer, int nLength );
+	unsigned int Seek( int64 nOffset, int nWhence );
+	unsigned int Tell();
+	unsigned int Size();
 
 	int64 AbsoluteBaseOffset();
 	bool	EndOfFile();
@@ -365,9 +371,8 @@ public:
 	{
 		Assert( pName );
 		Assert( !m_pszTrueFileName );
-		int len = Q_strlen( pName );
-		m_pszTrueFileName = new char[len + 1];
-		memcpy( m_pszTrueFileName, pName, len + 1 );
+
+		m_pszTrueFileName = V_strdup( pName );
 	}
 #endif
 
@@ -375,6 +380,8 @@ public:
 #if defined( SUPPORT_PACKED_STORE )
 	CPackedStoreFileHandle m_VPKHandle;
 #endif
+	// GMOD
+	Addon::FileHandle* m_pAddonFileHandle;
 	int64				m_nLength;
 	FileType_t			m_type;
 	FILE				*m_pFile;
@@ -389,7 +396,7 @@ protected:
 	};
 	unsigned int	m_nMagic;
 
-	bool IsValid();
+	bool IsValid() const;
 };
 
 class CFileOpenInfo
@@ -416,12 +423,27 @@ public:
 	{
 	}
 
-	void SetAbsolutePath(const char* pFormat, ...)
+	// RaphaelIT7: Backports from gmod-filesystem
+	void SetAbsolutePath( const char *pSearchPath, const char *pFileName )
 	{
+		ComposeSearchPath( m_AbsolutePath, sizeof( m_AbsolutePath ), pSearchPath, pFileName );
+		V_FixSlashes( m_AbsolutePath );
 	}
 
-	void SetResolvedFilename(const char* pStr)
+	// RaphaelIT7: Backports from gmod-filesystem
+	void SetAbsolutePath( const char *pszAbsolutePath )
 	{
+		V_strncpy( m_AbsolutePath, pszAbsolutePath, sizeof( m_AbsolutePath ) );
+		V_FixSlashes( m_AbsolutePath );
+	}
+	
+	void SetResolvedFilename( const char *pStr )
+	{
+		if ( m_ppszResolvedFilename )
+		{
+			Assert( !( *m_ppszResolvedFilename ) );
+			*m_ppszResolvedFilename = strdup( pStr );
+		}
 	}
 
 	void HandleFileCRCTracking(const char* pRelativeFileName)
@@ -432,7 +454,7 @@ public:
 	CBaseFileSystem* m_pFileSystem;
 
 	// These are output parameters.
-	void* m_pFileHandle;
+	CFileHandle* m_pFileHandle;
 	char** m_ppszResolvedFilename;
 
 	void* m_pPackFile;
