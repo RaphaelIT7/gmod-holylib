@@ -1124,6 +1124,11 @@ static void HolyLib_SendTable_EncodeProp( EncodeState* pState, const HolyLibSend
 	std::string varStr = var.ToString(); // Yes .ToString can only be used one at a time
 	if ( DVariantMismatch(var, var2) )
 		Msg("Diff: %s (%i - %i - %i) - %s | %s\n", pProp->GetName(), pProp->m_nHolyLibType, pProp->m_nNewTotalOffset, pProp->m_nNewSize, varStr.c_str(), var2.ToString());
+	else
+	{
+		if (g_pNetworkingReplacementModule.InDebug() == 1)
+			Msg("No difference for prop %s\n", pProp->GetName());
+	}
 
 	// Write the index.
 	pState->WritePropIndex( iProp );
