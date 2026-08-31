@@ -1018,12 +1018,12 @@ int PackState::BuildPack()
 		{
 			*((void**)((char*)m_pPackedData + pEntry.nDataOffset)) = nullptr;
 		} else {
-			unsigned char* pEntryOffset = m_pPackedData;
-			*((void**)((char*)pEntryOffset + pEntry.nDataOffset)) = (void*)pEntryOffset;
+			unsigned char* pEntryOffset = m_pPackedData + nTotalSize;
+			*((void**)((char*)m_pPackedData + pEntry.nDataOffset)) = (void*)pEntryOffset;
 			memcpy(pEntryOffset, pEntry.pString, nLength);
 			pEntryOffset[nLength] = '\0';
 			// Msg(PROJECT_NAME " - Wrote string %s (%i)\n", pEntry.pString, nLength);
-			nTotalSize += nLength;
+			nTotalSize += nLength + 1;
 		}
 	}
 
