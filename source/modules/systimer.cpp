@@ -86,7 +86,7 @@ static void RemoveTimers(GarrysMod::Lua::ILuaInterface* pLua)
 		if (!timer->markDelete)
 			continue;
 
-		pData->pLuaTimers.FastRemove(nTimer);
+		pData->pLuaTimers.FastRemove(i);
 		bDeleted = true;
 		delete timer;
 	}

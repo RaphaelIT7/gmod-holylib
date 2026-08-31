@@ -1891,14 +1891,20 @@ struct EntityList // entitylist module.
 			m_pEntReferences[pEntity] = nullptr;
 	}
 
-	inline const unordered_map<CBaseEntity*, GCudata*>& GetReferences()
+	inline const unordered_map<CBaseEntity*, GCudata*>& GetReferences() const
 	{
 		return m_pEntReferences;
 	}
 
-	inline const std::vector<CBaseEntity*>& GetEntities()
+	inline const std::vector<CBaseEntity*>& GetEntities() const
 	{
 		return m_pEntities;
+	}
+
+	inline void CopyFrom(EntityList* pSourceList)
+	{
+		m_pEntities = pSourceList->GetEntities();
+		m_pEntReferences = pSourceList->GetReferences();
 	}
 
 	inline void Invalidate()

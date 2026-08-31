@@ -208,7 +208,7 @@ LUA_FUNCTION_STATIC(Test_DisableStressBots)
 		return 1;
 	}
 
-	pConVar->SetValue("1");
+	pConVar->SetValue("0");
 	LUA->PushBool(true);
 	return 1;
 }

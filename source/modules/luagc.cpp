@@ -219,7 +219,7 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 					return true;
 
 			if (pVal->nextroot)
-				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(traceref(G2J(g), pVal->nextside)), L, true))
+				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(traceref(G2J(g), pVal->nextroot)), L, true))
 					return true;
 		}
 		break;
@@ -414,7 +414,7 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 				LuaGC_WalkReferences(obj2gco(traceref(G2J(g), pVal->link)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
 
 			if (pVal->nextroot)
-				LuaGC_WalkReferences(obj2gco(traceref(G2J(g), pVal->nextside)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				LuaGC_WalkReferences(obj2gco(traceref(G2J(g), pVal->nextroot)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
 		}
 		break;
 	case ~LJ_TTHREAD:
@@ -988,7 +988,7 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->link)), nWalkedObjects, L, true, bRecursive);
 
 			if (pVal->nextroot)
-				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->nextside)), nWalkedObjects, L, true, bRecursive);
+				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->nextroot)), nWalkedObjects, L, true, bRecursive);
 		}
 		break;
 	case ~LJ_TTHREAD:

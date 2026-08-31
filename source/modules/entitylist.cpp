@@ -259,14 +259,7 @@ LUA_FUNCTION_STATIC(EntityList_CreateCopy)
 
 	EntityList* pNewList = new EntityList();
 	pNewList->SetLua(LUA);
-
-	auto pMap = pNewList->GetReferences();
-	auto pVec = pNewList->GetEntities();
-	for (auto& [pEnt, iReference] : pData->GetReferences())
-	{
-		pMap[pEnt] = iReference;
-		pVec.push_back(pEnt);
-	}
+	pNewList->CopyFrom(pData);
 
 	Push_EntityList(LUA, pNewList);
 	return 1;

@@ -485,8 +485,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetAllStrings)
 	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	int idx = 0;
-	LUA->PreCreateTable(table->GetMaxStrings(), 0);
-	for (int i = 0; i < table->GetMaxStrings(); ++i)
+	LUA->PreCreateTable(table->GetNumStrings(), 0);
+	for (int i = 0; i < table->GetNumStrings(); ++i)
 	{
 		const char* pStr = table->GetString(i);
 		if (!pStr)
