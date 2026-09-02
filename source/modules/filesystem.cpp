@@ -10,6 +10,9 @@
 #include <cstring>
 #include "edict.h"
 
+#include <isteamugc.h>
+#include "sourcesdk/baseserver.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -2363,10 +2366,11 @@ LUA_FUNCTION_STATIC(addonsystem_Refresh)
 
 LUA_FUNCTION_STATIC(addonsystem_MountFile)
 {
-	//const char* strGMAPath = LUA->CheckString(1);
+	const char* strGMAPath = LUA->CheckString(1);
 
 	std::vector<std::string> files;
-	//LUA->PushNumber(GetAddonFilesystem()->MountFile(strGMAPath, &files, 0, 0, !?));
+	// 2? Seems to be what game.MountGMA uses
+	LUA->PushNumber(GetAddonFilesystem()->MountFile(strGMAPath, &files, 0, 0, IAddonSystem::AddonSource(2)));
 
 	LUA->PreCreateTable(files.size(), 0);
 		int idx = 0;
@@ -2394,6 +2398,44 @@ LUA_FUNCTION_STATIC(addonsystem_SetShouldMount)
 	uint64 workshopID = strtoull(workshopID64, nullptr, 0);
 	bool bMount = LUA->GetBool(2);
 	GetAddonFilesystem()->SetShouldMount(workshopID, bMount);
+
+	return 0;
+}
+
+// IMPORTANT! Old content stays mounted!
+LUA_FUNCTION_STATIC(addonsystem_ChangeCollection)
+{
+	const char* pszCollectionID = LUA->CheckString(1);
+	ConVarRef host_workshop_collection("host_workshop_collection");
+	if (host_workshop_collection.IsValid())
+		host_workshop_collection.SetValue(pszCollectionID);
+
+	uint64_t wsid = strtoull(pszCollectionID, nullptr, 0);
+	GetAddonFilesystem()->ScanForSubscriptions(pszCollectionID, wsid != 0);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(addonsystem_Subscribe)
+{
+	const char* pszWSID = LUA->CheckString(1);
+	uint64_t wsid = strtoull(pszWSID, nullptr, 0);
+
+	SteamUGC()->SubscribeItem(wsid);
+	GetAddonFilesystem()->AddUnloadedSubscription(wsid);
+
+	if (Util::server)
+	{
+		CBaseServer* pServer = (CBaseServer*)Util::server;
+		bool bIsDedicated = pServer->m_bIsDedicated;
+		pServer->m_bIsDedicated = false;
+		// We must fool the Addon::FileSystem as it calls IGet::IsDedicatedServer which does sv.IsDedicated which returns m_bIsDedicated :3
+
+		// now it should be able to do Task::GetSubscriptions & Task::DownloadAddons
+		GetAddonFilesystem()->ScanForSubscriptions("", false);
+
+		pServer->m_bIsDedicated = bIsDedicated;
+	}
 
 	return 0;
 }
@@ -2433,6 +2475,8 @@ void CFileSystemModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, addonsystem_MountFile, "MountFile");
 		Util::AddFunc(pLua, addonsystem_ShouldMount, "ShouldMount");
 		Util::AddFunc(pLua, addonsystem_SetShouldMount, "SetShouldMount");
+		Util::AddFunc(pLua, addonsystem_ChangeCollection, "ChangeCollection");
+		Util::AddFunc(pLua, addonsystem_Subscribe, "Subscribe");
 	Util::FinishTable(pLua, "addonsystem");
 }
 
