@@ -82,14 +82,31 @@ static IVP_SkipType pCurrentSkipType = IVP_SkipType::IVP_None;
 
 #define TOSTRING( var ) var ? "true" : "false"
 
-static bool g_bReplacedIVP = false;
-static thread_local auto pCurrentTime = std::chrono::high_resolution_clock::now();
-static double pCurrentLagThreadshold = 100; // 100 ms
 struct ILuaPhysicsEnvironment;
 static inline ILuaPhysicsEnvironment* RegisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
 static inline void UnregisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
 void CheckPhysicsLag(const char* strFunctionName, CPhysicsObject* pObject1, CPhysicsObject* pObject2);
+
+static bool g_bReplacedIVP = false;
+static thread_local auto pCurrentTime = std::chrono::high_resolution_clock::now();
+static double pCurrentLagThreadshold = 100; // 100 ms
 static thread_local bool g_pIsInPhysicsLagCall = false;
+
+// RaphaelIT7 (ToDo): We should probably use a std::shared_mutex
+static unordered_map<IPhysicsEnvironment*, ILuaPhysicsEnvironment*> g_pEnvironmentToLua;
+static unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // contains all IPhysicsObject that exist
+
+// RaphaelIT7 (ToDo):
+// It's driving me insane, somehow it's at 160 but there is A LOT that is supposed to be before it....
+// The entire layout of IVP_Real_Object is a mess and I don't want to figure that out rn
+static inline CPhysicsObject* GetClientDataFromGModObject(GMODSDK::IVP_Real_Object* pObj)
+{
+	if (!pObj)
+		return nullptr;
+
+	return (CPhysicsObject*)*(void**)((char*)pObj + 0x0A0);
+}
+
 #if CUSTOM_VPHYSICS_BUILD
 #define IVPHolyLib_OVERRIDE override
 #else
@@ -174,6 +191,10 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 
 			if (pObject1)
 			{
+				// If the offsets in IVP_Real_Object change then client_data access may return junk!
+				if (g_pObjects.find(pObject1) == g_pObjects.end())
+					Error("Garbage CPhysicsObject(1)! This should NEVER happen! (%p)\n", pObject1);
+
 				Push_IPhysicsObject(g_Lua, pObject1);
 			} else {
 				g_Lua->PushNil();
@@ -181,6 +202,9 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 
 			if (pObject2)
 			{
+				if (g_pObjects.find(pObject2) == g_pObjects.end())
+					Error("Garbage CPhysicsObject(2)! This should NEVER happen! (%p)\n", pObject2);
+
 				Push_IPhysicsObject(g_Lua, pObject2);
 			} else {
 				g_Lua->PushNil();
@@ -212,7 +236,7 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 				int i = 0;
 				for (GMODSDK::IVP_Real_Object* pObject : g_pCurrentRecheckOVElement)
 				{
-					IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)pObject->client_data;
+					IPhysicsObject* pCurrentOVObject = GetClientDataFromGModObject(pObject);
 					if (!pCurrentOVObject)
 						continue;
 
@@ -338,7 +362,7 @@ static void hook_IVP_Mindist_simulate_time_event(GMODSDK::IVP_Mindist* mindist, 
 	{
 		func_IVP_Mindist_Base_get_objects(mindist, pObjs);
 
-		CheckPhysicsLag("IVP_Mindist::simulate_time_event", pObjs[0] ? (CPhysicsObject*)pObjs[0]->client_data : nullptr, pObjs[1] ? (CPhysicsObject*)pObjs[1]->client_data : nullptr);
+		CheckPhysicsLag("IVP_Mindist::simulate_time_event", GetClientDataFromGModObject(pObjs[0]), GetClientDataFromGModObject(pObjs[1]));
 	}
 
 	if (pCurrentSkipType == IVP_SkipType::IVP_SkipSimulation)
@@ -358,7 +382,7 @@ static void hook_IVP_Mindist_update_exact_mindist_events(GMODSDK::IVP_Mindist* m
 	{
 		func_IVP_Mindist_Base_get_objects(mindist, pObjs);
 
-		CheckPhysicsLag("IVP_Mindist::update_exact_mindist_events", pObjs[0] ? (CPhysicsObject*)pObjs[0]->client_data : nullptr, pObjs[1] ? (CPhysicsObject*)pObjs[1]->client_data : nullptr);
+		CheckPhysicsLag("IVP_Mindist::update_exact_mindist_events", GetClientDataFromGModObject(pObjs[0]), GetClientDataFromGModObject(pObjs[1]));
 	}
 
 	if (pCurrentSkipType == IVP_SkipType::IVP_SkipSimulation)
@@ -377,7 +401,7 @@ static GMODSDK::IVP_MRC_TYPE hook_IVP_Mindist_Minimize_Solver_p_minimize_PP(GMOD
 	{
 		func_IVP_Mindist_Base_get_objects(mindistMinimizeSolver->mindist, pObjs);
 
-		CheckPhysicsLag("IVP_Mindist_Minimize_Solver::p_minimize_PP", pObjs[0] ? (CPhysicsObject*)pObjs[0]->client_data : nullptr, pObjs[1] ? (CPhysicsObject*)pObjs[1]->client_data : nullptr);
+		CheckPhysicsLag("IVP_Mindist_Minimize_Solver::p_minimize_PP", GetClientDataFromGModObject(pObjs[0]), GetClientDataFromGModObject(pObjs[1]));
 	}
 
 	return detour_IVP_Mindist_Minimize_Solver_p_minimize_PP.GetTrampoline<Symbols::IVP_Mindist_Minimize_Solver_p_minimize_PP>()(mindistMinimizeSolver, A, B, m_cache_A, m_cache_B);
@@ -657,8 +681,6 @@ public:
 };
 #endif
 
-static unordered_map<IPhysicsEnvironment*, ILuaPhysicsEnvironment*> g_pEnvironmentToLua;
-static unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // contains all IPhysicsObject that exist
 #if PHYSENV_INCLUDEIVPFALLBACK
 static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject);
 #endif

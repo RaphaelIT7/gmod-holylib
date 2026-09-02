@@ -313,7 +313,7 @@ class IVP_Template_Real_Object;
 class IVP_OV_Element;
 class IVP_Mindist_Manager;
 #define IVP_NO_COLL_GROUP_STRING_LEN 8
-#pragma pack(push, 1)
+#pragma pack(push, 4)
 class IVP_Real_Object : public IVP_Real_Object_Fast {
 
 	friend class IVP_Anchor;
@@ -338,8 +338,6 @@ private:
 
 	friend class IVP_Mindist_Manager;
 protected:	
-	IVP_SurfaceManager *surface_manager;	// The surface_manager defines the surface structure for this object.
-	
 	/* The following section is used to calculate intermediate values */
 
 	friend class IVP_Core_Collision;
@@ -367,20 +365,21 @@ protected:
  *	The physics simulation internal public section. Handle with care:
  ********************************************************************************/
 public:	
+	void* _unknown1[4];
 	char nocoll_group_ident[IVP_NO_COLL_GROUP_STRING_LEN];	/* Identifier for filtering collisions, used only 
 				 * if the IVP_Collision_Filter_Coll_Group_Ident is
 				 * the installed collision filter, see IVP_Application_Environment. */
 	///////// Simulation internals
+	IVP_SurfaceManager *surface_manager;	// The surface_manager defines the surface structure for this object.
 
 	IVP_Material 	*l_default_material;	// default material of object
 	IVP_OV_Element   	*ov_element;		// used to trace objects movement within the environment->ov_tree
 	IVP_FLOAT extra_radius;							// extra collision radius around the object
 
 	///////// Core 
-   // IVP_Core *physical_core; // Coordinate system, mass, speed, etc... (eventually merged)
-	//IVP_Core *friction_core; // Long term (merged) core for frictions, when objs are split make sure to call 'recheck_ov_element'
-	//IVP_Core *original_core;
-	char offset[2];
+    IVP_Core *physical_core; // Coordinate system, mass, speed, etc... (eventually merged)
+	IVP_Core *friction_core; // Long term (merged) core for frictions, when objs are split make sure to call 'recheck_ov_element'
+	IVP_Core *original_core;
 	void *client_data; //not used by physics, provided for customer
 };
 
