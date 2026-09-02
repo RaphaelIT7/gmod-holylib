@@ -99,12 +99,29 @@ static unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // co
 // RaphaelIT7 (ToDo):
 // It's driving me insane, somehow it's at 160 but there is A LOT that is supposed to be before it....
 // The entire layout of IVP_Real_Object is a mess and I don't want to figure that out rn
+static bool g_bIsValidClientData = false;
 static inline CPhysicsObject* GetClientDataFromGModObject(GMODSDK::IVP_Real_Object* pObj)
 {
 	if (!pObj)
 		return nullptr;
 
-	return (CPhysicsObject*)*(void**)((char*)pObj + 0x0A0);
+	// Offset can easily be found in IVP_Real_Object constructor (It's the very last instruction load & store)
+	CPhysicsObject* pPhys = (CPhysicsObject*)*(void**)((char*)pObj + 0x0A0);
+
+	// We only check ones and then pray its fine
+	// It's highly unlikely that we read the wrong offset yet still find a entry from a garbage pointer
+	// This is as the first object is highly unlikely to trigger all the way down to trigger CheckPhysicsLag
+	// We cannot verify from inside CheckPhysicsLag as it may be called while in CreatePhysicsObject setting up the fresh CPhysicsObject
+	if (!g_bIsValidClientData)
+	{
+		// If the offsets in IVP_Real_Object change then client_data access may return junk!
+		if (g_pObjects.find(pPhys) == g_pObjects.end())
+			Error("Garbage CPhysicsObject! This should NEVER happen! (%p)\n", pPhys);
+		else
+			g_bIsValidClientData = true;
+	}
+
+	return pPhys;
 }
 
 #if CUSTOM_VPHYSICS_BUILD
@@ -191,10 +208,6 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 
 			if (pObject1)
 			{
-				// If the offsets in IVP_Real_Object change then client_data access may return junk!
-				if (g_pObjects.find(pObject1) == g_pObjects.end())
-					Error("Garbage CPhysicsObject(1)! This should NEVER happen! (%p)\n", pObject1);
-
 				Push_IPhysicsObject(g_Lua, pObject1);
 			} else {
 				g_Lua->PushNil();
@@ -202,9 +215,6 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 
 			if (pObject2)
 			{
-				if (g_pObjects.find(pObject2) == g_pObjects.end())
-					Error("Garbage CPhysicsObject(2)! This should NEVER happen! (%p)\n", pObject2);
-
 				Push_IPhysicsObject(g_Lua, pObject2);
 			} else {
 				g_Lua->PushNil();
