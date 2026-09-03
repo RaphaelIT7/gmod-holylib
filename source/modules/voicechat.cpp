@@ -153,7 +153,7 @@ struct VoiceData
 			);
 
 			if (bytes != -1)
-				SetData(pCompressed, bytes);
+				SetData(pCompressed, (uint16_t)bytes);
 			else {
 				if (g_pVoiceChatModule.InDebug() == 1)
 				{
@@ -203,7 +203,7 @@ struct VoiceData
 				return pData;
 			}
 
-			SetData(pCompressed, bytes);
+			SetData(pCompressed, (uint16_t)bytes);
 			bDecompressedChanged = false;
 		}
 
@@ -281,7 +281,7 @@ struct VoiceData
 				return iLength; // We failed to update. GG
 			}
 
-			SetData(pCompressed, bytes);
+			SetData(pCompressed, (uint16_t)bytes);
 			bDecompressedChanged = false;
 		}
 
@@ -469,7 +469,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetProximity)
 
 LUA_JIT_WRAPPED_2(VoiceData_SetPlayerSlot,
 	LuaUserData*, pUD, Get_VoiceData_Data(LUA, 1, true),
-	int, iPlayerSlot, LUA->CheckNumber(2)
+	int, iPlayerSlot, (int)LUA->CheckNumber(2)
 )
 {
 	VoiceData* pData = (VoiceData*)pUD->GetData();
@@ -481,7 +481,7 @@ LUA_JIT_WRAPPED_2(VoiceData_SetPlayerSlot,
 
 LUA_JIT_WRAPPED_2(VoiceData_SetLength,
 	LuaUserData*, pUD, Get_VoiceData_Data(LUA, 1, true),
-	int, iLength, LUA->CheckNumber(2)
+	int, iLength, (int)LUA->CheckNumber(2)
 )
 {
 	VoiceData* pData = (VoiceData*)pUD->GetData();
@@ -863,7 +863,7 @@ struct VoiceStream {
 		std::vector<int16_t> out(outCount);
 
 		auto getSample = [&](int64_t idx) -> int16_t {
-			if (idx < 0) return in[std::min<size_t>(-idx, in.size() - 1)];
+			if (idx < 0) return in[std::min<int64_t>(-idx, in.size() - 1)];
 			if (static_cast<size_t>(idx) >= in.size())
 				return in[std::max<size_t>(2 * in.size() - idx - 2, 0)];
 			return in[idx];
@@ -1586,8 +1586,8 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 	if (Lua::PushHook("HolyLib:PreProcessVoiceChat"))
 	{
 		VoiceData* pVoiceData = new VoiceData;
-		pVoiceData->SetData(data, nBytes);
-		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
+		pVoiceData->SetData(data, (uint16_t)nBytes);
+		pVoiceData->iPlayerSlot = (uint8_t)pClient->GetPlayerSlot();
 		pVoiceData->MarkTemp();
 
 		CBaseEntity* pPlayer = (CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient);
@@ -1697,7 +1697,7 @@ LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 
 LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 {
-	int iPlayerSlot = (int)LUA->CheckNumberOpt(1, 0);
+	uint8_t iPlayerSlot = (uint8_t)LUA->CheckNumberOpt(1, 0);
 	const char* pStr = LUA->CheckStringOpt(2, nullptr);
 	int iLength = (int)LUA->CheckNumberOpt(3, 0);
 

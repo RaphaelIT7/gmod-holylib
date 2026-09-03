@@ -119,7 +119,6 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 {
 	std::vector<Token> tokens;
 
-	size_t scope = 0;
 	size_t i = 0;
 	while (i < content.size())
 	{
