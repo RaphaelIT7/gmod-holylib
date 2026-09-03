@@ -300,6 +300,10 @@ void CServerPlugin::GameFrame(bool simulating)
 void CServerPlugin::LevelShutdown(void) // !!!!this can get called multiple times per map change
 {
 	g_pModuleManager.LevelShutdown();
+
+	// RaphaelIT7: Fallback in case hooking into CLuaInterface::Shutdown fails
+	if (!Lua::GetRealm(GarrysMod::Lua::State::SERVER) && g_Lua)
+		Lua::FinalShutdown(); // g_Lua is already invalid! So we don't run a proper shutdown
 }
 
 //---------------------------------------------------------------------------------
