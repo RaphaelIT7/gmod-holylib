@@ -427,6 +427,9 @@ namespace Symbols
 	using Addon_FileSystem_GetFileEntry = void* (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
 	extern const std::vector<Symbol> Addon_FileSystem_GetFileEntrySym;
 
+	using Addon_FileSystem_ResolveFile = std::string (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
+	extern const std::vector<Symbol> Addon_FileSystem_ResolveFileSym;
+
 	using Addon_FileHandle_Size = unsigned int (GMCOMMON_CALLING_CONVENTION*)(void* handle);
 	extern const std::vector<Symbol> Addon_FileHandle_SizeSym;
 

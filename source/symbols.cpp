@@ -462,6 +462,10 @@ namespace Symbols
 		Symbol::FromName("_ZN5Addon10FileSystem12GetFileEntryEPKc"),
 	};
 
+	const std::vector<Symbol> Addon_FileSystem_ResolveFileSym = {
+		Symbol::FromName("_ZN5Addon10FileSystem11ResolveFileEPKc"),
+	};
+
 	const std::vector<Symbol> Addon_FileHandle_SizeSym = {
 		Symbol::FromName("_ZN5Addon10FileHandle4SizeEv"),
 	};

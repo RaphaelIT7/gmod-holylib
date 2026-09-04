@@ -136,6 +136,9 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 			sourcePath .. [[modules/*.cpp]],
 			sourcePath .. [[sourcesdk/*.h]],
 			sourcePath .. [[sourcesdk/*.cpp]],
+			sourcePath .. [[sourcesdk/vpklib/*.h]],
+			sourcePath .. [[sourcesdk/vpklib/*.cpp]],
+			sourcePath .. [[sourcesdk/tier0/*.h]],
 			sourcePath .. [[public/*.h]],
 			sourcePath .. [[lua/*.*]],
 			sourcePath .. [[lz4/*.h]],
@@ -196,6 +199,7 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 			defines("PLATFORM_64BITS")
 
 		filter("system:windows")
+			files(sourcePath .. "sourcesdk/tier0/platform.cpp")
 			if HOLYLIB_DEDICATED then
 				defines("DEDICATED")
 			else
@@ -203,6 +207,7 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 			end
 
 		filter("system:linux")
+			files(sourcePath .. "sourcesdk/tier0/platform_posix.cpp")
 			disablewarnings({"unused-variable"})
 			targetextension(".so")
 			links({"dl", "tier0", "pthread"}) -- this fixes the undefined reference to `dlopen' errors.

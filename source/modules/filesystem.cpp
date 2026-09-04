@@ -187,9 +187,6 @@ void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 
 static CDiskFileTree g_pDiskFileTree;
 
-static void DeleteFileHandle(FileHandle_t handle);
-static inline CSearchPath* FindSearchPathByStoreId(int iStoreID);
-
 // VS2022 falsely claims the out buffer may not be null terminated...
 static FORCEINLINE void GetFullPath(const CSearchPath* pSearchPath, const char* strFileName, char (&out)[MAX_PATH])
 {
@@ -439,7 +436,6 @@ static void AddSeperatorAndFixPath( char *str )
 	V_FixSlashes( str );
 }
 
-static inline bool Q_isempty(const char *v) { return v[0] == '\0'; }
 static Detouring::Hook detour_CBaseFileSystem_AddSearchPathInternal;
 void hook_CBaseFileSystem_AddSearchPathInternal(CBaseFileSystem* _this, const char *pPath, const char *pathID, SearchPathAdd_t addType, bool bAddPackFiles)
 {
@@ -658,6 +654,167 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
 
+static Detouring::Hook detour_CBaseFileSystem_RelativePathToFullPath;
+static Symbols::Addon_FileSystem_ResolveFile func_Addon_FileSystem_ResolveFile = nullptr;
+static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem* _this, const char *pFileName, const char *pPathID, char *pDest, int maxLenInChars, PathTypeFilter_t pathFilter, PathTypeQuery_t *pPathType )
+{
+	struct _stat buf;
+
+	if ( pPathType )
+	{
+		*pPathType = PATH_IS_NORMAL;
+	}
+
+	// Convert filename to lowercase.  All files in the
+	// game logical filesystem must be accessed by lowercase name
+	char szLowercaseFilename[ MAX_PATH ];
+	func_CBaseFileSystem_FixUpPath( _this, pFileName, szLowercaseFilename, sizeof(szLowercaseFilename) );
+	pFileName = szLowercaseFilename;
+
+	// RaphaelIT7: Just to avoid weird issues
+	NormalizeGamePath( szLowercaseFilename );
+
+	// Fill in the default in case it's not found...
+	V_strncpy( pDest, pFileName, maxLenInChars );
+
+// @FD This is arbitrary and seems broken.  If the caller needs this filter, they should
+//     request it with the flag themselves.  As it is, I cannot search all the file paths
+//     for a file using this function because there is no option that says, "No, really, I
+//     mean ALL SEARCH PATHS."  The current problem I'm trying to fix is that sounds are not
+//     working if they are in the BSP.  I wrote code that assumed that I could just ask for
+//     the absolute path of a file, since we are able to open files with these absolute
+//     filenames, and that each particular filesystem call wouldn't have its own individual
+//     quirks.
+//	if ( IsPC() && pathFilter == FILTER_NONE )
+//	{
+//		// X360TBD: PC legacy behavior never returned pack paths
+//		// do legacy behavior to ensure naive callers don't break
+//		pathFilter = FILTER_CULLPACK;
+//	}
+	
+
+	CSearchPathsIterator iter( _this, &pFileName, pPathID, pathFilter );
+	for ( CSearchPath *pSearchPath = iter.GetFirst(); pSearchPath != nullptr; pSearchPath = iter.GetNext() )
+	{
+		CPackFile *pPack = pSearchPath->GetPackFile();
+		if ( pPack )
+		{
+			if ( pPack->ContainsFile( pFileName ) )
+			{
+				if ( pPathType )
+				{
+					if ( pPack->m_bIsMapPath )
+					{
+						*pPathType |= PATH_IS_MAPPACKFILE;
+					}
+					else
+					{
+						*pPathType |= PATH_IS_PACKFILE;
+					}
+					if ( pSearchPath->m_bIsRemotePath )
+					{
+						*pPathType |= PATH_IS_REMOTE;
+					}
+				}
+
+				// form an encoded absolute path that can be decoded by our FS as pak based
+				const char *pszPackName = pPack->m_ZipName.String();
+				intp len = V_strlen( pszPackName );
+				intp nTotalLen = len + 1 + V_strlen( pFileName );
+				if ( nTotalLen >= maxLenInChars )
+				{
+					::Warning( "File %s was found in %s, but resulting abs filename won't fit in callers buffer of %d bytes\n",
+						pFileName, pszPackName, maxLenInChars );
+					Assert( false );
+					return nullptr;
+				}
+
+				V_strncpy( pDest, pszPackName, maxLenInChars );
+				V_AppendSlash( pDest, maxLenInChars );
+				V_strncat( pDest, pFileName, maxLenInChars ); 
+				Assert( V_strlen( pDest ) == nTotalLen );
+				return pDest;
+			}
+
+			continue;
+		}
+
+		// Found in VPK?
+#ifdef SUPPORT_PACKED_STORE
+			CPackedStore *pVPK = pSearchPath->GetPackedStore();
+			if ( pVPK )
+			{
+				CPackedStoreFileHandle vpkHandle = pVPK->OpenFile( pFileName );
+				if ( vpkHandle )
+				{
+					const char *pszVpkName = vpkHandle.m_pOwner->FullPathName();
+					Assert( V_GetFileExtension( pszVpkName ) != nullptr );
+
+					intp len = V_strlen( pszVpkName );
+					intp nTotalLen = len + 1 + V_strlen( pFileName );
+					if ( nTotalLen >= maxLenInChars )
+					{
+						::Warning( "File %s was found in %s, but resulting abs filename won't fit in callers buffer of %d bytes\n",
+							pFileName, pszVpkName, maxLenInChars );
+						Assert( false );
+						return nullptr;
+					}
+
+					V_strncpy( pDest, pszVpkName, maxLenInChars );
+					V_AppendSlash( pDest, maxLenInChars );
+					V_strncat( pDest, pFileName, maxLenInChars );
+					V_FixSlashes( pDest );
+					return pDest;
+				}
+				continue;
+			}
+#endif
+
+		char pTmpFileName[ MAX_FILEPATH ];
+		ComposeSearchPath( pTmpFileName, sizeof( pTmpFileName ), pSearchPath->GetPathString(), pFileName );
+		V_FixSlashes( pTmpFileName );
+
+		// GMod
+		if ( pSearchPath->m_bIsWorkshop )
+		{
+			Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
+			std::string strFullFileName = func_Addon_FileSystem_ResolveFile( m_AddonFileSystem, pTmpFileName );
+			if ( !strFullFileName.empty() )
+			{
+				V_strncpy( pDest, strFullFileName.c_str(), maxLenInChars );
+				return pDest;
+			}
+		}
+
+		// RaphaelIT7: We force lower for consistency!
+		V_strlower( pTmpFileName );
+		FileCacheEntry eCacheEntry = g_pDiskFileTree.ContainsPath( pTmpFileName );
+
+		// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
+		if ( eCacheEntry == FileCacheEntry::INVALID )
+		{
+			// RaphaelIT7: Debugging
+			//if ( FS_stat( pTmpFileName, &buf ) != -1 )
+			//	__debugbreak();
+
+			continue;
+		}
+
+		if ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( pTmpFileName, &buf ) != -1 )
+		{
+			V_strncpy( pDest, pTmpFileName, maxLenInChars );
+			if ( pPathType && pSearchPath->m_bIsRemotePath )
+			{
+				*pPathType |= PATH_IS_REMOTE;
+			}
+			return pDest;
+		}
+	}
+
+	// not found
+	return nullptr;
+}
+
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	bShutdown = false;
@@ -687,7 +844,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
 }
 
-static CUtlSymbolTableMT* g_pPathIDTable;
+CUtlSymbolTableMT* g_pPathIDTable;
 inline const char* CPathIDInfo::GetPathIDString() const
 {
 	/*
@@ -824,6 +981,15 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_Trace_FOpen = (Symbols::CBaseFileSystem_Trace_FOpen)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_Trace_FOpenSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_Trace_FOpen, "CBaseFileSystem::Trace_FOpen");
+
+	func_Addon_FileHandle_Size = (Symbols::Addon_FileHandle_Size)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::Addon_FileHandle_SizeSym);
+	Detour::CheckFunction((void*)func_Addon_FileHandle_Size, "Addon::FileHandle::Size");
+
+	func_Addon_FileSystem_GetFileEntry = (Symbols::Addon_FileSystem_GetFileEntry)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::Addon_FileSystem_GetFileEntrySym);
+	Detour::CheckFunction((void*)func_Addon_FileSystem_GetFileEntry, "Addon::FileSystem::GetFileEntry");
+
+	func_Addon_FileSystem_ResolveFile = (Symbols::Addon_FileSystem_ResolveFile)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::Addon_FileSystem_ResolveFileSym);
+	Detour::CheckFunction((void*)func_Addon_FileSystem_ResolveFile, "Addon::FileSystem::ResolveFile");
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(filesystem_loader, Symbols::g_PathIDTableSym);
