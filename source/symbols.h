@@ -418,6 +418,9 @@ namespace Symbols
 	using CBaseFileSystem_NewSearchPath = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, unsigned int addType);
 	extern const std::vector<Symbol> CBaseFileSystem_NewSearchPathSym;
 
+	using CBaseFileSystem_AddSearchPathInternal = void* (GMCOMMON_CALLING_CONVENTION*)(void* _this, const char *pPath, const char *pathID, SearchPathAdd_t addType, bool bAddPackFiles);
+	extern const std::vector<Symbol> CBaseFileSystem_AddSearchPathInternalSym;
+
 	using CFileHandle_Constructor = void (GMCOMMON_CALLING_CONVENTION*)(void* handle, void* fs);
 	extern const std::vector<Symbol> CFileHandle_ConstructorSym;
 

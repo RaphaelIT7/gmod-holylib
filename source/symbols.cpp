@@ -450,6 +450,10 @@ namespace Symbols
 		Symbol::FromName("_ZN15CBaseFileSystem13NewSearchPathEj"),
 	};
 
+	const std::vector<Symbol> CBaseFileSystem_AddSearchPathInternalSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem21AddSearchPathInternalEPKcS1_jbb"),
+	};
+
 	const std::vector<Symbol> CFileHandle_ConstructorSym = {
 		Symbol::FromName("_ZN11CFileHandleC1EP15CBaseFileSystem"),
 	};
