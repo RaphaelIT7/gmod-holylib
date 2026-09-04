@@ -1,5 +1,8 @@
 #pragma once
 
+// RaphaelIT7:
+// Backport from HolyLib (Also used by REngine)
+
 // We have this so that anyone who doesn't use it can fallback to std's stuff.
 #include <ankerl/unordered_dense.h>
 #if defined(ANKERL_UNORDERED_DENSE_H)
@@ -25,3 +28,23 @@ template <typename Key, typename Hash = std::hash<Key>,
           typename Allocator = std::allocator<Key>>
 using unordered_set = std::unordered_set<Key, Hash, KeyEqual, Allocator>;
 #endif
+
+// RaphaelIT7:
+// Helpers to use when working with std::string map keys
+// These will allow lookups without allocating a std::string making it massively faster
+
+struct StringHash
+{
+    using is_transparent = void;
+    size_t operator()(std::string_view sv) const noexcept {
+        return (size_t)ankerl::unordered_dense::hash<std::string_view>{}(sv);
+    }
+};
+
+struct StringEq
+{
+    using is_transparent = void;
+    bool operator()(std::string_view a, std::string_view b) const noexcept {
+        return a == b;
+    }
+};

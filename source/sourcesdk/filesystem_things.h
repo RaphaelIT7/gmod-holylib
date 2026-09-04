@@ -335,6 +335,15 @@ namespace Addon
 	class FileHandle;
 }
 
+// RaphaelIT7:
+// Using printf( "%s%s" ) is a real waste! So we replact it with this
+// This only now becomes a bit noticeable in performance results thanks to our cache making lookups fast already
+inline void ComposeSearchPath( char *pOut, size_t nOutSize, const char *pSearchPath, const char *pFileName )
+{
+	V_strncpy( pOut, pSearchPath, nOutSize );
+	V_strcat( pOut, pFileName, nOutSize );
+}
+
 class CPackFile;
 class CPackFileHandle;
 class CCompiledKeyValuesReader;
@@ -426,7 +435,7 @@ public:
 	// RaphaelIT7: Backports from gmod-filesystem
 	void SetAbsolutePath( const char *pSearchPath, const char *pFileName )
 	{
-		ComposeSearchPath( m_AbsolutePath, sizeof( m_AbsolutePath ), pSearchPath, pFileName );
+		::ComposeSearchPath( m_AbsolutePath, sizeof( m_AbsolutePath ), pSearchPath, pFileName );
 		V_FixSlashes( m_AbsolutePath );
 	}
 
