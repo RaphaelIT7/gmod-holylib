@@ -22,7 +22,6 @@ public:
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
-	void Shutdown() override;
 	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
 	const char* Name() override { return "filesystem"; };
 	int Compatibility() override { return LINUX32 | WINDOWS32; };
@@ -157,6 +156,8 @@ void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 
 	char szSearchPath[MAX_PATH];
 	V_snprintf( szSearchPath, sizeof( szSearchPath ), "%s/*", pszFolderPath );
+
+	Msg("What am I??? %p\n", g_pFullFileSystem);
 
 	WIN32_FIND_DATA findData;
 	HANDLE hFind = func_CFileSystem_Stdio_FS_FindFirstFile( g_pFullFileSystem, szSearchPath, &findData );
@@ -425,6 +426,8 @@ CSearchPath* hook_CBaseFileSystem_NewSearchPath(void* _this, int addType)
 	pPath->m_bIsWorkshop = (addType & PATH_FLAG_ISWORKSHOP) != 0;
 	g_pLastCreatedSearchPath = pPath;
 
+	g_pFullFileSystem = (CBaseFileSystem*)_this;
+
 	return pPath;
 }
 
@@ -442,6 +445,8 @@ static void AddSeperatorAndFixPath( char *str )
 static Detouring::Hook detour_CBaseFileSystem_AddSearchPathInternal;
 void hook_CBaseFileSystem_AddSearchPathInternal(CBaseFileSystem* _this, const char *pPath, const char *pathID, SearchPathAdd_t addType, bool bAddPackFiles)
 {
+	g_pFullFileSystem = _this;
+
 	detour_CBaseFileSystem_AddSearchPathInternal.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPathInternal>()(_this, pPath, pathID, addType, bAddPackFiles);
 
 	// Skip the only paths where we do not care
@@ -504,26 +509,11 @@ static void GetPathFromIDCmd(const CCommand &args)
 }
 static ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
 
-static bool bShutdown = false;
-static void InitFileSystem(IFileSystem* pFileSystem)
-{		
-	if (!pFileSystem || bShutdown) // We refuse to init when this is called when it shouldn't. If it crashes, then give me a stacktrace to fix it.
-		return;
-
-	g_pFullFileSystem = pFileSystem;
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - filesystem: Initialized filesystem\n");
-}
-
 static Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
 static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
 {
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
-
-	if (!g_pFullFileSystem)
-		InitFileSystem((IFileSystem*)filesystem);
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
@@ -539,9 +529,6 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 {
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
-
-	if (!g_pFullFileSystem)
-		InitFileSystem((IFileSystem*)filesystem);
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
@@ -820,8 +807,6 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	bShutdown = false;
-
 	int pBaseLength = 0;
 	char pBaseDir[MAX_PATH];
 	if ( pBaseLength < 3 )
@@ -829,9 +814,6 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 
 	std::string workshopDir = pBaseDir;
 	workshopDir.append("garrysmod" FILEPATH_SLASH "workshop");
-
-	if (g_pFullFileSystem != nullptr)
-		InitFileSystem(g_pFullFileSystem);
 
 	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)g_pFullFileSystem->Addons();
 	FOR_EACH_LL_(((CBaseFileSystem*)g_pFullFileSystem)->m_SearchPaths, pSearchPath)
@@ -904,11 +886,6 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 {
 	if (!bPreServer)
 		return;
-
-	bShutdown = false;
-
-	if (g_pFullFileSystem != nullptr)
-		InitFileSystem(g_pFullFileSystem);
 
 	// ToDo: Redo EVERY Hook so that we'll abuse the vtable instead of symbols.  
 	// Use the ClassProxy or so which should also allow me to port this to windows.
@@ -1498,9 +1475,4 @@ void CFileSystemModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 void CFileSystemModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "filesystem");
-}
-
-void CFileSystemModule::Shutdown()
-{
-	bShutdown = true;
 }
