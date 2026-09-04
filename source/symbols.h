@@ -433,6 +433,15 @@ namespace Symbols
 	using Addon_FileHandle_Size = unsigned int (GMCOMMON_CALLING_CONVENTION*)(void* handle);
 	extern const std::vector<Symbol> Addon_FileHandle_SizeSym;
 
+	using CFileSystem_Stdio_FS_FindFirstFile = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, const char *findname, void *dat);
+	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindFirstFileSym;
+
+	using CFileSystem_Stdio_FS_FindNextFile = bool (GMCOMMON_CALLING_CONVENTION*)(void* fs, void* handle, void *dat);
+	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindNextFileSym;
+
+	using CFileSystem_Stdio_FS_FindClose = bool (GMCOMMON_CALLING_CONVENTION*)(void* fs, void* handle);
+	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindCloseSym;
+
 	extern const std::vector<Symbol> g_PathIDTableSym;
 
 	//---------------------------------------------------------------------------------

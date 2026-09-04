@@ -143,6 +143,9 @@ void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszN
 	m_FileList.erase( it );
 }
 
+static Symbols::CFileSystem_Stdio_FS_FindFirstFile func_CFileSystem_Stdio_FS_FindFirstFile = nullptr;
+static Symbols::CFileSystem_Stdio_FS_FindNextFile func_CFileSystem_Stdio_FS_FindNextFile = nullptr;
+static Symbols::CFileSystem_Stdio_FS_FindClose func_CFileSystem_Stdio_FS_FindClose = nullptr;
 // RaphaelIT7:
 // This is expensive! A trade of startup time vs runtime performance
 // ToDo: Check out if we can improve memory usage
@@ -156,7 +159,7 @@ void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 	V_snprintf( szSearchPath, sizeof( szSearchPath ), "%s/*", pszFolderPath );
 
 	WIN32_FIND_DATA findData;
-	HANDLE hFind = ((CBaseFileSystem*)g_pFullFileSystem)->FS_FindFirstFile( szSearchPath, &findData );
+	HANDLE hFind = func_CFileSystem_Stdio_FS_FindFirstFile( g_pFullFileSystem, szSearchPath, &findData );
 	if ( hFind == INVALID_HANDLE_VALUE )
 		return;
 
@@ -180,9 +183,9 @@ void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 			RecursiveTraverse( szFullPath );
 
 		m_FileList.emplace( szFullPath, bDirectory ? FileCacheEntry::FOLDER : FileCacheEntry::FILE );
-	} while ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_FindNextFile( hFind, &findData ) );
+	} while ( func_CFileSystem_Stdio_FS_FindNextFile( g_pFullFileSystem, hFind, &findData ) );
 
-	((CBaseFileSystem*)g_pFullFileSystem)->FS_FindClose( hFind );
+	func_CFileSystem_Stdio_FS_FindClose( g_pFullFileSystem, hFind );
 }
 
 static CDiskFileTree g_pDiskFileTree;
@@ -990,6 +993,15 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_Addon_FileSystem_ResolveFile = (Symbols::Addon_FileSystem_ResolveFile)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::Addon_FileSystem_ResolveFileSym);
 	Detour::CheckFunction((void*)func_Addon_FileSystem_ResolveFile, "Addon::FileSystem::ResolveFile");
+
+	func_CFileSystem_Stdio_FS_FindFirstFile = (Symbols::CFileSystem_Stdio_FS_FindFirstFile)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_FindFirstFileSym);
+	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_FindFirstFile, "CFileSystem_Stdio::FS_FindFirstFile");
+
+	func_CFileSystem_Stdio_FS_FindNextFile = (Symbols::CFileSystem_Stdio_FS_FindNextFile)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_FindNextFileSym);
+	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_FindNextFile, "CFileSystem_Stdio::FS_FindNextFile");
+
+	func_CFileSystem_Stdio_FS_FindClose = (Symbols::CFileSystem_Stdio_FS_FindClose)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_FindCloseSym);
+	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_FindClose, "CFileSystem_Stdio::FS_FindClose");
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(filesystem_loader, Symbols::g_PathIDTableSym);
