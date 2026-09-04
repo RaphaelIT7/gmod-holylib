@@ -476,7 +476,7 @@ LUA_JIT_WRAPPED_2(VoiceData_SetPlayerSlot,
 	if (!pData)
 		return;
 
-	pData->iPlayerSlot = iPlayerSlot;
+	pData->iPlayerSlot = (uint8_t)iPlayerSlot;
 }
 
 LUA_JIT_WRAPPED_2(VoiceData_SetLength,
@@ -863,10 +863,10 @@ struct VoiceStream {
 		std::vector<int16_t> out(outCount);
 
 		auto getSample = [&](int64_t idx) -> int16_t {
-			if (idx < 0) return in[std::min<int64_t>(-idx, in.size() - 1)];
+			if (idx < 0) return in[std::min<size_t>((size_t)-idx, in.size() - 1)];
 			if (static_cast<size_t>(idx) >= in.size())
-				return in[std::max<size_t>(2 * in.size() - idx - 2, 0)];
-			return in[idx];
+				return in[std::max<size_t>(2 * in.size() - (size_t)idx - 2, 0)];
+			return in[(size_t)idx];
 		};
 
 		double ratio = static_cast<double>(in.size() - 1) / (outCount - 1);

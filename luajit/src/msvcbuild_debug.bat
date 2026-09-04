@@ -16,14 +16,14 @@
 
 @setlocal
 @rem Add more debug flags here, e.g. DEBUGCFLAGS=/DLUA_USE_ASSERT
-@set DEBUGCFLAGS=/DLUA_USE_ASSERT
-@set LJCOMPILE=cl /nologo /c /O2 /W3 /D_CRT_SECURE_NO_DEPRECATE /D_CRT_STDIO_INLINE=__declspec(dllexport)__inline
+@set DEBUGCFLAGS=/DLUA_USE_ASSERT /D_DEBUG /Od /RTC1 /EHsc /MDd /Zi /FS
+@set LJCOMPILE=cl /nologo /c /Od /W4 /D_CRT_SECURE_NO_DEPRECATE /D_CRT_STDIO_INLINE=__declspec(dllexport)__inline
 @set LJDYNBUILD=/DLUA_BUILD_AS_DLL /MD
 @set LJDYNBUILD_DEBUG=/DLUA_BUILD_AS_DLL /MDd
-@set LJCOMPILETARGET=/Zi
-@set LJLINKTYPE=/DEBUG /RELEASE
+@set LJCOMPILETARGET=/Zi /Fdluajit.pdb
+@set LJLINKTYPE=/DEBUG /DEBUG:FULL
 @set LJLINKTYPE_DEBUG=/DEBUG
-@set LJLINKTARGET=/OPT:REF /OPT:ICF /INCREMENTAL:NO
+@set LJLINKTARGET=/INCREMENTAL
 @set LJLINK=link /nologo
 @set LJMT=mt /nologo
 @set LJLIB=lib /nologo /nodefaultlib
@@ -165,7 +165,7 @@ if exist luajit.exe.manifest^
 @echo.
 @echo *******************************************************
 @echo *** Build FAILED -- Please check the error messages ***
-@echo *******************************************************
+@echo ******************************************************* 
 @goto :END
 :FAIL
 @echo You must open a "Visual Studio Command Prompt" to run this script

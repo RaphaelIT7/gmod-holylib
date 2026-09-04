@@ -497,7 +497,7 @@ static void ReadDump(const CCommand &args)
 
 	if (flags & PACKET_FLAG_RELIABLE)
 	{
-		int subChannelIndex = packet.ReadUBitLong(3);
+		/*int subChannelIndex = */packet.ReadUBitLong(3);
 		for (int i=0; i<MAX_STREAMS; i++)
 		{
 			if (packet.ReadOneBit() != 0)

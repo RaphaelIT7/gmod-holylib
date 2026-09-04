@@ -174,7 +174,13 @@ There may be further options which will control other module specific functions.
 \- \-> Previously, HolyLib depended on a specific layout between all three JIT versions it must support.<br>
 \- [#] Fixed an issue with `holylua` with how we locked on shutdown.<br>
 \- [#] Fixed `httpserver` module possibly deadlocking on shutdown & fixed other threading issues (See: https://github.com/RaphaelIT7/gmod-holylib/issues/174)<br>
-\- [#] In our VPhysics build fixed Ragdoll jitter (Thanks @ZehMatt <3)
+\- [#] In our VPhysics build fixed Ragdoll jitter (Thanks @ZehMatt <3)<br>
+\- [#] Fixed a few things with `luagc.GetFormattedGCObjectInfo`<br>
+\- \-> Fixed two cases where it failed to count upvalues properly<br>
+\- \-> Fixed a case where `GCtrace::link` was reported as `nextside`<br>
+\- \-> Fixed wrong pushing of constants possibly causing crashes<br>
+\- \-> Add missing null checks for upvalues<br>
+\- \-> Heavily changed most `luagc` functions that traversed objects to avoid recursion<br>
 
 You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main

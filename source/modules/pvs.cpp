@@ -985,7 +985,6 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 			pEntities.Set(pEdict->m_EdictIndex);
 	}
 
-	int idx = 0;
 	edict_t *pBaseEdict = Util::engineserver->PEntityOfEntIndex(0);
 	for (int i=0; i<g_nCurrentEdicts; ++i)
 	{

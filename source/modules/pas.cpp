@@ -72,7 +72,6 @@ LUA_FUNCTION_STATIC(pas_CheckBoxInPAS)
 	std::unique_ptr<Util::VisData> pVisCluster(Util::CM_Vis(*orig, DVIS_PAS));
 
 	LUA->PushBool(Util::engineserver->CheckBoxInPVS(*mins, *maxs, pVisCluster->cluster, sizeof(pVisCluster->cluster)));
-
 	return 1;
 }
 

@@ -42,7 +42,8 @@ class SVC_CustomMessage : public CNetMessage
 {
 public:
 	bool			ReadFromBuffer( bf_read &buffer ) { return true; };
-	bool			WriteToBuffer( bf_write &buffer ) {
+	bool			WriteToBuffer( bf_write &buffer )
+	{
 		if (m_iLength == -1)
 			m_iLength = m_DataOut.GetNumBitsWritten();
 
@@ -597,6 +598,7 @@ LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 	return 0;
 }
 
+static bool g_bWorkingSteamID = false;
 LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
@@ -610,6 +612,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
 	}
 
 	pClient->SetSteamID(CSteamID(steamID));
+	g_bWorkingSteamID = true;
 	LUA->PushBool(true);
 	return 1;
 }
@@ -2962,6 +2965,25 @@ static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;
 static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpacket_s* packet)
 {
+	if (packet->message.PeekUBitLong(8) == '+' && func_NET_SendPacket && (CBaseServer*)Util::server)
+	{
+		CBaseServer* pServer = (CBaseServer*)Util::server;
+		int nSocket = pServer->m_Socket;
+
+		char buffer[128];
+		bf_write msg(buffer, sizeof(buffer));
+		msg.WriteLong(CONNECTIONLESS_HEADER);
+		msg.WriteUBitLong(1, 4);
+		msg.WriteByte(g_bWorkingSteamID ? 1 : 0);
+
+		func_NET_SendPacket(
+			nullptr, nSocket, packet->from,
+			msg.GetData(), msg.GetNumBytesWritten(),
+			nullptr, false
+		);
+		return true;
+	}
+
 	if (!gameserver_connectionlesspackethook.GetBool() || server->IsHLTV())
 		return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
 
@@ -3000,9 +3022,6 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 	return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
 }
 
-#if MODULE_EXISTS_GMODDATAPACK
-extern bool GMODDataPack_SetSignOnState(CBaseClient* cl, int state);
-#endif
 static Detouring::Hook detour_CBaseClient_SetSignonState;
 static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount)
 {
@@ -3020,11 +3039,6 @@ static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spaw
 				return false;
 		}
 	}
-
-#if MODULE_EXISTS_GMODDATAPACK
-	if (GMODDataPack_SetSignOnState(cl, state))
-		return false;
-#endif
 
 	return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
 }
@@ -3707,7 +3721,6 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	Detour::Create(
 		&detour_CBaseServer_ProcessConnectionlessPacket, "CBaseServer::ProcessConnectionlessPacket",
-
 		engine_loader.GetModule(), Symbols::CBaseServer_ProcessConnectionlessPacketSym,
 		(void*)DETOUR_THISCALL(hook_CBaseServer_ProcessConnectionlessPacket, ProcessConnectionlessPacket), m_pID
 	);

@@ -234,7 +234,7 @@ private:
 
 struct ILuaValue
 {
-	unsigned char type = -1;
+	unsigned char type = UCHAR_MAX;
 
 	double number = -1;
 	const char* string = "";

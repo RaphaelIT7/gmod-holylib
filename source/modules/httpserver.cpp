@@ -1,7 +1,6 @@
 #include "httplib.h"
 #include "LuaInterface.h"
 #include "detours.h"
-#include "module.h"
 #include "lua.h"
 #include <baseclient.h>
 #include <inetchannel.h>
@@ -104,7 +103,7 @@ struct HttpRequest {
 	~HttpRequest();
 	void MarkHandled();
 
-	bool m_bHandled = false;
+	std::atomic<bool> m_bHandled = false;
 	bool m_bDelete = false; // We only delete from the main thread.
 	int m_iFunction = -1;
 	std::string m_strPath;

@@ -1,4 +1,3 @@
-#include "module.h"
 #include "LuaInterface.h"
 #include "lua.h"
 #include "detours.h"
@@ -78,8 +77,8 @@ static bool RemoveFileFromAutoRefresh(Bootil::BString pFilename)
 
 static void CheckFileTime(FileTimeJob* pJob)
 {
-	long nFileTime = g_pFullFileSystem->GetFileTime(pJob->strFileName.c_str(), "MOD");
-	pJob->bChanged = nFileTime != pJob->nFileTime;
+	long nFileTime = g_pFullFileSystem->GetFileTime(pJob->strFileName.c_str(), "MOD");	
+	pJob->bChanged = nFileTime > 0 && nFileTime != pJob->nFileTime;
 	pJob->nFileTime = nFileTime;
 }
 

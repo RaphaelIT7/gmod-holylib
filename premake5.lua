@@ -86,6 +86,7 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 
 		kind "SharedLib"
 		symbols "On"
+		clangtidy "On"
 
 		-- Remove some or all of these includes if they're not needed
 		IncludeHelpersExtended()
@@ -128,6 +129,12 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 		end
 
 		prebuildcommands(prebuildCommand)
+
+		-- Some warnings disabled as they complain about things from LuaJIT
+		disablewarnings({
+			"4201", -- Disable warning for structs/unions without a name
+			"4127", -- Disable note for when a expression is constant and could use constexpr
+		})
 
 		files({
 			gmcommon .. [[/sourcesdk-minimal/public/filesystem_helpers.cpp]],

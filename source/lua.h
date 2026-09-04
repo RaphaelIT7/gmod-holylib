@@ -17,6 +17,12 @@ extern "C" // Our JIT build
 }
 #endif
 
+#if defined(__clang__)
+#define HOLYLIB_OWNERSHIP(index) __attribute__((ownership_takes(index)))
+#else
+#define HOLYLIB_OWNERSHIP(index)
+#endif
+
 namespace GarrysMod::Lua
 {
 	class ILuaShared;
@@ -449,9 +455,12 @@ namespace Lua
 		 */
 		inline void SetModuleData(int moduleID, Lua::ModuleData* moduleData)
 		{
+			HOLYLIB_OWNERSHIP(2);
 			if (moduleID >= Lua::Internal::pMaxEntries || moduleID < 0) // out of bounds
 			{
 				Warning(PROJECT_NAME ": Tried to set module id for a module out of range! (%i)\n", moduleID);
+				// Get rid of it :)
+				delete moduleData;
 				return;
 			}
 
@@ -910,7 +919,7 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 \
 LUA_FUNCTION_STATIC_EXEC(name) \
 { \
-	T1 arg1 = (GET1); \
+	T1 arg1 = (T1)(GET1); \
 	Lua::bIsCallingASM = true; \
 	ASM_##name(arg1); \
 	Lua::bIsCallingASM = false; \
@@ -930,8 +939,8 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 \
 LUA_FUNCTION_STATIC_EXEC(name) \
 { \
-	T1 arg1 = GET1; \
-	T2 arg2 = GET2; \
+	T1 arg1 = (T1)GET1; \
+	T2 arg2 = (T2)GET2; \
 	Lua::bIsCallingASM = true; \
 	ASM_##name(arg1, arg2); \
 	Lua::bIsCallingASM = false; \
@@ -962,9 +971,9 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 \
 LUA_FUNCTION_STATIC_EXEC(name) \
 { \
-	T1 arg1 = (GET1); \
-	T2 arg2 = (GET2); \
-	T3 arg3 = (GET3); \
+	T1 arg1 = (T1)(GET1); \
+	T2 arg2 = (T2)(GET2); \
+	T3 arg3 = (T3)(GET3); \
 	Lua::bIsCallingASM = true; \
 	ASM_##name(arg1, arg2, arg3); \
 	Lua::bIsCallingASM = false; \

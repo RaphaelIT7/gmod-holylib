@@ -43,7 +43,7 @@ enum class InterfaceStatus
 	INTERFACE_STOPPING = 2, // This should be set if you request it to stop.
 };
 
-struct LuaInterface;
+class LuaInterface;
 class InterfaceTask
 {
 public:

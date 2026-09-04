@@ -937,9 +937,10 @@ void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 		return;
 
 	g_pLuaStates.erase(data);
+	Msg("holylib - Removed thread data %p\n", data);
+
 	delete data;
 	*reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24) = nullptr;
-	Msg("holylib - Removed thread data %p\n", data);
 }
 
 const unordered_set<Lua::StateData*>& Lua::GetAllLuaData()

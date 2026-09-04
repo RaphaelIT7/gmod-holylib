@@ -35,8 +35,10 @@ struct TraceVisits_t
 typedef uint32 TraceCounter_t;
 typedef CUtlVector<TraceCounter_t> CTraceCounterVec;
 
+#if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
 struct TraceInfo_t
 {
 	TraceInfo_t()
@@ -84,7 +86,9 @@ struct TraceInfo_t
 	bool Visit( cbrush_t *pBrush, int ndxBrush, TraceCounter_t cachedCount, TraceCounter_t *pCachedCounters );
 	bool Visit( int dispIndex, TraceCounter_t cachedCount, TraceCounter_t *pCachedCounters );
 };
+#if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#endif
 
 extern TraceInfo_t g_PrimaryTraceInfo;
 

@@ -1,6 +1,4 @@
 #include "LuaInterface.h"
-#include "detours.h"
-#include "module.h"
 #include "lua.h"
 #include "sourcesdk/cgmod_audio.h"
 #include "edict.h"
@@ -422,7 +420,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_WriteToDisk)
 LUA_FUNCTION_STATIC(IGModAudioChannel_Update)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
-	channel->Update(LUA->CheckNumber(2));
+	channel->Update((unsigned long)LUA->CheckNumber(2));
 
 	return 0;
 }

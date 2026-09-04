@@ -112,7 +112,7 @@ static FORCEINLINE void UnmangleCppName(const char (&pInput)[bufferSize], char (
 	size_t currentArg = 0;
 
 	size_t nInputPos = 0;
-	size_t nOutputPos = 0;
+	unsigned short nOutputPos = 0;
 	if (pInput[nInputPos++] != '_' || pInput[nInputPos++] != 'Z')
 	{
 		if (pInput != pOutput)
@@ -320,7 +320,11 @@ static FORCEINLINE void UnmangleCppName(const char (&pInput)[bufferSize], char (
 		
 		if (pInput[nInputPos] && !pAddAfterNext)
 		{
-			argPos[currentArg].length = nOutputPos - argPos[currentArg].pos;
+			unsigned short nArgLength = nOutputPos - argPos[currentArg].pos;
+			if (nArgLength > UCHAR_MAX)
+				return; // Too long????
+
+			argPos[currentArg].length = (unsigned char)nArgLength;
 
 			SAFE_CHECK(nOutputPos+2)
 			pTempBuffer[nOutputPos++] = ',';
@@ -1146,7 +1150,7 @@ static bool AttemptLuaCallback(bool bMainThreadCrash)
 	}
 }
 
-static ThreadId_t g_nMainThreadID = -1;
+static ThreadId_t g_nMainThreadID = 0;
 #if 0
 // Unlike our crash handler, we here will be in a more "safe" context.
 // ToDo / WIP:

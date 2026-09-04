@@ -82,13 +82,47 @@ LUA_FUNCTION_STATIC(luagc_GetGCCount)
 	return 1;
 }
 
-static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L, bool bChild = true)
+// Simple class to help us avoid recursion or checking already checked paths
+class TraverseInfo
+{
+public:
+	void AddNext(GCobj* pObj)
+	{
+		if (m_bLocked)
+			return;
+
+		auto it = m_Visited.find(pObj);
+		if (it != m_Visited.end())
+			return;
+
+		m_Visited.insert(pObj);
+		m_Queued.push_back(pObj);
+	}
+
+	GCobj* GetNext()
+	{
+		if (m_Queued.empty())
+			return nullptr;
+
+		GCobj* pObj = m_Queued.front();
+		m_Queued.pop_front();
+		return pObj;
+	}
+	
+	inline void Lock()
+	{
+		m_bLocked = true;
+	}
+
+	unordered_set<GCobj*> m_Visited;
+	std::deque<GCobj*> m_Queued;
+	bool m_bLocked = false;
+};
+
+static bool LuaGC_ReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L)
 {
 	if (!pObj)
 		return false;
-
-	if (bChild)
-		return pTargetObj == pObj;
 
 	switch(pObj->gch.gct)
 	{
@@ -98,24 +132,24 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 
 			TValue* pTV = uvval(pVal);
 			if (pTV && tvisgcv(pTV))
-				if (LuaGC_WalkReferenceCheck(pTargetObj, gcV(pTV), L, true))
+				if (gcV(pTV) == pTargetObj)
 					return true;
 		}
 		break;
 	case ~LJ_TUDATA:
 		{
 			GCudata* pVal = gco2ud(pObj);
-			if (LuaGC_WalkReferenceCheck(pTargetObj, gcref(pVal->env), L, true))
+			if (gcref(pVal->env) == pTargetObj)
 				return true;
 
-			if (LuaGC_WalkReferenceCheck(pTargetObj, gcref(pVal->metatable), L, true))
+			if (gcref(pVal->metatable) == pTargetObj)
 				return true;
 		}
 		break;
 	case ~LJ_TTAB:
 		{
 			GCtab* pVal = gco2tab(pObj);
-			if (LuaGC_WalkReferenceCheck(pTargetObj, gcref(pVal->metatable), L, true))
+			if (gcref(pVal->metatable) == pTargetObj)
 				return true;
 
 			MSize i, asize = pVal->asize;
@@ -123,7 +157,7 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 			{
 				TValue* pTV = arrayslot(pVal, i);
 				if (tvisgcv(pTV))
-					if (LuaGC_WalkReferenceCheck(pTargetObj, gcV(pTV), L, true))
+					if (gcV(pTV) == pTargetObj)
 						return true;
 			}
 
@@ -137,11 +171,11 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 					if (!tvisnil(&n->val))
 					{
 						if (tvisgcv(&n->key))
-							if (LuaGC_WalkReferenceCheck(pTargetObj, gcV(&n->key), L, true))
+							if (gcV(&n->key) == pTargetObj)
 								return true;
 
 						if (tvisgcv(&n->val))
-							if (LuaGC_WalkReferenceCheck(pTargetObj, gcV(&n->val), L, true))
+							if (gcV(&n->val) == pTargetObj)
 								return true;
 					}
 				}
@@ -151,23 +185,24 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 	case ~LJ_TFUNC:
 		{
 			GCfunc* pVal = gco2func(pObj);
-			if (LuaGC_WalkReferenceCheck(pTargetObj, gcref(pVal->c.env), L, true))
+			if (gcref(pVal->c.env) == pTargetObj)
 				return true;
 
 			if (isluafunc(pVal))
 			{
-				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(funcproto(pVal)), L, true))
+				if (obj2gco(funcproto(pVal)) == pTargetObj)
 					return true;
 
 				for (uint32_t i = 0; i < pVal->l.nupvalues; i++)
-					if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(&gcref(pVal->l.uvptr[i])->uv), L, true))
+					if (obj2gco(&gcref(pVal->l.uvptr[i])->uv) == pTargetObj)
 						return true;
+
 			} else {
 				for (uint32_t i = 0; i < pVal->c.nupvalues; i++)
 				{
 					TValue* pTV = &pVal->c.upvalue[i];
 					if (tvisgcv(pTV))
-						if (LuaGC_WalkReferenceCheck(pTargetObj, gcV(pTV), L, true))
+						if (gcV(pTV) == pTargetObj)
 							return true;
 				}
 			}
@@ -176,23 +211,23 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 	case ~LJ_TPROTO:
 		{
 			GCproto* pVal = gco2pt(pObj);
-			if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(proto_chunkname(pVal)), L, true))
+			if (obj2gco(proto_chunkname(pVal)) == pTargetObj)
 				return true;
 
 			for (ptrdiff_t i = -(ptrdiff_t)pVal->sizekgc; i < 0; i++)
-				if (LuaGC_WalkReferenceCheck(pTargetObj, proto_kgc(pVal, i), L, true))
+				if (proto_kgc(pVal, i) == pTargetObj)
 					return true;
 
 			global_State* g = G(L);
 			if (pVal->trace)
-				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(traceref(G2J(g), pVal->trace)), L, true))
+				if (obj2gco(traceref(G2J(g), pVal->trace)) == pTargetObj)
 					return true;
 		}
 		break;
 	case ~LJ_TTRACE:
 		{
 			GCtrace* pVal = gco2trace(pObj);
-			if (LuaGC_WalkReferenceCheck(pTargetObj, gcref(pVal->startpt), L, true))
+			if (gcref(pVal->startpt) == pTargetObj)
 				return true;
 
 			IRRef ref;
@@ -202,7 +237,7 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 			for (ref = pVal->nk; ref < REF_TRUE; ref++) {
 				IRIns *ir = &pVal->ir[ref];
 				if (ir->o == IR_KGC)
-					if (LuaGC_WalkReferenceCheck(pTargetObj, ir_kgc(ir), L, true))
+					if (ir_kgc(ir) == pTargetObj)
 						return true;
 
 				if (irt_is64(ir->t) && ir->o != IR_KNULL)
@@ -211,31 +246,31 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 
 			global_State* g = G(L);
 			if (pVal->nextside)
-				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(traceref(G2J(g), pVal->nextside)), L, true))
+				if (obj2gco(traceref(G2J(g), pVal->nextside)) == pTargetObj)
 					return true;
 
 			if (pVal->link)
-				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(traceref(G2J(g), pVal->link)), L, true))
+				if (obj2gco(traceref(G2J(g), pVal->link)) == pTargetObj)
 					return true;
 
 			if (pVal->nextroot)
-				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(traceref(G2J(g), pVal->nextroot)), L, true))
+				if (obj2gco(traceref(G2J(g), pVal->nextroot)) == pTargetObj)
 					return true;
 		}
 		break;
 	case ~LJ_TTHREAD:
 		{
 			lua_State* pVal = gco2th(pObj);
-			if (LuaGC_WalkReferenceCheck(pTargetObj, gcref(pVal->env), L, true))
+			if (gcref(pVal->env) == pTargetObj)
 				return true;
 
-			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
+			GCupval* pUpVal = gcref(pVal->openupval) ? gco2uv(gcref(pVal->openupval)) : NULL;
 			while (pUpVal)
 			{
 				TValue* pUpValTV = uvval(pUpVal);
 				if (pUpValTV && tvisgcv(pUpValTV))
 				{
-					if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(gcV(pUpValTV)), L, true))
+					if (obj2gco(gcV(pUpValTV)) == pTargetObj)
 						return true;
 				}
 
@@ -247,7 +282,7 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 			for (int i=0; i<nTop; ++i)
 			{
 				if (tvisgcv(pBase))
-					if (LuaGC_WalkReferenceCheck(pTargetObj, gcval(pBase), L, true))
+					if (gcval(pBase) == pTargetObj)
 						return true;
 
 				pBase++;
@@ -278,7 +313,7 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 	GCobj* pObj = gcref(pGState->gc.root);
 	while (pObj)
 	{
-		if (LuaGC_WalkReferenceCheck(pTargetObject, pObj, L, false))
+		if (LuaGC_ReferenceCheck(pTargetObject, pObj, L))
 		{
 			LUA->PushNil();
 			setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
@@ -291,19 +326,9 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 	return 1;
 }
 
-static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObjects, int& nCount, lua_State* L, GarrysMod::Lua::ILuaInterface* LUA, bool bIsChild, bool bRecursive)
+static void LuaGC_References(GCobj* pObj, TraverseInfo& info, lua_State* L, GarrysMod::Lua::ILuaInterface* LUA)
 {
-	if (!pObj || nWalkedObjects.find(pObj) != nWalkedObjects.end())
-		return;
-
-	nWalkedObjects.insert(pObj);
-
-	// Top of the stack MUST have a table
-	LUA->PushNil();
-	setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
-	Util::RawSetI(LUA, -2, ++nCount);
-
-	if (bIsChild && !bRecursive)
+	if (!pObj)
 		return;
 
 	switch(pObj->gch.gct)
@@ -314,27 +339,27 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 
 			TValue* pTV = uvval(pVal);
 			if (pTV && tvisgcv(pTV))
-				LuaGC_WalkReferences(gcV(pTV), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				info.AddNext(gcV(pTV));
 		}
 		break;
 	case ~LJ_TUDATA:
 		{
 			GCudata* pVal = gco2ud(pObj);
-			LuaGC_WalkReferences(gcref(pVal->env), nWalkedObjects, nCount, L, LUA, true, bRecursive);
-			LuaGC_WalkReferences(gcref(pVal->metatable), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+			info.AddNext(gcref(pVal->env));
+			info.AddNext(gcref(pVal->metatable));
 		}
 		break;
 	case ~LJ_TTAB:
 		{
 			GCtab* pVal = gco2tab(pObj);
-			LuaGC_WalkReferences(gcref(pVal->metatable), nWalkedObjects, nCount, L, LUA, true, bRecursive);
-
+			info.AddNext(gcref(pVal->metatable));
+			
 			MSize i, asize = pVal->asize;
 			for (i = 0; i < asize; i++)
 			{
 				TValue* pTV = arrayslot(pVal, i);
 				if (tvisgcv(pTV))
-					LuaGC_WalkReferences(gcV(pTV), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+					info.AddNext(gcV(pTV));
 			}
 
 			if (pVal->hmask > 0)
@@ -347,10 +372,10 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 					if (!tvisnil(&n->val))
 					{
 						if (tvisgcv(&n->key))
-							LuaGC_WalkReferences(gcV(&n->key), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+							info.AddNext(gcV(&n->key));
 
 						if (tvisgcv(&n->val))
-							LuaGC_WalkReferences(gcV(&n->val), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+							info.AddNext(gcV(&n->val));
 					}
 				}
 			}
@@ -359,18 +384,19 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 	case ~LJ_TFUNC:
 		{
 			GCfunc* pVal = gco2func(pObj);
-			LuaGC_WalkReferences(gcref(pVal->c.env), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+			info.AddNext(gcref(pVal->c.env));
+			
 			if (isluafunc(pVal))
 			{
-				LuaGC_WalkReferences(obj2gco(funcproto(pVal)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				info.AddNext(obj2gco(funcproto(pVal)));
 				for (uint32_t i = 0; i < pVal->l.nupvalues; i++)
-					LuaGC_WalkReferences(obj2gco(&gcref(pVal->l.uvptr[i])->uv), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+					info.AddNext(obj2gco(&gcref(pVal->l.uvptr[i])->uv));
 			} else {
 				for (uint32_t i = 0; i < pVal->c.nupvalues; i++)
 				{
 					TValue* pTV = &pVal->c.upvalue[i];
 					if (tvisgcv(pTV))
-						LuaGC_WalkReferences(gcV(pTV), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+						info.AddNext(gcV(pTV));
 				}
 			}
 		}
@@ -378,20 +404,20 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 	case ~LJ_TPROTO:
 		{
 			GCproto* pVal = gco2pt(pObj);
-			LuaGC_WalkReferences(obj2gco(proto_chunkname(pVal)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+			info.AddNext(obj2gco(proto_chunkname(pVal)));
 
 			for (ptrdiff_t i = -(ptrdiff_t)pVal->sizekgc; i < 0; i++)
-				LuaGC_WalkReferences(proto_kgc(pVal, i), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				info.AddNext(proto_kgc(pVal, i));
 
 			global_State* g = G(L);
 			if (pVal->trace)
-				LuaGC_WalkReferences(obj2gco(traceref(G2J(g), pVal->trace)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				info.AddNext(obj2gco(traceref(G2J(g), pVal->trace)));
 		}
 		break;
 	case ~LJ_TTRACE:
 		{
 			GCtrace* pVal = gco2trace(pObj);
-			LuaGC_WalkReferences(gcref(pVal->startpt), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+			info.AddNext(gcref(pVal->startpt));
 
 			IRRef ref;
 			if (pVal->traceno == 0)
@@ -400,7 +426,7 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 			for (ref = pVal->nk; ref < REF_TRUE; ref++) {
 				IRIns *ir = &pVal->ir[ref];
 				if (ir->o == IR_KGC)
-					LuaGC_WalkReferences(ir_kgc(ir), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+					info.AddNext(ir_kgc(ir));
 
 				if (irt_is64(ir->t) && ir->o != IR_KNULL)
 					ref++;
@@ -408,26 +434,26 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 
 			global_State* g = G(L);
 			if (pVal->nextside)
-				LuaGC_WalkReferences(obj2gco(traceref(G2J(g), pVal->nextside)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				info.AddNext(obj2gco(traceref(G2J(g), pVal->nextside)));
 
 			if (pVal->link)
-				LuaGC_WalkReferences(obj2gco(traceref(G2J(g), pVal->link)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				info.AddNext(obj2gco(traceref(G2J(g), pVal->link)));
 
 			if (pVal->nextroot)
-				LuaGC_WalkReferences(obj2gco(traceref(G2J(g), pVal->nextroot)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				info.AddNext(obj2gco(traceref(G2J(g), pVal->nextroot)));
 		}
 		break;
 	case ~LJ_TTHREAD:
 		{
 			lua_State* pVal = gco2th(pObj);
-			LuaGC_WalkReferences(gcref(pVal->env), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+			info.AddNext(gcref(pVal->env));
 
-			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
+			GCupval* pUpVal = gcref(pVal->openupval) ? gco2uv(gcref(pVal->openupval)) : NULL;
 			while (pUpVal)
 			{
 				TValue* pUpValTV = uvval(pUpVal);
 				if (pUpValTV && tvisgcv(pUpValTV))
-					LuaGC_WalkReferences(obj2gco(gcV(pUpValTV)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+					info.AddNext(obj2gco(gcV(pUpValTV)));
 
 				pUpVal = uvnext(pUpVal);
 			}
@@ -437,7 +463,7 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 			for (int i=0; i<nTop; ++i)
 			{
 				if (tvisgcv(pBase))
-					LuaGC_WalkReferences(gcval(pBase), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+					info.AddNext(gcval(pBase));
 
 				pBase++;
 			}
@@ -450,7 +476,7 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 
 LUA_FUNCTION_STATIC(luagc_GetContainingReferences)
 {
-	unordered_set<GCobj*> nWalkedObjects;
+	TraverseInfo info;
 
 	bool bRecursive = LUA->GetBool(2);
 	lua_State* L = LUA->GetState();
@@ -462,18 +488,37 @@ LUA_FUNCTION_STATIC(luagc_GetContainingReferences)
 		{
 			TValue* pVal = Lua::index2adr(L, -1);
 			if (tvisgcv(pVal))
-				nWalkedObjects.insert(gcV(pVal));
+				info.m_Visited.insert(gcV(pVal));
 
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
 	}
 
-	int nCount = 0;
-	LUA->PreCreateTable(0, 0);
 	TValue* pVal = Lua::index2adr(L, 1);
 	if (tvisgcv(pVal))
-		LuaGC_WalkReferences(gcV(pVal), nWalkedObjects, nCount, L, LUA, false, bRecursive);
+	{
+		LuaGC_References(gcV(pVal), info, L, LUA);
+
+		if (bRecursive)
+		{
+			GCobj* pNextObj = info.GetNext();
+			while (pNextObj)
+			{
+				LuaGC_References(pNextObj, info, L, LUA);
+				pNextObj = info.GetNext();
+			}
+		}
+	}
+
+	int nCount = 0;
+	LUA->PreCreateTable(info.m_Visited.size(), 0);
+	for (GCobj* pObj : info.m_Visited)
+	{
+		LUA->PushNil();
+		setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
+		Util::RawSetI(LUA, -2, ++nCount);
+	}
 
 	return 1;
 }
@@ -542,7 +587,7 @@ static inline void PushGCTypeName(GarrysMod::Lua::ILuaInterface* LUA, const char
 	LUA->RawSet(-3);
 }
 
-static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive);
+static size_t LuaGC_RecursiveSize(GCobj* pObj, TraverseInfo& info, lua_State* L, bool bRecursive);
 static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj)
 {
 	if (!pObj)
@@ -557,7 +602,8 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 	{
 		unordered_set<GCobj*> nWalkedObjects;
 		LUA->PushString("size");
-		LUA->PushNumber(LuaGC_RecursiveSize(pObj, nWalkedObjects, LUA->GetState(), false, false));
+		TraverseInfo info;
+		LUA->PushNumber(LuaGC_RecursiveSize(pObj, info, LUA->GetState(), false));
 		LUA->RawSet(-3);
 	}
 
@@ -675,7 +721,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 				for (uint32_t i = 0; i < pVal->l.nupvalues; i++)
 				{
 					PushGCObject(LUA, obj2gco(&gcref(pVal->l.uvptr[i])->uv));
-					Util::RawSetI(LUA, -2, nCount);
+					Util::RawSetI(LUA, -2, ++nCount);
 				}
 				LUA->RawSet(-3);
 			} else {
@@ -688,7 +734,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 					if (tvisgcv(pTV))
 					{
 						PushGCObject(LUA, gcV(pTV));
-						Util::RawSetI(LUA, -2, nCount);
+						Util::RawSetI(LUA, -2, ++nCount);
 					}
 				}
 				LUA->RawSet(-3);
@@ -743,7 +789,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 				IRIns *ir = &pVal->ir[ref];
 				if (ir->o == IR_KGC)
 				{
-					PushGCObject(LUA, gcref(pVal->startpt));
+					PushGCObject(LUA, ir_kgc(ir));
 					Util::RawSetI(LUA, -2, ++nCount);
 				}
 
@@ -762,7 +808,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 
 			if (pVal->link)
 			{
-				LUA->PushString("nextside");
+				LUA->PushString("link");
 				PushGCObject(LUA, obj2gco(traceref(G2J(g), pVal->link)));
 				LUA->RawSet(-3);
 			}
@@ -787,7 +833,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 			LUA->PushString("upvalues");
 			LUA->PreCreateTable(0, 0);
 			int nCount = 0;
-			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
+			GCupval* pUpVal = gcref(pVal->openupval) ? gco2uv(gcref(pVal->openupval)) : NULL;
 			while (pUpVal)
 			{
 				TValue* pUpValTV = uvval(pUpVal);
@@ -838,17 +884,12 @@ LUA_FUNCTION_STATIC(luagc_GetFormattedGCObjectInfo)
 	return 1;
 }
 
-static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive)
+static size_t LuaGC_Size(GCobj* pObj, TraverseInfo& info, lua_State* L)
 {
-	if (!pObj || nWalkedObjects.find(pObj) != nWalkedObjects.end())
+	if (!pObj)
 		return 0;
 
-	if (bIsChild && !bRecursive)
-		return 0;
-
-	nWalkedObjects.insert(pObj);
-
-	int nSize = 0;
+	size_t nSize = 0;
 	switch(pObj->gch.gct)
 	{
 	case ~LJ_TUPVAL:
@@ -858,7 +899,7 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 
 			TValue* pTV = uvval(pVal);
 			if (pTV && tvisgcv(pTV))
-				nSize += LuaGC_RecursiveSize(gcV(pTV), nWalkedObjects, L, true, bRecursive);
+				info.AddNext(gcV(pTV));
 		}
 		break;
 	case ~LJ_TUDATA:
@@ -866,8 +907,8 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 			GCudata* pVal = gco2ud(pObj);
 			nSize += sizeudata(pVal);
 
-			nSize += LuaGC_RecursiveSize(gcref(pVal->env), nWalkedObjects, L, true, bRecursive);
-			nSize += LuaGC_RecursiveSize(gcref(pVal->metatable), nWalkedObjects, L, true, bRecursive);
+			info.AddNext(gcref(pVal->env));
+			info.AddNext(gcref(pVal->metatable));
 		}
 		break;
 	case ~LJ_TTAB:
@@ -885,14 +926,14 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 			else
 				nSize += sizeof(GCtab);
 
-			nSize += LuaGC_RecursiveSize(gcref(pVal->metatable), nWalkedObjects, L, true, bRecursive);
+			info.AddNext(gcref(pVal->metatable));
 
 			MSize i, asize = pVal->asize;
 			for (i = 0; i < asize; i++)
 			{
 				TValue* pTV = arrayslot(pVal, i);
 				if (tvisgcv(pTV))
-					nSize += LuaGC_RecursiveSize(gcV(pTV), nWalkedObjects, L, true, bRecursive);
+					info.AddNext(gcV(pTV));
 			}
 
 			if (pVal->hmask > 0)
@@ -905,10 +946,10 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 					if (!tvisnil(&n->val))
 					{
 						if (tvisgcv(&n->key))
-							nSize += LuaGC_RecursiveSize(gcV(&n->key), nWalkedObjects, L, true, bRecursive);
+							info.AddNext(gcV(&n->key));
 
 						if (tvisgcv(&n->val))
-							nSize += LuaGC_RecursiveSize(gcV(&n->val), nWalkedObjects, L, true, bRecursive);
+							info.AddNext(gcV(&n->val));
 					}
 				}
 			}
@@ -917,22 +958,22 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 	case ~LJ_TFUNC:
 		{
 			GCfunc* pVal = gco2func(pObj);
-			nSize += LuaGC_RecursiveSize(gcref(pVal->c.env), nWalkedObjects, L, true, bRecursive);
+			info.AddNext(gcref(pVal->c.env));
 			
 			if (isluafunc(pVal))
 			{
 				nSize += sizeLfunc((MSize)pVal->l.nupvalues);
-				nSize += LuaGC_RecursiveSize(obj2gco(funcproto(pVal)), nWalkedObjects, L, true, bRecursive);
+				info.AddNext(obj2gco(funcproto(pVal)));
 				
 				for (uint32_t i = 0; i < pVal->l.nupvalues; i++)
-					nSize += LuaGC_RecursiveSize(obj2gco(&gcref(pVal->l.uvptr[i])->uv), nWalkedObjects, L, true, bRecursive);
+					info.AddNext(obj2gco(&gcref(pVal->l.uvptr[i])->uv));
 			} else {
 				nSize += sizeCfunc((MSize)pVal->c.nupvalues);
 				for (uint32_t i = 0; i < pVal->c.nupvalues; i++)
 				{
 					TValue* pTV = &pVal->c.upvalue[i];
 					if (tvisgcv(pTV))
-						nSize += LuaGC_RecursiveSize(gcV(pTV), nWalkedObjects, L, true, bRecursive);
+						info.AddNext(gcV(pTV));
 				}
 			}
 		}
@@ -941,22 +982,21 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 		{
 			GCproto* pVal = gco2pt(pObj);
 			nSize += pVal->sizept; // Includes sizeof(GCproto) already!
-			nSize += LuaGC_RecursiveSize(obj2gco(proto_chunkname(pVal)), nWalkedObjects, L, true, bRecursive);
+			info.AddNext(obj2gco(proto_chunkname(pVal)));
 
 			for (ptrdiff_t i = -(ptrdiff_t)pVal->sizekgc; i < 0; i++)
-				nSize += LuaGC_RecursiveSize(proto_kgc(pVal, i), nWalkedObjects, L, true, bRecursive);
+				info.AddNext(proto_kgc(pVal, i));
 
 			global_State* g = G(L);
 			if (pVal->trace)
-				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->trace)), nWalkedObjects, L, true, bRecursive);
+				info.AddNext(obj2gco(traceref(G2J(g), pVal->trace)));
 		}
 		break;
 	case ~LJ_TTRACE:
 		{
 			GCtrace* pVal = gco2trace(pObj);
-			nSize += LuaGC_RecursiveSize(gcref(pVal->startpt), nWalkedObjects, L, true, bRecursive);
+			info.AddNext(gcref(pVal->startpt));
 
-			jit_State *J = G2J(G(L));
 			if (pVal->traceno)
 			{
 #if LUAJIT_USE_GDBJIT
@@ -974,7 +1014,7 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 			for (ref = pVal->nk; ref < REF_TRUE; ref++) {
 				IRIns *ir = &pVal->ir[ref];
 				if (ir->o == IR_KGC)
-					nSize += LuaGC_RecursiveSize(ir_kgc(ir), nWalkedObjects, L, true, bRecursive);
+					info.AddNext(ir_kgc(ir));
 
 				if (irt_is64(ir->t) && ir->o != IR_KNULL)
 					ref++;
@@ -982,13 +1022,13 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 
 			global_State* g = G(L);
 			if (pVal->nextside)
-				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->nextside)), nWalkedObjects, L, true, bRecursive);
+				info.AddNext(obj2gco(traceref(G2J(g), pVal->nextside)));
 
 			if (pVal->link)
-				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->link)), nWalkedObjects, L, true, bRecursive);
+				info.AddNext(obj2gco(traceref(G2J(g), pVal->link)));
 
 			if (pVal->nextroot)
-				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->nextroot)), nWalkedObjects, L, true, bRecursive);
+				info.AddNext(obj2gco(traceref(G2J(g), pVal->nextroot)));
 		}
 		break;
 	case ~LJ_TTHREAD:
@@ -997,16 +1037,16 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 			nSize += sizeof(lua_State);
 			nSize += pVal->stacksize * sizeof(TValue);
 
-			nSize += LuaGC_RecursiveSize(gcref(pVal->env), nWalkedObjects, L, true, bRecursive);
+			info.AddNext(gcref(pVal->env));
 
-			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
+			GCupval* pUpVal = gcref(pVal->openupval) ? gco2uv(gcref(pVal->openupval)) : NULL;
 			while (pUpVal)
 			{
 				TValue* pUpValTV = uvval(pUpVal);
 				if (pUpValTV)
 				{
 					if (tvisgcv(pUpValTV))
-						nSize += LuaGC_RecursiveSize(obj2gco(gcV(pUpValTV)), nWalkedObjects, L, true, bRecursive);
+						info.AddNext(obj2gco(gcV(pUpValTV)));
 					else
 						nSize += sizeof(TValue);
 				}
@@ -1019,7 +1059,7 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 			for (int i=0; i<nTop; ++i)
 			{
 				if (tvisgcv(pBase))
-					nSize += LuaGC_RecursiveSize(gcval(pBase), nWalkedObjects, L, true, bRecursive);
+					info.AddNext(gcval(pBase));
 
 				pBase++;
 			}
@@ -1041,11 +1081,28 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 	return nSize;
 }
 
+static size_t LuaGC_RecursiveSize(GCobj* pObj, TraverseInfo& info, lua_State* L, bool bRecursive)
+{
+	size_t size = LuaGC_Size(pObj, info, L);
+
+	if (!bRecursive)
+		info.Lock();
+
+	GCobj* pNextObj = info.GetNext();
+	while (pNextObj)
+	{
+		size += LuaGC_Size(pNextObj, info, L);
+		pNextObj = info.GetNext();
+	}
+
+	return size;
+}
+
 LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 {
 	lua_State* L = LUA->GetState();
 	bool bRecursive = LUA->GetBool(2);
-	unordered_set<GCobj*> nWalkedObjects;
+	TraverseInfo info;
 	if (LUA->IsType(3, GarrysMod::Lua::Type::Table))
 	{
 		LUA->Push(3);
@@ -1054,7 +1111,7 @@ LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 		{
 			TValue* pVal = Lua::index2adr(L, -1);
 			if (tvisgcv(pVal))
-				nWalkedObjects.insert(gcV(pVal));
+				info.m_Visited.insert(gcV(pVal));
 
 			LUA->Pop(1);
 		}
@@ -1063,7 +1120,7 @@ LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 
 	TValue* pVal = Lua::index2adr(L, 1);
 	if (tvisgcv(pVal))
-		LUA->PushNumber(LuaGC_RecursiveSize(gcV(pVal), nWalkedObjects, LUA->GetState(), false, bRecursive));
+		LUA->PushNumber(LuaGC_RecursiveSize(gcV(pVal), info, LUA->GetState(), bRecursive));
 	else
 		LUA->PushNumber(0);
 	

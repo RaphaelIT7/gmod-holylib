@@ -19,8 +19,8 @@ public:
 	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
-ConVar model_fallback("holylib_precache_modelfallback", "-1", FCVAR_ARCHIVE, "The model index to fallback to if the precache failed");
-ConVar generic_fallback("holylib_precache_genericfallback", "-1", FCVAR_ARCHIVE, "The generic index to fallback to if the precache failed");
+static ConVar model_fallback("holylib_precache_modelfallback", "-1", FCVAR_ARCHIVE, "The model index to fallback to if the precache failed");
+static ConVar generic_fallback("holylib_precache_genericfallback", "-1", FCVAR_ARCHIVE, "The generic index to fallback to if the precache failed");
 
 static CPrecacheFixModule g_pPrecacheFixModule;
 IModule* pPrecacheFixModule = &g_pPrecacheFixModule;
@@ -52,14 +52,10 @@ static int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char
 	if (networkStringTableContainerServer)
 	{
 		if (!modelPrecache)
-		{
 			modelPrecache = networkStringTableContainerServer->FindTable("modelprecache");
-		}
 
 		if (modelPrecache)
-		{
 			bNewModel = modelPrecache->FindStringIndex(mdl) == INVALID_STRING_INDEX;
-		}
 	}
 
 	int idx = func_SV_FindOrAddModel(mdl, preload);
@@ -107,14 +103,10 @@ static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const ch
 	if (networkStringTableContainerServer)
 	{
 		if (!genericPrecache)
-		{
 			genericPrecache = networkStringTableContainerServer->FindTable("genericprecache");
-		}
 		
 		if (genericPrecache)
-		{
 			bNewFile = genericPrecache->FindStringIndex(mdl) == INVALID_STRING_INDEX;
-		}
 	}
 
 	int idx = func_SV_FindOrAddGeneric(mdl, preload);
