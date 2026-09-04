@@ -336,6 +336,14 @@ thread_local unsigned int Lua::ThreadAccessMutex::exclusive_locks = 0;
 extern void SetupUnHolyVTableForThisShit(GarrysMod::Lua::ILuaInterface* pLua);
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
+	// RaphaelIT7: We only initialize for the SERVER realm
+	// While HolyLib can be loaded from the menu state
+	// The only lua state we want to support is server
+	if (LUA != Lua::GetRealm(GarrysMod::Lua::State::SERVER))
+	{
+		DevMsg(PROJECT_NAME ": Skipping Lua::Init call for realm %s (%p)\n", LUA->GetPathID(), LUA);
+	}
+
 	if (g_Lua)
 	{
 		Warning(PROJECT_NAME ": g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
