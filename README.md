@@ -5391,6 +5391,12 @@ The main purpose is simply moving filtering and prepaing of packets off the main
 
 Supports: Linux32
 
+### Hooks
+
+#### bool HolyLib:SuspiciousIP(string ipAndPort, bool tooManyInvalid, bool tooManyPackets)
+Called when an IP sent too much garbage that was rejected<br>
+It can also be triggered when an IP sends way too many packets at once<br>
+
 ### ConVars
 
 #### holylib_networkthreading_parallelprocessing(default `1`)

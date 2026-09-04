@@ -40,6 +40,11 @@ static ConVar networkthreading_parallelprocessing("holylib_networkthreading_para
 static ConVar networkthreading_forcechallenge("holylib_networkthreading_forcechallenge", "0", 0, "If enabled, clients are ALWAYS requested to have a challenge for A2S requests.");
 static ConVar networkthreading_strictpackets("holylib_networkthreading_strictpackets", "1", 0, "If enabled, split packets and compressed packets from non-connected addresses will not be processed and harder limits are enforced.");
 
+
+/*
+	Making Filter_ShouldDiscard threadsafe
+*/
+
 // NOTE: There is inside gcsteamdefines.h the AUTO_LOCK_WRITE which we could probably use
 //static CThreadRWLock g_pIPFilterMutex; // Idk if using a std::shared_mutex might be faster
 static std::shared_mutex g_pIPFilterMutex; // Using it now since the CThreadRWLock caused linker issues and I don't have the nerves rn to deal with that crap
@@ -86,6 +91,137 @@ static void hook_listip(const CCommand* pCommand)
 
 	detour_listip.GetTrampoline<Symbols::listip>()(pCommand);
 }
+
+/*
+	Suspicious IP code
+
+	RaphaelIT7:
+	Sooo a GMod server shouldn't be the one protecting himself from DDOS
+	A good firewall should block it.
+	Now, we have this code here since an attacker may sneak in and was considered valid...
+	Some protections may for example verify that a client is valid
+	But not verify all traffic at all time- so they act more like a one time whitelist
+*/
+
+// RaphaelIT7:
+// Either they got a really bad connection or are malicious
+// Remember that on every process the count is reset back to 0!
+static inline constexpr uint16_t MAX_SUSPICION = 100;
+// This means for processsing they sent like 10 MB worth of data in just a few ms...
+static inline constexpr uint16_t MAX_PACKETS = 10000;
+struct IPEntry
+{
+	// These ar't atomic for two reasons:
+	// 1) std::atomic suck when in use with ankerl::unordered_dense::map
+	// 2) We only got one thread partying on them anyways
+
+	// garbage packets received
+	uint16_t suspiciousPackets = 0;
+	// valid packets received
+	uint16_t validPackets = 0;
+
+	inline void IncomingPacket(bool bIsValid)
+	{
+		if (bIsValid)
+			++validPackets;
+		else
+			++suspiciousPackets;
+	}
+
+	inline void Reset()
+	{
+		validPackets = 0;
+		suspiciousPackets = 0;
+	}
+
+	inline bool ShouldBlock() const
+	{
+		if (suspiciousPackets > MAX_SUSPICION)
+			return true;
+
+		if (validPackets > MAX_PACKETS)
+			return true;
+
+		return false;
+	}
+};
+
+// Helper to make conversion easy
+class AddrToIP
+{
+public:
+	inline AddrToIP(netpacket_s* packet)
+	{
+		netadrnew_t addr = *(netadrnew_s*)&packet->from;
+
+		hash = 0;
+		ip[0] = addr.ip[0];
+		ip[1] = addr.ip[1];
+		ip[2] = addr.ip[2];
+		ip[3] = addr.ip[3];
+		port = addr.port;
+	}
+
+	inline AddrToIP(uint64_t hash) : hash(hash) {}
+
+	inline operator uint64_t() const { return hash; }
+
+	union {
+		struct {
+			uint8_t ip[4];
+			// Yes we include the port too!
+			// This is since a client may be connected fine with the game port
+			// Yet spam through another
+			uint16_t port;
+			uint16_t padding;
+		};
+		uint64_t hash;
+	};
+};
+
+static std::shared_mutex g_pIPListMutex;
+static unordered_map<uint64_t, IPEntry> g_pIPList;
+
+// return false to block it -> we do not accept more from them
+static bool ShouldBlockPacketFromIP(netpacket_s* packet)
+{
+	// We don't do any of this for SteamIDs
+	if (packet->from.GetType() != NA_IP)
+		return false;
+
+	{
+		std::shared_lock<std::shared_mutex> lock(g_pIPFilterMutex);
+		auto it = g_pIPList.find(AddrToIP(packet));
+		if (it != g_pIPList.end())
+			return it->second.ShouldBlock();
+	}
+
+	std::unique_lock<std::shared_mutex> lock(g_pIPFilterMutex);
+	// Just in case of a race condition
+	auto it = g_pIPList.find(AddrToIP(packet));
+	if (it != g_pIPList.end())
+		return it->second.ShouldBlock();
+
+	g_pIPList.emplace(std::piecewise_construct, std::forward_as_tuple(AddrToIP(packet)), std::forward_as_tuple()); // Really really hacky :(
+	return false;
+}
+
+static void IncomingPacketFromIP(netpacket_s* packet, bool bIsValid)
+{
+	// We don't do any of this for SteamIDs
+	if (packet->from.GetType() != NA_IP)
+		return;
+
+	// We expect an entry to already have been created by ShouldBlockPacketFromIP
+	std::shared_lock<std::shared_mutex> lock(g_pIPFilterMutex);
+	auto it = g_pIPList.find(AddrToIP(packet));
+	if (it != g_pIPList.end())
+		it->second.IncomingPacket(bIsValid);
+}
+
+/*
+	Queue code
+*/
 
 struct QueuedPacket {
 	~QueuedPacket()
@@ -249,7 +385,10 @@ static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket, int type
 	// Now it can only be A2S_INFO, A2S_PLAYER, A2S_RULES
 	int challenge = (int)pPacket->message.ReadLong();
 	if (IsValidChallenge(pPacket->from, challenge))
+	{
+		IncomingPacketFromIP(pPacket, false);
 		return false;
+	}
 
 	//Msg("Requesting challenge! (%s - %i)\n", pPacket->from.ToString(), type);
 	SendChallenge(pPacket);
@@ -294,13 +433,19 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 				continue;
 			} 
 
+			if (ShouldBlockPacketFromIP(packet))
+				continue;
+
 			// check for connectionless packet (0xffffffff) first
 			if (LittleLong(*(unsigned int *)packet->data) == CONNECTIONLESS_HEADER)
 			{
 				packet->message.SeekRelative(sizeof(long)*8);	// read the -1
 				int nPacketType = IsValidConnectionlessPacket(packet, false);
 				if (networkthreading_strictpackets.GetBool() && nPacketType == -1)
+				{
+					IncomingPacketFromIP(packet, false);
 					continue;
+				}
 
 				if (EnforceConnectionlessChallenge(packet, nPacketType))
 					continue;
@@ -312,8 +457,12 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 
 				HandleStatus pStatus = ShouldHandlePacket(packet, true);
 				if (pStatus == HandleStatus::DISCARD)
+				{
+					IncomingPacketFromIP(packet, false);
 					continue;
+				}
 
+				IncomingPacketFromIP(packet, true);
 				if (pStatus == HandleStatus::HANDLE_NOW) {
 					pServer->ProcessConnectionlessPacket(packet);
 				} else {
@@ -326,6 +475,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			CNetChan* netchan = func_NET_FindNetChannel(nSocket, packet->from);
 			if (netchan)
 			{
+				IncomingPacketFromIP(packet, true);
 				HandleStatus pStatus = ShouldHandlePacket(packet, false);
 				if (pStatus == HandleStatus::HANDLE_NOW) {
 					netchan->ProcessPacket(packet, true);
@@ -335,6 +485,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			} else {
 				char pNetAddr[64]; // Needed since else .ToString is not threadsafe!
 				(*(netadrnew_s*)&packet->from).ToString(pNetAddr, sizeof(pNetAddr), false);
+				IncomingPacketFromIP(packet, false);
 				if (g_pNetworkThreadingModule.InDebug() == 1)
 					Msg(PROJECT_NAME " - networkthreading: Discarding of %i bytes since there is no channel for %s!\n", packet->size, pNetAddr);
 			}
@@ -394,6 +545,38 @@ static void hook_NET_ProcessSocket(int nSocket, IConnectionlessPacketHandler* pH
 		}
 
 		delete pQueuePacket;
+	}
+
+	// We remove any non existent IP entries here
+	// ToDo: verify performance
+	VPROF_BUDGET("HolyLib - NET_ProcessSocket (CleanUp)", VPROF_BUDGETGROUP_HOLYLIB);
+
+	std::unique_lock<std::shared_mutex> lock(g_pIPListMutex);
+	for (auto it = g_pIPList.begin(); it != g_pIPList.end(); )
+	{
+		AddrToIP ip = AddrToIP(it->first);
+		netadrnew_t addr;
+		addr.SetIP(ip.ip[0], ip.ip[1], ip.ip[2], ip.ip[3]);
+		addr.SetPort(ip.port);
+		addr.SetType(NA_IP);
+
+		if (func_NET_FindNetChannel(nSocket, *(netadr_t*)&addr))
+		{
+			if (it->second.ShouldBlock() && Lua::PushHook("HolyLib:SuspiciousIP"))
+			{
+				char pNetAddr[64];
+				addr.ToString(pNetAddr, sizeof(pNetAddr));
+				g_Lua->PushString(pNetAddr);
+				g_Lua->PushBool(it->second.suspiciousPackets > MAX_SUSPICION);
+				g_Lua->PushBool(it->second.validPackets > MAX_PACKETS);
+				g_Lua->CallFunctionProtected(4, 0, true);
+			}
+
+			// Since we hold the mutex no one parties on here
+			it->second.Reset();
+			++it;
+		} else
+			it = g_pIPList.erase(it);
 	}
 }
 
