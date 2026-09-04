@@ -661,240 +661,9 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
 
-static std::string_view getVPKFile(const std::string_view& fileName) {
-	size_t lastThingyPos = fileName.find_last_of('/');
-	size_t lastDotPos = fileName.find_last_of('.');
-
-	return fileName.substr(lastThingyPos + 1, lastDotPos - lastThingyPos - 1);
-}
-
-static Detouring::Hook detour_CBaseFileSystem_AddSearchPath;
-static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
-{
-	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddSearchPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
-
-	if (!pPath) // :BRUH:
-		return;
-
-	// Below is not dead code. It's code to try to solve the map contents but it currently doesn't work.
-	/*std::string_view extension = getFileExtension(pPath);
-	if (extension == "bsp") {
-		const char* pPathID = "__TEMP_MAP_PATH";
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pPathID, addType);
-
-		if (filesystem->IsDirectory("materials" FILEPATH_SLASH, pPathID))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
-
-		if (filesystem->IsDirectory("models" FILEPATH_SLASH, pPathID))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MODELS", addType);
-	
-		if (filesystem->IsDirectory("sound" FILEPATH_SLASH, pPathID))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
-	
-		if (filesystem->IsDirectory("maps" FILEPATH_SLASH, pPathID))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MAPS", addType);
-	
-		if (filesystem->IsDirectory("resource" FILEPATH_SLASH, pPathID))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
-
-		if (filesystem->IsDirectory("scripts" FILEPATH_SLASH, pPathID))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
-
-		if (filesystem->IsDirectory("cfg" FILEPATH_SLASH, pPathID))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
-		
-		filesystem->RemoveSearchPath(pPath, pPathID);
-	}*/
-
-	std::string strPath = pPath;
-	if (V_stricmp(pathID, "GAME") == 0)
-	{
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "materials").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "models").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MODELS", addType);
-	
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "sound").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
-	
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "maps").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MAPS", addType);
-	
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "resource").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "scripts").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "cfg").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "gamemodes").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_GAMEMODES", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "lua" FILEPATH_SLASH "includes").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_INCLUDES", addType);
-	}
-	
-	if(V_stricmp(pathID, "lsv") == 0 || V_stricmp(pathID, "GAME") == 0)
-	{
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "sandbox").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_GAMEMODE_SANDBOX", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "effects").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_EFFECTS", addType);
-	
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "entities").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_ENTITIES", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "weapons").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_WEAPONS", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "lua" FILEPATH_SLASH "derma").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_DERMA", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "lua" FILEPATH_SLASH "drive").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_DRIVE", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "lua" FILEPATH_SLASH "entities").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_LUA_ENTITIES", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "vgui").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_VGUI", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "postprocess").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_POSTPROCESS", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "matproxy").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_MATPROXY", addType);
-
-		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "autorun").c_str()))
-			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_AUTORUN", addType);
-	}
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
-}
-
-static Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
-static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
-{
-	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddVPKFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-	detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, pathID, addType);
-
-	if (!pPath)
-		return;
-
-	if (V_stricmp(pathID, "GAME") == 0)
-	{
-		std::string_view vpkPath = getVPKFile(pPath);
-		detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, vpkPath.data(), addType);
-
-		if (filesystem->IsDirectory("materials" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
-
-		if (filesystem->IsDirectory("models" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MODELS", addType);
-	
-		if (filesystem->IsDirectory("sound" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
-	
-		if (filesystem->IsDirectory("maps" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MAPS", addType);
-	
-		if (filesystem->IsDirectory("resource" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
-
-		if (filesystem->IsDirectory("scripts" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
-
-		if (filesystem->IsDirectory("cfg" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
-
-		if (filesystem->IsDirectory("gamemodes" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_GAMEMODES", addType);
-
-		if (filesystem->IsDirectory("lua" FILEPATH_SLASH "includes" FILEPATH_SLASH), vpkPath.data())
-			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_INCLUDES", addType);
-	
-		filesystem->RemoveSearchPath(pPath, vpkPath.data());
-	}
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
-}
-
-static Detouring::Hook detour_CBaseFileSystem_Close;
-static void DeleteFileHandle(FileHandle_t handle)
-{
-	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
-}
-
-std::vector<std::string> splitString(std::string str, std::string_view delimiter)
-{
-	std::vector<std::string> v;
-	if (!str.empty()) {
-		int start = 0;
-		while (true)
-		{
-			size_t idx = str.find(delimiter, start);
-			if (idx == std::string::npos)
-				break;
-
-			int length = idx - start;
-			v.push_back(str.substr(start, length));
-			start += (length + delimiter.size());
-		}
-
-		v.push_back(str.substr(start));
-	}
-
-	return v;
-}
-
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	bShutdown = false;
-	/*
-	 * Why do we do this below?
-	 * Because if our Detours weren't added by the GhostInj, they were added after SearchPaths were created.
-	 * This will cause the splitgamepath stuff to fail since we didn't add our custom paths.
-	 * So now we get all GAME paths, remove them and reaplly them so that our detour can handle them.
-	 */
-	if (!g_pModuleManager.IsUsingGhostInj())
-	{
-		// RaphaelIT7:
-		// BUG! We are completely nuking any special flags like VPKHack, PriorityGroup!
-		// We should NOT be recreating them at all!
-
-		// Humongus size because you can have a huge amount of searchpaths.
-		/*
-		constexpr int iSize = 1 << 16;
-		char* pChar = new char[iSize];
-		CBaseFileSystem* pSystem = (CBaseFileSystem*)g_pFullFileSystem;
-		int iLength = pSystem->GetSearchPath("GAME", true, pChar, iSize);
-		if (iSize <= iLength)
-			Warning(PROJECT_NAME ": Not enough space for search paths! please report this.\n");
-
-		std::string pStr = pChar;
-		pStr = pStr.substr(0, iLength);
-		std::vector<std::string> pSearchPaths = splitString(pStr, ";");
-		pSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them. Should we also do it for lsv?
-		for (std::string pSearchPath : pSearchPaths)
-		{
-			pSystem->AddSearchPath(pSearchPath.c_str(), "GAME", PATH_ADD_TO_TAIL);
-			
-			if (g_pFileSystemModule.InDebug())
-				Msg("Recreate Path: %s\n", pSearchPath.c_str());
-		}
-
-		delete[] pChar;
-		*/
-	}
 
 	int pBaseLength = 0;
 	char pBaseDir[MAX_PATH];
@@ -907,73 +676,16 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	if (g_pFullFileSystem != nullptr)
 		InitFileSystem(g_pFullFileSystem);
 
-	if (!DETOUR_ISVALID(detour_CBaseFileSystem_AddSearchPath))
+	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)g_pFullFileSystem->Addons();
+	FOR_EACH_LL_(((CBaseFileSystem*)g_pFullFileSystem)->m_SearchPaths, pSearchPath)
 	{
-		Msg(PROJECT_NAME ": CBaseFileSystem::AddSearchPath detour is invalid?\n");
-		return;
+		if ( !m_AddonFileSystem->ModPath().empty() ) // We check for empty as it may have not been set early on!
+		{
+			if ( PathStartsWith( pSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() ) )
+				pSearchPath->m_bIsWorkshop = true;
+		}
 	}
 
-	// NOTE: Check the thing below again and redo it. I don't like how it looks :<
-	if (g_pFullFileSystem->IsDirectory("materials" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_MATERIALS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("models" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_MODELS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-	
-	if (g_pFullFileSystem->IsDirectory("sound" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_SOUNDS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-	
-	if (g_pFullFileSystem->IsDirectory("maps" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_MAPS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-	
-	if (g_pFullFileSystem->IsDirectory("resource" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_RESOURCE", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("scripts" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_SCRIPTS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("cfg" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_CONFIGS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("gamemodes" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_GAMEMODES", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("lua" FILEPATH_SLASH "includes" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_INCLUDES", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-	
-	if (g_pFullFileSystem->IsDirectory("sandbox" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_GAMEMODE_SANDBOX", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("effects" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_EFFECTS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-	
-	if (g_pFullFileSystem->IsDirectory("entities" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_ENTITIES", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("weapons" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_WEAPONS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("lua" FILEPATH_SLASH "derma" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_DERMA", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("lua" FILEPATH_SLASH "drive" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_DRIVE", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("lua" FILEPATH_SLASH "entities" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_LUA_ENTITIES", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("vgui" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_VGUI", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("postprocess" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_POSTPROCESS", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("matproxy" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_MATPROXY", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-
-	if (g_pFullFileSystem->IsDirectory("autorun" FILEPATH_SLASH, "workshop"))
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_AUTORUN", PRIORITY_GROUP_TAIL( GN_GMODCORE ) );
-	
 	if (g_pFileSystemModule.InDebug())
 		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
 }
@@ -1025,8 +737,6 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_IsDirectory, bool, IsDirectory, CBaseFileSystem*, const char*, const char* );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_FastFileTime, long, FastFileTime, CBaseFileSystem*, const CSearchPath*, const char* );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_GetFileTime, long, GetFileTime, CBaseFileSystem*, const char*, const char* );
-	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_AddSearchPath, AddSearchPath, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t );
-	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_AddVPKFile, AddVPKFile, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t );
 	DETOUR_THISCALL_ADDFUNC2( hook_CBaseFileSystem_HandleOpenRegularFile, HandleOpenRegularFile, CBaseFileSystem*, CFileOpenInfo&, bool);
 	DETOUR_THISCALL_ADDFUNC1( hook_CBaseFileSystem_NewSearchPath, NewSearchPath, CBaseFileSystem*, int );
 	DETOUR_THISCALL_ADDFUNC4( hook_CBaseFileSystem_AddSearchPathInternal, AddSearchPathInternal, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t, bool );
@@ -1085,18 +795,6 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CBaseFileSystem_AddSearchPath, "CBaseFileSystem::AddSearchPath",
-		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_AddSearchPathSym,
-		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_AddSearchPath, AddSearchPath), m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseFileSystem_AddVPKFile, "CBaseFileSystem::AddVPKFile",
-		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_AddVPKFileSym,
-		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_AddVPKFile, AddVPKFile), m_pID
-	);
-
-	Detour::Create(
 		&detour_CBaseFileSystem_HandleOpenRegularFile, "CBaseFileSystem::HandleOpenRegularFile",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_HandleOpenRegularFileSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_HandleOpenRegularFile, HandleOpenRegularFile), m_pID
@@ -1126,6 +824,9 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_FixUpPath = (Symbols::CBaseFileSystem_FixUpPath)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_FixUpPathSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_FixUpPath, "CBaseFileSystem::FixUpPath");
+
+	func_CBaseFileSystem_Trace_FOpen = (Symbols::CBaseFileSystem_Trace_FOpen)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_Trace_FOpenSym);
+	Detour::CheckFunction((void*)func_CBaseFileSystem_Trace_FOpen, "CBaseFileSystem::Trace_FOpen");
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(filesystem_loader, Symbols::g_PathIDTableSym);
