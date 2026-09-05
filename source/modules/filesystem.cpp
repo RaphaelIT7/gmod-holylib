@@ -81,8 +81,10 @@ public:
 	void RemovePath( const char *pszAbsolutePath );
 	void RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath );
 
+	const auto& GetFileList() const { return m_FileList; }
+
 private:
-	void RecursiveTraverse( const char *pszFolderPath );
+	bool RecursiveTraverse( const char *pszFolderPath );
 
 	// We use StringHash & StringEq so that when searching we do not allocate an std::string
 	unordered_map<std::string, FileCacheEntry, StringHash, StringEq> m_FileList;
@@ -103,10 +105,6 @@ void CDiskFileTree::BuildTree( const char *pszRoot )
 		V_strlower( szFullPath );
 
 		RecursiveTraverse( pszRoot );
-
-		//Msg("Filelist:\n");
-		//for (auto& [key, val] : m_FileList)
-		//	Msg("\t%s\n", key.c_str());
 	}
 }
 
@@ -155,11 +153,14 @@ static Symbols::CFileSystem_Stdio_FS_FindClose func_CFileSystem_Stdio_FS_FindClo
 // RaphaelIT7:
 // This is expensive! A trade of startup time vs runtime performance
 // ToDo: Check out if we can improve memory usage
-void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
+bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 {
 	// If we have a entry then we already are tracking this one
 	if ( m_FileList.find( pszFolderPath ) != m_FileList.end() )
-		return;
+	{
+		Msg("Skipping already scanned folder %s\n", pszFolderPath);
+		return true;
+	}
 
 	char szSearchPath[MAX_PATH];
 	V_snprintf( szSearchPath, sizeof( szSearchPath ), "%s/*", pszFolderPath );
@@ -167,7 +168,10 @@ void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 	WIN32_FIND_DATA findData;
 	HANDLE hFind = func_CFileSystem_Stdio_FS_FindFirstFile( g_pFullFileSystem, szSearchPath, &findData );
 	if ( hFind == INVALID_HANDLE_VALUE )
-		return;
+	{
+		Msg("FindFirst failed: '%s' (folder='%s')\n", szSearchPath, pszFolderPath);
+		return false;
+	}
 
 	do
 	{
@@ -185,13 +189,15 @@ void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 		V_strlower( szFullPath );
 
 		const bool bDirectory = ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
-		if ( bDirectory )
-			RecursiveTraverse( szFullPath );
-
-		m_FileList.emplace( szFullPath, bDirectory ? FileCacheEntry::FOLDER : FileCacheEntry::FILE );
+		if ( bDirectory ) {
+			if ( RecursiveTraverse( szFullPath ) )
+				m_FileList.emplace( szFullPath, FileCacheEntry::FOLDER);
+		} else
+			m_FileList.emplace( szFullPath, FileCacheEntry::FILE );
 	} while ( func_CFileSystem_Stdio_FS_FindNextFile( g_pFullFileSystem, hFind, &findData ) );
 
 	func_CFileSystem_Stdio_FS_FindClose( g_pFullFileSystem, hFind );
+	return true;
 }
 
 static CDiskFileTree g_pDiskFileTree;
@@ -401,6 +407,11 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 		if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
 		{
 			Warning("File exists on disk yet we said no? (%s)\n", openInfo.m_AbsolutePath);
+			if (openInfo.m_pSearchPath)
+			{
+				Warning("Path: %s\n", openInfo.m_pSearchPath->GetPathString());
+				Warning("ID: %s\n", openInfo.m_pSearchPath->GetPathIDString());
+			}
 		}
 
 		openInfo.m_pFileHandle = new CFileHandle(_this);
@@ -504,7 +515,7 @@ void hook_CBaseFileSystem_AddSearchPathInternal(CBaseFileSystem* _this, const ch
 		}
 	}
 
-	if ( V_IsAbsolutePath( g_pLastCreatedSearchPath->GetPathString() ) )
+	if ( V_IsAbsolutePath( g_pLastCreatedSearchPath->GetPathString() ) && !g_pLastCreatedSearchPath->m_bIsWorkshop )
 		g_pDiskFileTree.BuildTree( g_pLastCreatedSearchPath->GetPathString() );
 }
 
@@ -531,6 +542,14 @@ static void GetPathFromIDCmd(const CCommand &args)
 	Msg("Path %s\n", path->GetPathString()); // Does this crash? idk.
 }
 static ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
+
+static void DumpFileTree(const CCommand &args)
+{
+	Msg("Filelist:\n");
+	for (auto& [key, val] : g_pDiskFileTree.GetFileList())
+		Msg("\t%s (%i)\n", key.c_str(), (int)val);
+}
+static ConCommand dumpfiletree("holylib_filesystem_dumpfiletree", DumpFileTree, "Dumps the filetree", 0);
 
 // Future note: When using an absolute path the search path should not be a packed file! And it doesn't matter what search path it is! Just not a pack!
 static Detouring::Hook detour_CBaseFileSystem_FastFileTime;
