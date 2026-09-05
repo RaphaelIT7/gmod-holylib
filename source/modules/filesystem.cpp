@@ -382,8 +382,8 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 
 		// openInfo.m_pFileName is a mess due to \\..\\ not yet being normalized!
 		// eCacheEntry = openInfo.m_pSearchPath->ContainsPath( openInfo.m_pFileName );
-		//if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
-		//	return;
+		if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
+			return;
 	}
 
 	int64 size;
@@ -404,15 +404,15 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 		}*/
 
 		// RaphaelIT7: Debugging
-		if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
+		/*if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
 		{
-			Warning("File exists on disk yet we said no? (%s)\n", openInfo.m_AbsolutePath);
+			Warning(PROJECT_NAME " - filesystem: File exists on disk yet we said no? (%s)\n", openInfo.m_AbsolutePath);
 			if (openInfo.m_pSearchPath)
 			{
 				Warning("Path: %s\n", openInfo.m_pSearchPath->GetPathString());
 				Warning("ID: %s\n", openInfo.m_pSearchPath->GetPathIDString());
 			}
-		}
+		}*/
 
 		openInfo.m_pFileHandle = new CFileHandle(_this);
 		openInfo.m_pFileHandle->m_pFile = fp;
