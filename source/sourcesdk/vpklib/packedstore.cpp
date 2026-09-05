@@ -277,6 +277,8 @@ static void StripTrailingString( char *pszBuf, const char *pszStrip )
 
 CPackedStore::CPackedStore( char const *pFileBasename, char *pszFName, intp fnameSize, IBaseFileSystem *pFS, bool bOpenForWrite ):m_PackedStoreReadCache( pFS )
 {
+	// GMod
+	SetSearchPath( "" );
 	Init();
 	m_pFileSystem = pFS;
 	m_PackedStoreReadCache.m_pPackedStore = this;
