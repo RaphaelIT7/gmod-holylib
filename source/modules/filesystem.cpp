@@ -160,8 +160,6 @@ void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 	char szSearchPath[MAX_PATH];
 	V_snprintf( szSearchPath, sizeof( szSearchPath ), "%s/*", pszFolderPath );
 
-	Msg("What am I??? %p\n", g_pFullFileSystem);
-
 	WIN32_FIND_DATA findData;
 	HANDLE hFind = func_CFileSystem_Stdio_FS_FindFirstFile( g_pFullFileSystem, szSearchPath, &findData );
 	if ( hFind == INVALID_HANDLE_VALUE )
@@ -410,11 +408,11 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 // RaphaelIT7: A special flag to mark the workshop/ path
 #define PATH_FLAG_ISWORKSHOP (1<<9)
 
-static Symbols::CFileHandle_Constructor func_Constructor = nullptr;
+static Symbols::CFileHandle_Constructor func_CFileHandle_Constructor = nullptr;
 CFileHandle::CFileHandle(CBaseFileSystem* fs)
 {
 	// Our Layout matches GMod so this should have no side effects :3
-	func_Constructor(this, fs);
+	func_CFileHandle_Constructor(this, fs);
 }
 
 static CSearchPath* g_pLastCreatedSearchPath = nullptr;
@@ -982,6 +980,9 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CFileSystem_Stdio_FS_FindClose = (Symbols::CFileSystem_Stdio_FS_FindClose)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_FindCloseSym);
 	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_FindClose, "CFileSystem_Stdio::FS_FindClose");
+
+	func_CFileHandle_Constructor = (Symbols::CFileHandle_Constructor)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileHandle_ConstructorSym);
+	Detour::CheckFunction((void*)func_CFileHandle_Constructor, "CFileHandle::CFileHandle");
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(filesystem_loader, Symbols::g_PathIDTableSym);
