@@ -337,16 +337,18 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 
 	// RaphaelIT7:
 	// When mounting the map_pack.bsp we may try when reading it the absolute path! So we must lookup in workshop
-	bool bIsWorkshop = false;
-	if ( bIsAbsolutePath && !m_AddonFileSystem->ModPath().empty() ) // We check for empty as it may have not been set early on!
-		bIsWorkshop = PathStartsWith( openInfo.m_AbsolutePath, m_AddonFileSystem->ModPath().c_str() );
+	//bool bIsWorkshop = false;
+	//if ( bIsAbsolutePath && !m_AddonFileSystem->ModPath().empty() ) // We check for empty as it may have not been set early on!
+	//	bIsWorkshop = PathStartsWith( openInfo.m_AbsolutePath, m_AddonFileSystem->ModPath().c_str() );
+
+	// RaphaelIT7:
+	// We must use a different approach in HolyLib
+	// as storing a field like m_bIsWorkshop in CSearchPath is highly unreliable for whatever stupid memory issue
 
 	// GMod
-	if ( openInfo.m_pSearchPath && openInfo.m_pSearchPath->m_bIsWorkshop || bIsWorkshop )
+	//if ( openInfo.m_pSearchPath && openInfo.m_pSearchPath->m_bIsWorkshop || bIsWorkshop )
+	if (!m_AddonFileSystem->ModPath().empty() && PathStartsWith( openInfo.m_AbsolutePath, m_AddonFileSystem->ModPath().c_str() ) )
 	{
-		if ( !PathStartsWith( openInfo.m_pSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() ) )
-			Warning( "Search path %s was marked as workshop? Why!\n", openInfo.m_pSearchPath->GetPathString() );
-
 		Addon::FileHandle *pHandle = (Addon::FileHandle*)func_Addon_FileSystem_GetFileEntry( m_AddonFileSystem, openInfo.m_AbsolutePath );
 		if ( pHandle )
 		{
