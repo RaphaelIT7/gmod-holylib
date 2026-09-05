@@ -601,6 +601,7 @@ static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSea
 
 static Detouring::Hook detour_CBaseFileSystem_IsDirectory;
 static Symbols::Addon_FileSystem_IsDirectory func_Addon_FileSystem_IsDirectory = nullptr;
+static Symbols::CPackedStore_DirectoryEntryExists func_CPackedStore_DirectoryEntryExists = nullptr;
 static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char* pFileName, const char* pathID)
 {
 	// Allow for UNC-type syntax to specify the path ID.
@@ -633,7 +634,7 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 		if ( pSearchPath->GetPackedStore() )
 		{
 			// GMod
-			if ( pSearchPath->GetPackedStore()->DirectoryEntryExists( pFileName ) )
+			if ( func_CPackedStore_DirectoryEntryExists( pSearchPath->GetPackedStore(), pFileName ) )
 				return true;
 		}
 		else
@@ -1099,6 +1100,9 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CFileSystem_Stdio_FS_FindClose = (Symbols::CFileSystem_Stdio_FS_FindClose)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_FindCloseSym);
 	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_FindClose, "CFileSystem_Stdio::FS_FindClose");
+
+	func_CPackedStore_DirectoryEntryExists = (Symbols::CPackedStore_DirectoryEntryExists)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CPackedStore_DirectoryEntryExistsSym);
+	Detour::CheckFunction((void*)func_CPackedStore_DirectoryEntryExists, "CPackedStore::DirectoryEntryExists");
 
 	func_CFileHandle_Constructor = (Symbols::CFileHandle_Constructor)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileHandle_ConstructorSym);
 	Detour::CheckFunction((void*)func_CFileHandle_Constructor, "CFileHandle::CFileHandle");
