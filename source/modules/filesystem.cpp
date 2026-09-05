@@ -100,6 +100,10 @@ void CDiskFileTree::BuildTree( const char *pszRoot )
 		V_strlower( szFullPath );
 
 		RecursiveTraverse( pszRoot );
+
+		Msg("Filelist:\n");
+		for (auto& [key, val] : m_FileList)
+			Msg("\t%s\n", key.c_str());
 	}
 }
 
@@ -320,6 +324,9 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 {
 	openInfo.m_pFileHandle = nullptr;
 
+	// RaphaelIT7: BUG! Source apparently allows materials\\..\\backgrounds why?
+	NormalizeGamePath( openInfo.m_AbsolutePath );
+
 	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
 
 	// RaphaelIT7:
@@ -350,15 +357,15 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 	// We do not use the cache for absolute paths!
 	// Absolute paths are used by GMod for example when mounting a gma
 	// The path will be somewhere in the steamapps/workshop/4000 which we did not scan (and never will)
-	/*if ( !bIsAbsolutePath )
+	if ( !bIsAbsolutePath )
 	{
-		FileCacheEntry eCacheEntry = g_pBaseFileSystem->m_DiskFileTree.ContainsPath( openInfo.m_AbsolutePath );
+		FileCacheEntry eCacheEntry = g_pDiskFileTree.ContainsPath( openInfo.m_AbsolutePath );
 
 		// openInfo.m_pFileName is a mess due to \\..\\ not yet being normalized!
 		// eCacheEntry = openInfo.m_pSearchPath->ContainsPath( openInfo.m_pFileName );
 		if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
 			return;
-	}*/
+	}
 
 	int64 size;
 	FILE *fp = (FILE*)func_CBaseFileSystem_Trace_FOpen( _this, openInfo.m_AbsolutePath, openInfo.m_pOptions, openInfo.m_Flags, &size );
@@ -506,20 +513,6 @@ static void GetPathFromIDCmd(const CCommand &args)
 	Msg("Path %s\n", path->GetPathString()); // Does this crash? idk.
 }
 static ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
-
-static Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
-static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
-{
-	if (!holylib_filesystem_searchcache.GetBool())
-		return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
-
-	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("FindFileInSearchPath: trying to find %s -> %p (%s)\n", openInfo.m_pFileName, openInfo.m_pSearchPath, openInfo.m_pSearchPath->GetPathIDString());
-
-	return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
-}
 
 // Future note: When using an absolute path the search path should not be a packed file! And it doesn't matter what search path it is! Just not a pack!
 static Detouring::Hook detour_CBaseFileSystem_FastFileTime;
@@ -870,7 +863,6 @@ inline const char* CSearchPath::GetPathString() const
 #if SYSTEM_WINDOWS
 DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC5( hook_CBaseFileSystem_OpenForRead, FileHandle_t, OpenForRead, CBaseFileSystem*, const char*, const char*, unsigned, const char*, char** );
-	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseFileSystem_FindFileInSearchPath, FileHandle_t, FindFileInSearchPath, CBaseFileSystem*, CFileOpenInfo& );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_IsDirectory, bool, IsDirectory, CBaseFileSystem*, const char*, const char* );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_FastFileTime, long, FastFileTime, CBaseFileSystem*, const CSearchPath*, const char* );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_GetFileTime, long, GetFileTime, CBaseFileSystem*, const char*, const char* );
@@ -900,12 +892,6 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_OpenForRead, "CBaseFileSystem::OpenForRead",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_OpenForReadSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_OpenForRead, OpenForRead), m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseFileSystem_FindFileInSearchPath, "CBaseFileSystem::FindFileInSearchPath",
-		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_FindFileInSearchPathSym,
-		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_FindFileInSearchPath, FindFileInSearchPath), m_pID
 	);
 
 	Detour::Create(
