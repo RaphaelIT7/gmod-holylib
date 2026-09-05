@@ -200,6 +200,7 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 
 		filter("system:windows")
 			files(sourcePath .. "sourcesdk/tier0/platform.cpp")
+			removefiles(sourcePath .. "sourcesdk/linux_support.cpp")
 			if HOLYLIB_DEDICATED then
 				defines("DEDICATED")
 			else
