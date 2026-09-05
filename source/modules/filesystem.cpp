@@ -158,7 +158,7 @@ bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 	// If we have a entry then we already are tracking this one
 	if ( m_FileList.find( pszFolderPath ) != m_FileList.end() )
 	{
-		Msg("Skipping already scanned folder %s\n", pszFolderPath);
+		// Msg("Skipping already scanned folder %s\n", pszFolderPath);
 		return true;
 	}
 
