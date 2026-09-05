@@ -448,7 +448,8 @@ namespace Symbols
 	using CFileSystem_Stdio_FS_FindClose = bool (GMCOMMON_CALLING_CONVENTION*)(void* fs, void* handle);
 	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindCloseSym;
 
-	using CPackedStore_DirectoryEntryExists = bool (GMCOMMON_CALLING_CONVENTION*)(void* pack, const char* fileName);
+	// RaphaelIT7: For whatever reson it is not a __thiscall???
+	using CPackedStore_DirectoryEntryExists = bool (*)(void* pack, const char* fileName);
 	extern const std::vector<Symbol> CPackedStore_DirectoryEntryExistsSym;
 
 	extern const std::vector<Symbol> g_PathIDTableSym;
