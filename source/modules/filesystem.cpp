@@ -356,6 +356,7 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 		}
 
 		// RaphaelIT7: We avoid disk lookup for workshop/ as we expect it to not exist anyways
+		Msg("Workshop lookup %s (%s)\n", openInfo.m_AbsolutePath, pHandle ? "true" : "false");
 		return;
 	}
 
@@ -363,14 +364,15 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 	// We do not use the cache for absolute paths!
 	// Absolute paths are used by GMod for example when mounting a gma
 	// The path will be somewhere in the steamapps/workshop/4000 which we did not scan (and never will)
+	FileCacheEntry eCacheEntry = FileCacheEntry::UNKNOWN;
 	if ( !bIsAbsolutePath )
 	{
-		FileCacheEntry eCacheEntry = g_pDiskFileTree.ContainsPath( openInfo.m_AbsolutePath );
+		eCacheEntry = g_pDiskFileTree.ContainsPath( openInfo.m_AbsolutePath );
 
 		// openInfo.m_pFileName is a mess due to \\..\\ not yet being normalized!
 		// eCacheEntry = openInfo.m_pSearchPath->ContainsPath( openInfo.m_pFileName );
-		if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
-			return;
+		//if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
+		//	return;
 	}
 
 	int64 size;
@@ -391,12 +393,10 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 		}*/
 
 		// RaphaelIT7: Debugging
-		/* if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
+		if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
 		{
-			__debugbreak();
-			openInfo.m_pSearchPath->ContainsPath( openInfo.m_pFileName );
-			__debugbreak();
-		}*/
+			Warning("File exists on disk yet we said no? (%s)\n", openInfo.m_AbsolutePath);
+		}
 
 		openInfo.m_pFileHandle = new CFileHandle(_this);
 		openInfo.m_pFileHandle->m_pFile = fp;
@@ -404,12 +404,15 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 		openInfo.m_pFileHandle->m_nLength = size;
 
 		openInfo.SetResolvedFilename( openInfo.m_AbsolutePath );
+		Msg( "Opened file %s\n", openInfo.m_AbsolutePath );
 		
 		// LogFileOpen( "Loose", openInfo.m_pFileName, openInfo.m_AbsolutePath );
 
 		// GMod - Returns on hit
 		return;
 	}
+
+	Msg( "Failed to open file %s\n", openInfo.m_AbsolutePath );
 
 	// RaphaelIT7: If this happens then the file was removed from disk and we didn't know yet
 	// g_pBaseFileSystem->m_DiskFileTree.RemovePath( openInfo.m_AbsolutePath );
@@ -435,6 +438,7 @@ CSearchPath* hook_CBaseFileSystem_NewSearchPath(void* _this, int addType)
 	// GMod uses 0xFFFFFEFF when it should be using 0xFE
 	CSearchPath* pPath = (CSearchPath*)detour_CBaseFileSystem_NewSearchPath.GetTrampoline<Symbols::CBaseFileSystem_NewSearchPath>()(_this, addType & 0x1FF);
 	pPath->m_bIsWorkshop = (addType & PATH_FLAG_ISWORKSHOP) != 0;
+	pPath->m_bTrackDisk = false;
 	g_pLastCreatedSearchPath = pPath;
 
 	g_pFullFileSystem = (CBaseFileSystem*)_this;
@@ -489,7 +493,10 @@ void hook_CBaseFileSystem_AddSearchPathInternal(CBaseFileSystem* _this, const ch
 	if ( !m_AddonFileSystem->ModPath().empty() ) // We check for empty as it may have not been set early on!
 	{
 		if ( PathStartsWith( newPath, m_AddonFileSystem->ModPath().c_str() ) )
+		{
+			Warning( PROJECT_NAME " - filesystem: Marked %s a workshop path\n", newPath );
 			g_pLastCreatedSearchPath->m_bIsWorkshop = true;
+		}
 	}
 
 	if ( V_IsAbsolutePath( g_pLastCreatedSearchPath->GetPathString() ) )
@@ -636,7 +643,6 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 #ifdef SUPPORT_PACKED_STORE
 		if ( pSearchPath->GetPackedStore() )
 		{
-			Msg("What the heck (%s - %s - %p)\n", pFileName, pSearchPath->GetPathString(), pSearchPath->GetPackedStore());
 			// GMod
 			// ASM shows a +8 but I have no idea why
 			if ( func_CPackedStore_DirectoryEntryExists( (void*)((char*)pSearchPath->GetPackedStore() + 8), pFileName ) )
@@ -1024,7 +1030,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	// A total abomination to get the vtable so that we can pass the functions to use as hooks
 	// I hate and absolutely love that this actually works
 	DETOUR_PREPARE_THISCALL();
-	Detour::Create(
+	/*Detour::Create(
 		&detour_CBaseFileSystem_OpenForRead, "CBaseFileSystem::OpenForRead",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_OpenForReadSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_OpenForRead, OpenForRead), m_pID
@@ -1046,7 +1052,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_GetFileTime, "CBaseFileSystem::GetFileTime",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_GetFileTimeSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_GetFileTime, GetFileTime), m_pID
-	);
+	);*/
 
 	Detour::Create(
 		&detour_CBaseFileSystem_HandleOpenRegularFile, "CBaseFileSystem::HandleOpenRegularFile",
