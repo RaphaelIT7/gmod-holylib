@@ -236,6 +236,13 @@ void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszN
 
 void CDiskFileTree::Rebuild()
 {
+#if GMOD_X86_64
+	return;
+#endif
+
+	if (Util::GetGModVersionNum() < 260718)
+		return;
+
 	m_FileList.clear();
 	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)g_pFullFileSystem->Addons();
 	FOR_EACH_LL_(((CBaseFileSystem*)g_pFullFileSystem)->m_SearchPaths, pSearchPath)
