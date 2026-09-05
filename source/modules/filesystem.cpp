@@ -104,9 +104,9 @@ void CDiskFileTree::BuildTree( const char *pszRoot )
 
 		RecursiveTraverse( pszRoot );
 
-		Msg("Filelist:\n");
-		for (auto& [key, val] : m_FileList)
-			Msg("\t%s\n", key.c_str());
+		//Msg("Filelist:\n");
+		//for (auto& [key, val] : m_FileList)
+		//	Msg("\t%s\n", key.c_str());
 	}
 }
 
@@ -638,7 +638,8 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 		{
 			Msg("What the heck (%s - %s - %p)\n", pFileName, pSearchPath->GetPathString(), pSearchPath->GetPackedStore());
 			// GMod
-			if ( func_CPackedStore_DirectoryEntryExists( pSearchPath->GetPackedStore(), pFileName ) )
+			// ASM shows a +8 but I have no idea why
+			if ( func_CPackedStore_DirectoryEntryExists( (void*)((char*)pSearchPath->GetPackedStore() + 8), pFileName ) )
 				return true;
 		}
 		else
