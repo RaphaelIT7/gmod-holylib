@@ -60,6 +60,11 @@
   return V_stricmp(l, r) == 0;
 }
 
+#ifdef GMOD_X86_64
+// 64x SDK has this...
+#undef PATHSEPARATOR
+#endif
+
 // dimhotepus: Define single API for path separators.
 #ifdef _WIN32
 [[nodiscard]] constexpr inline bool PATHSEPARATOR( char c )
@@ -154,7 +159,10 @@ BitwiseClear(T* src, size_t size) noexcept {
   memset(src, 0, size);
 }
 
+#ifndef GMOD_X86_64
 [[nodiscard]] inline bool V_isempty( IN_OPT_Z const char* pszString ) { return !pszString || !pszString[ 0 ]; }
+#endif
+
 // dimhotepus: Add wchar_t version.
 [[nodiscard]] inline bool V_isempty( IN_OPT_Z const wchar_t* pszString ) { return !pszString || !pszString[ 0 ]; }
 
@@ -195,6 +203,7 @@ void V_MakeAbsolutePath( OUT_Z_ARRAY char (&pOut)[outSize], IN_Z const char *pPa
 	V_MakeAbsolutePath( pOut, outSize, pPath, pStartingDir );
 }
 
+#ifndef GMOD_X86_64
 inline void V_MakeAbsolutePath( OUT_Z_CAP(outLen) char *pOut, int outLen, IN_Z const char *pPath, IN_OPT_Z const char *pStartingDir, bool bLowercaseName )
 {
 	V_MakeAbsolutePath( pOut, outLen, pPath, pStartingDir );
@@ -203,6 +212,7 @@ inline void V_MakeAbsolutePath( OUT_Z_CAP(outLen) char *pOut, int outLen, IN_Z c
 		V_strlower( pOut );
 	}
 }
+#endif
 
 template<int outSize>
 inline void V_MakeAbsolutePath( OUT_Z_ARRAY char (&pOut)[outSize], IN_Z const char *pPath, IN_OPT_Z const char *pStartingDir, bool bLowercaseName )

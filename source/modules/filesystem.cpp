@@ -10,6 +10,7 @@
 #include <cstring>
 #include "edict.h"
 #include "unordered_stuff.h"
+#include "sdk_backports.h"
 
 #include <isteamugc.h>
 #include "sourcesdk/baseserver.h"
