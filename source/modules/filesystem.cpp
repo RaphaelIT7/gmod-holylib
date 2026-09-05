@@ -1061,7 +1061,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_OpenForRead, "CBaseFileSystem::OpenForRead",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_OpenForReadSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_OpenForRead, OpenForRead), m_pID
-	);
+	);*/
 
 	Detour::Create(
 		&detour_CBaseFileSystem_IsDirectory, "CBaseFileSystem::IsDirectory",
@@ -1079,7 +1079,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_GetFileTime, "CBaseFileSystem::GetFileTime",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_GetFileTimeSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_GetFileTime, GetFileTime), m_pID
-	);*/
+	);
 
 	Detour::Create(
 		&detour_CBaseFileSystem_HandleOpenRegularFile, "CBaseFileSystem::HandleOpenRegularFile",
