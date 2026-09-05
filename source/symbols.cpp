@@ -490,6 +490,10 @@ namespace Symbols
 		Symbol::FromName("_ZN17CFileSystem_Stdio12FS_FindCloseEPv"),
 	};
 
+	const std::vector<Symbol> CFileSystem_Stdio_FS_statSym = {
+		Symbol::FromName("_ZN17CFileSystem_Stdio7FS_statEPKcP4statPb"),
+	};
+
 	const std::vector<Symbol> CPackedStore_DirectoryEntryExistsSym = {
 		Symbol::FromName("_ZN12CPackedStore20DirectoryEntryExistsEPKc"),
 	};

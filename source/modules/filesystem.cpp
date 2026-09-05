@@ -553,6 +553,7 @@ static ConCommand dumpfiletree("holylib_filesystem_dumpfiletree", DumpFileTree, 
 
 // Future note: When using an absolute path the search path should not be a packed file! And it doesn't matter what search path it is! Just not a pack!
 static Detouring::Hook detour_CBaseFileSystem_FastFileTime;
+static Symbols::CFileSystem_Stdio_FS_stat func_CFileSystem_Stdio_FS_stat = nullptr;
 static Symbols::Addon_FileSystem_GetFileSize func_Addon_FileSystem_GetFileSize = nullptr;
 static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSearchPath* path, const char* pFileName)
 {
@@ -616,14 +617,14 @@ static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSea
 			return 0L;
 		}
 
-		if ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( pTmpFileName, &buf ) != -1 )
+		if ( func_CFileSystem_Stdio_FS_stat( g_pFullFileSystem, pTmpFileName, &buf, nullptr ) != -1 )
 		{
 			return buf.st_mtime;
 		}
 #ifdef LINUX
 		char caseFixedName[ MAX_PATH ];
 		if ( findFileInDirCaseInsensitive_safe( pTmpFileName, caseFixedName ) &&
-			 ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( caseFixedName, &buf ) != -1 )
+			 func_CFileSystem_Stdio_FS_stat( g_pFullFileSystem, caseFixedName, &buf, nullptr ) != -1 )
 		{
 			return buf.st_mtime;
 		}
@@ -653,7 +654,7 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 	// ParsePathID( pFileName, pathID, tempPathID );
 	if ( V_IsAbsolutePath( pFileName ) )
 	{
-		if ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( pFileName, &buf ) != -1 )
+		if ( func_CFileSystem_Stdio_FS_stat( g_pFullFileSystem, pFileName, &buf, nullptr ) != -1 )
 		{
 			if ( buf.st_mode & _S_IFDIR )
 				return true;
@@ -706,7 +707,7 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 				// We can just return true since it's said to be a folder?
 				// Verify: Lets be certain first before we truly just skip the disk check!
 				// return true;
-				if ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( pTmpFileName, &buf ) != -1 )
+				if ( func_CFileSystem_Stdio_FS_stat( g_pFullFileSystem, pTmpFileName, &buf, nullptr ) != -1 )
 				{
 					if ( buf.st_mode & _S_IFDIR )
 						return true;
@@ -947,7 +948,7 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 			continue;
 		}
 
-		if ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( pTmpFileName, &buf ) != -1 )
+		if ( func_CFileSystem_Stdio_FS_stat( g_pFullFileSystem, pTmpFileName, &buf, nullptr ) != -1 )
 		{
 			V_strncpy( pDest, pTmpFileName, maxLenInChars );
 			if ( pPathType && pSearchPath->m_bIsRemotePath )
@@ -1138,6 +1139,9 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CFileSystem_Stdio_FS_FindClose = (Symbols::CFileSystem_Stdio_FS_FindClose)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_FindCloseSym);
 	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_FindClose, "CFileSystem_Stdio::FS_FindClose");
+
+	func_CFileSystem_Stdio_FS_stat = (Symbols::CFileSystem_Stdio_FS_stat)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_statSym);
+	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_stat, "CFileSystem_Stdio::FS_stat");
 
 	func_CPackedStore_DirectoryEntryExists = (Symbols::CPackedStore_DirectoryEntryExists)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CPackedStore_DirectoryEntryExistsSym);
 	Detour::CheckFunction((void*)func_CPackedStore_DirectoryEntryExists, "CPackedStore::DirectoryEntryExists");
@@ -1520,10 +1524,13 @@ LUA_FUNCTION_STATIC(filesystem_TimeCreated)
 	struct _stat buf;
 	char pTmpFileName[MAX_PATH];
 	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
-		if(((CBaseFileSystem*)g_pFullFileSystem)->FS_stat(pTmpFileName, &buf) != -1) {
+	{
+		if(func_CFileSystem_Stdio_FS_stat( g_pFullFileSystem, pTmpFileName, &buf, nullptr) != -1)
+		{
 			LUA->PushNumber((double)buf.st_ctime);
 			return 1;
 		}
+	}
 	
 	LUA->PushNumber(0);
 	return 1;
@@ -1537,10 +1544,13 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 	struct _stat buf;
 	char pTmpFileName[MAX_PATH];
 	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
-		if(((CBaseFileSystem*)g_pFullFileSystem)->FS_stat(pTmpFileName, &buf) != -1) {
+	{
+		if(func_CFileSystem_Stdio_FS_stat( g_pFullFileSystem, pTmpFileName, &buf, nullptr) != -1)
+		{
 			LUA->PushNumber((double)buf.st_atime);
 			return 1;
 		}
+	}
 	
 	LUA->PushNumber(0);
 	return 1;

@@ -439,6 +439,13 @@ namespace Symbols
 	using Addon_FileHandle_Size = unsigned int (GMCOMMON_CALLING_CONVENTION*)(void* handle);
 	extern const std::vector<Symbol> Addon_FileHandle_SizeSym;
 
+	// RaphaelIT7:
+	// While these below are virtual functions I really do NOT want to have GMod fk them up
+	// Something after IFileSystem is fked
+	// And this cause a really annoying thing.
+	// FS_stat shifted to be FS_chmod
+	// And guess what! Every IsDirectory check most of the time turned a folder into fully write only!
+
 	using CFileSystem_Stdio_FS_FindFirstFile = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, const char *findname, void *dat);
 	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindFirstFileSym;
 
@@ -447,6 +454,9 @@ namespace Symbols
 
 	using CFileSystem_Stdio_FS_FindClose = bool (GMCOMMON_CALLING_CONVENTION*)(void* fs, void* handle);
 	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindCloseSym;
+
+	using CFileSystem_Stdio_FS_stat = bool (GMCOMMON_CALLING_CONVENTION*)(void* fs, const char *path, struct _stat *buf, bool *pbLoadedFromSteamCache);
+	extern const std::vector<Symbol> CFileSystem_Stdio_FS_statSym;
 
 	// RaphaelIT7: For whatever reson it is not a __thiscall???
 	using CPackedStore_DirectoryEntryExists = bool (*)(void* pack, const char* fileName);
