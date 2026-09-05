@@ -14,6 +14,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <cstdio>
+#include <memory>
 
 #include "tier1/strtools.h"
 
@@ -21,14 +22,14 @@ namespace
 {
 
 // dimhotepus: Make thread_local to support multiple threads.
-thread_local char selectBuf[PATH_MAX];
+thread_local std::unique_ptr<char[]> selectBuf(new char[PATH_MAX]);
 
 int FileSelect( const dirent *ent )
 {
-	const char *mask{selectBuf}, *name{ent->d_name};
+	const char *mask{selectBuf.get()}, *name{ent->d_name};
 
 	if (V_streq(name, ".") || V_streq(name, "..") ) return 0;
-	if (V_streq(selectBuf, "*.*")) return 1;
+	if (V_streq(selectBuf.get(), "*.*")) return 1;
 
 	while (*mask && *name)
 	{
@@ -143,7 +144,7 @@ HANDLE FindFirstFile( const char *fileName, FIND_DATA *dat )
 	{
 		// dimhotepus: Speedup root dir computation.
 		const bool isRoot = !Q_isempty(dir) && dir[0] == '/' && dir[1] == '\0';
-		V_strcpy_safe(selectBuf, fileName + (isRoot ? 0 : 1) + 1);
+		V_strncpy((char*)selectBuf.get(), fileName + (isRoot ? 0 : 1) + 1, PATH_MAX);
 
 		dat->namelist = nullptr;
 		V_strcpy_safe(dat->cBaseDir, dir);

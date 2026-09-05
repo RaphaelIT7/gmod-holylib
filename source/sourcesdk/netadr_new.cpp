@@ -111,7 +111,7 @@ bool netadrnew_s::IsReservedAdr () const
 const char * netadrnew_s::ToString( bool onlyBase ) const
 {
 	// Select a static buffer
-	static thread_local char buffer[64];
+	static thread_local char buffer[48];
 
 	// Render into it
 	ToString( buffer, sizeof(buffer), onlyBase );
