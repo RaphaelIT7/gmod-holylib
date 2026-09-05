@@ -939,13 +939,11 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	int pBaseLength = 0;
-	char pBaseDir[MAX_PATH];
-	if ( pBaseLength < 3 )
-		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
-
-	std::string workshopDir = pBaseDir;
-	workshopDir.append("garrysmod" FILEPATH_SLASH "workshop");
+	if (Util::GetGModVersionNum() < 260718)
+	{
+		Warning(PROJECT_NAME " - filesystem: This GMod version is not supported!\n");
+		return;
+	}
 
 	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)g_pFullFileSystem->Addons();
 	FOR_EACH_LL_(((CBaseFileSystem*)g_pFullFileSystem)->m_SearchPaths, pSearchPath)
@@ -959,9 +957,6 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 			}
 		}
 	}
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
 }
 
 CUtlSymbolTableMT* g_pPathIDTable;
@@ -1020,6 +1015,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 {
 	if (!bPreServer)
 		return;
+
+	if (Util::GetGModVersionNum() < 260718)
+	{
+		Warning(PROJECT_NAME " - filesystem: This GMod version is not supported!\n");
+		return;
+	}
 
 	// ToDo: Redo EVERY Hook so that we'll abuse the vtable instead of symbols.  
 	// Use the ClassProxy or so which should also allow me to port this to windows.

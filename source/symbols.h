@@ -376,14 +376,8 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: filesystem Symbols
 	//---------------------------------------------------------------------------------
-	using CBaseFileSystem_FindFileInSearchPath = FileHandle_t* (GMCOMMON_CALLING_CONVENTION*)(void* filesystem, CFileOpenInfo&);
-	extern const std::vector<Symbol> CBaseFileSystem_FindFileInSearchPathSym;
-
 	using CBaseFileSystem_IsDirectory = bool (GMCOMMON_CALLING_CONVENTION*)(void* filesystem, const char* pFileName, const char* pathID);
 	extern const std::vector<Symbol> CBaseFileSystem_IsDirectorySym;
-
-	using CBaseFileSystem_FindSearchPathByStoreId = CSearchPath* (GMCOMMON_CALLING_CONVENTION*)(void* filesystem, int);
-	extern const std::vector<Symbol> CBaseFileSystem_FindSearchPathByStoreIdSym;
 
 	using CBaseFileSystem_FastFileTime = long (GMCOMMON_CALLING_CONVENTION*)(void* filesystem, const CSearchPath* path, const char* pFileName);
 	extern const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym;
@@ -396,15 +390,6 @@ namespace Symbols
 
 	using CBaseFileSystem_GetFileTime = long (GMCOMMON_CALLING_CONVENTION*)(void* filesystem, const char* pFileName, const char* pPathID);
 	extern const std::vector<Symbol> CBaseFileSystem_GetFileTimeSym;
-
-	using CBaseFileSystem_AddSearchPath = void (GMCOMMON_CALLING_CONVENTION*)(void* filesystem, const char* pPath, const char* pathID, SearchPathAdd_t addType);
-	extern const std::vector<Symbol> CBaseFileSystem_AddSearchPathSym;
-
-	using CBaseFileSystem_AddVPKFile = void (GMCOMMON_CALLING_CONVENTION*)(void* filesystem, const char* pPath, const char* pathID, SearchPathAdd_t addType);
-	extern const std::vector<Symbol> CBaseFileSystem_AddVPKFileSym;
-
-	using CBaseFileSystem_Close = void (GMCOMMON_CALLING_CONVENTION*)(void* filesystem, FileHandle_t);
-	extern const std::vector<Symbol> CBaseFileSystem_CloseSym;
 
 	using CBaseFileSystem_CSearchPath_GetDebugString = const char* (GMCOMMON_CALLING_CONVENTION*)(void* searchpath);
 	extern const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym;
