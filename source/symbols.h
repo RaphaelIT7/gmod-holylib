@@ -409,6 +409,48 @@ namespace Symbols
 	using CBaseFileSystem_CSearchPath_GetDebugString = const char* (GMCOMMON_CALLING_CONVENTION*)(void* searchpath);
 	extern const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym;
 
+	using CBaseFileSystem_HandleOpenRegularFile = void (GMCOMMON_CALLING_CONVENTION*)(void* fs, CFileOpenInfo&, bool bIsAbsolutePath);
+	extern const std::vector<Symbol> CBaseFileSystem_HandleOpenRegularFileSym;
+
+	using CBaseFileSystem_Trace_FOpen = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, const char *filenameT, const char *options, unsigned flags, int64 *size);
+	extern const std::vector<Symbol> CBaseFileSystem_Trace_FOpenSym;
+
+	using CBaseFileSystem_NewSearchPath = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, unsigned int addType);
+	extern const std::vector<Symbol> CBaseFileSystem_NewSearchPathSym;
+
+	using CBaseFileSystem_AddSearchPathInternal = void* (GMCOMMON_CALLING_CONVENTION*)(void* _this, const char *pPath, const char *pathID, SearchPathAdd_t addType, bool bAddPackFiles);
+	extern const std::vector<Symbol> CBaseFileSystem_AddSearchPathInternalSym;
+
+	using CFileHandle_Constructor = void (GMCOMMON_CALLING_CONVENTION*)(void* handle, void* fs);
+	extern const std::vector<Symbol> CFileHandle_ConstructorSym;
+
+	using Addon_FileSystem_GetFileEntry = void* (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
+	extern const std::vector<Symbol> Addon_FileSystem_GetFileEntrySym;
+
+	using Addon_FileSystem_ResolveFile = std::string (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
+	extern const std::vector<Symbol> Addon_FileSystem_ResolveFileSym;
+
+	using Addon_FileSystem_GetFileSize = int64_t (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
+	extern const std::vector<Symbol> Addon_FileSystem_GetFileSizeSym;
+
+	using Addon_FileSystem_IsDirectory = bool (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
+	extern const std::vector<Symbol> Addon_FileSystem_IsDirectorySym;
+
+	using Addon_FileHandle_Size = unsigned int (GMCOMMON_CALLING_CONVENTION*)(void* handle);
+	extern const std::vector<Symbol> Addon_FileHandle_SizeSym;
+
+	using CFileSystem_Stdio_FS_FindFirstFile = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, const char *findname, void *dat);
+	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindFirstFileSym;
+
+	using CFileSystem_Stdio_FS_FindNextFile = bool (GMCOMMON_CALLING_CONVENTION*)(void* fs, void* handle, void *dat);
+	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindNextFileSym;
+
+	using CFileSystem_Stdio_FS_FindClose = bool (GMCOMMON_CALLING_CONVENTION*)(void* fs, void* handle);
+	extern const std::vector<Symbol> CFileSystem_Stdio_FS_FindCloseSym;
+
+	using CPackedStore_DirectoryEntryExists = bool (GMCOMMON_CALLING_CONVENTION*)(void* pack, const char* fileName);
+	extern const std::vector<Symbol> CPackedStore_DirectoryEntryExistsSym;
+
 	extern const std::vector<Symbol> g_PathIDTableSym;
 
 	//---------------------------------------------------------------------------------

@@ -436,6 +436,64 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x8B\x47\x28"), //55 48 89 E5 53 48 83 EC 18 48 8B 47 28
 	};
 
+	const std::vector<Symbol> CBaseFileSystem_HandleOpenRegularFileSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem21HandleOpenRegularFileER13CFileOpenInfob"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x0C\x53\x56\x8B\xF1\x57\x8B\x7D\x08"), // 55 8B EC 83 EC 0C 53 56 8B F1 57 8B 7D 08
+	};
+
+	const std::vector<Symbol> CBaseFileSystem_Trace_FOpenSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem11Trace_FOpenEPKcS1_jPx"),
+	};
+
+	const std::vector<Symbol> CBaseFileSystem_NewSearchPathSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem13NewSearchPathEj"),
+	};
+
+	const std::vector<Symbol> CBaseFileSystem_AddSearchPathInternalSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem21AddSearchPathInternalEPKcS1_jbb"),
+	};
+
+	const std::vector<Symbol> CFileHandle_ConstructorSym = {
+		Symbol::FromName("_ZN11CFileHandleC1EP15CBaseFileSystem"),
+	};
+
+	const std::vector<Symbol> Addon_FileSystem_GetFileEntrySym = {
+		Symbol::FromName("_ZN5Addon10FileSystem12GetFileEntryEPKc"),
+	};
+
+	const std::vector<Symbol> Addon_FileSystem_ResolveFileSym = {
+		Symbol::FromName("_ZN5Addon10FileSystem11ResolveFileEPKc"),
+	};
+
+	const std::vector<Symbol> Addon_FileSystem_GetFileSizeSym = {
+		Symbol::FromName("_ZN5Addon10FileSystem11GetFileSizeERKSs"),
+	};
+
+	const std::vector<Symbol> Addon_FileSystem_IsDirectorySym = {
+		Symbol::FromName("_ZN5Addon10FileSystem11IsDirectoryESs"),
+	};
+
+	const std::vector<Symbol> Addon_FileHandle_SizeSym = {
+		Symbol::FromName("_ZN5Addon10FileHandle4SizeEv"),
+	};
+
+	const std::vector<Symbol> CFileSystem_Stdio_FS_FindFirstFileSym = {
+		Symbol::FromName("_ZN17CFileSystem_Stdio16FS_FindFirstFileEPKcP9FIND_DATA"),
+	};
+
+	const std::vector<Symbol> CFileSystem_Stdio_FS_FindNextFileSym = {
+		Symbol::FromName("_ZN17CFileSystem_Stdio15FS_FindNextFileEPvP9FIND_DATA"),
+	};
+
+	const std::vector<Symbol> CFileSystem_Stdio_FS_FindCloseSym = {
+		Symbol::FromName("_ZN17CFileSystem_Stdio12FS_FindCloseEPv"),
+	};
+
+	const std::vector<Symbol> CPackedStore_DirectoryEntryExistsSym = {
+		Symbol::FromName("_ZN12CPackedStore20DirectoryEntryExistsEPKc"),
+	};
+
 	const std::vector<Symbol> g_PathIDTableSym = {
 		Symbol::FromName("g_PathIDTable"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\x58\x01\x00\x00", 0x8E), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 81 EC 58 01 00 00
