@@ -92,3 +92,92 @@ void CSearchPath::SetPath( CUtlSymbol id )
 	m_Path = id;
 	m_pDebugPath = g_pPathIDTable->String( m_Path );
 }
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CSearchPath *CSearchPathsIterator::GetFirst()
+{
+	CBaseFileSystem* g_pBaseFileSystem = (CBaseFileSystem*)g_pFullFileSystem;
+	if ( g_pBaseFileSystem->m_SearchPaths.Count() )
+	{
+		m_iCurrent = g_pBaseFileSystem->m_SearchPaths.InvalidIndex();
+		return GetNext();
+	}
+	return &m_EmptySearchPath;
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CSearchPath *CSearchPathsIterator::GetNext()
+{
+	CBaseFileSystem* g_pBaseFileSystem = (CBaseFileSystem*)g_pFullFileSystem;
+	CUtlLinkedList<CSearchPath> &searchPaths = g_pBaseFileSystem->m_SearchPaths;
+
+	m_iCurrent = ( m_iCurrent == searchPaths.InvalidIndex() ) ? searchPaths.Head() : searchPaths.Next( m_iCurrent );
+	for ( ; m_iCurrent != searchPaths.InvalidIndex(); m_iCurrent = searchPaths.Next( m_iCurrent ) )
+	{
+		CSearchPath *pSearchPath = &searchPaths[m_iCurrent];
+
+		if ( m_PathTypeFilter == FILTER_CULLPACK && pSearchPath->GetPackFile() )
+			continue;
+
+		if ( m_PathTypeFilter == FILTER_CULLNONPACK && !pSearchPath->GetPackFile() )
+			continue;
+
+		if ( CBaseFileSystem::FilterByPathID( pSearchPath, m_pathID ) )
+			continue;
+
+		return pSearchPath;
+	}
+
+	return nullptr;
+}
+
+inline bool CBaseFileSystem::FilterByPathID( const CSearchPath *pSearchPath, const CUtlSymbol &pathID )
+{
+	if ( (UtlSymId_t)pathID == UTL_INVAL_SYMBOL )
+	{
+		// They didn't specify a specific search path, so if this search path's path ID is by
+		// request only, then ignore it.
+		return pSearchPath->m_pPathIDInfo->m_bByRequestOnly;
+	}
+	else
+	{
+		// Bit of a hack, but specifying "BSP" as the search path will search in "GAME" for only the map/.bsp pack file path
+		if ( pathID == m_BSPPathID )
+		{
+			if ( pSearchPath->GetPathID() != m_GamePathID )
+				return true;
+
+			if ( !pSearchPath->GetPackFile() )
+				return true;
+
+			if ( !pSearchPath->IsMapPath() )
+				return true;
+
+			return false;
+		}
+		else
+		{
+			return (pSearchPath->GetPathID() != pathID);
+		}
+	}
+}
+
+inline const CUtlSymbol& CPathIDInfo::GetPathID() const
+{
+	return m_PathID;
+}
+
+inline const CUtlSymbol& CSearchPath::GetPathID() const
+{
+	return m_pPathIDInfo->GetPathID();
+}
+
+bool CSearchPath::IsMapPath() const
+{
+	return GetPackFile()->m_bIsMapPath;
+}

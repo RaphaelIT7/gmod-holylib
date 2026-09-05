@@ -196,6 +196,9 @@ void CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 
 static CDiskFileTree g_pDiskFileTree;
 
+CUtlSymbol CBaseFileSystem::m_GamePathID;
+CUtlSymbol CBaseFileSystem::m_BSPPathID;
+
 // VS2022 falsely claims the out buffer may not be null terminated...
 static FORCEINLINE void GetFullPath(const CSearchPath* pSearchPath, const char* strFileName, char (&out)[MAX_PATH])
 {
@@ -306,7 +309,7 @@ static inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
 }
 #endif
 
-class Addon::FileSystem : IAddonSystem
+class Addon::FileSystem : public IAddonSystem
 {
 public:
 	const std::string& ModPath() { return m_strModPath; };
@@ -519,42 +522,169 @@ static ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromI
 
 // Future note: When using an absolute path the search path should not be a packed file! And it doesn't matter what search path it is! Just not a pack!
 static Detouring::Hook detour_CBaseFileSystem_FastFileTime;
-static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path, const char* pFileName)
+static Symbols::Addon_FileSystem_GetFileSize func_Addon_FileSystem_GetFileSize = nullptr;
+static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSearchPath* path, const char* pFileName)
 {
-	if (!holylib_filesystem_searchcache.GetBool())
-		return detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
+	struct _stat buf;
 
-	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - FastFileTime: trying to find %s -> %p\n", pFileName, path);
-
-	bool bIsAbsolute = V_IsAbsolutePath(pFileName);
-	if (!bIsAbsolute)
+	if ( path->GetPackFile() )
 	{
+		// If we found the file:
+		if ( path->GetPackFile()->ContainsFile( pFileName ) )
+		{
+			return path->GetPackFile()->m_lPackFileTime;
+		}
+	}
+#ifdef SUPPORT_PACKED_STORE
+	else if ( path->GetPackedStore() )
+	{
+		// Hm, should we support this in some way?
+		return 0L;
+	}
+#endif
+	else
+	{
+		// Is it an absolute path?
+		char pTmpFileName[ MAX_FILEPATH ]; 
+		
+		if ( V_IsAbsolutePath( pFileName ) )
+		{
+			V_strcpy_safe( pTmpFileName, pFileName );
+		}
+		else
+		{
+			ComposeSearchPath( pTmpFileName, sizeof( pTmpFileName ), path->GetPathString(), pFileName );
+		}
+
+		V_FixSlashes( pTmpFileName );
+		// GMod
+		if ( path->m_bIsWorkshop )
+		{
+			Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
+			int64 iSize = func_Addon_FileSystem_GetFileSize( m_AddonFileSystem, pTmpFileName );
+			if ( iSize >= 0 )
+				return 1L;
+
+			// RaphaelIT7:
+			// Do not lookup on disk.
+			return 0L;
+		}
+
+		// RaphaelIT7: We force lower for consistency!
+		V_strlower( pTmpFileName );
+		NormalizeGamePath( pTmpFileName );
+		FileCacheEntry eCacheEntry = g_pDiskFileTree.ContainsPath( pTmpFileName );
+
+		// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
+		if ( eCacheEntry == FileCacheEntry::INVALID )
+		{
+			// RaphaelIT7: Debugging
+			//if ( FS_stat( pTmpFileName, &buf ) != -1 )
+			//	__debugbreak();
+
+			return 0L;
+		}
+
+		if ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( pTmpFileName, &buf ) != -1 )
+		{
+			return buf.st_mtime;
+		}
+#ifdef LINUX
+		char caseFixedName[ MAX_PATH ];
+		if ( findFileInDirCaseInsensitive_safe( pTmpFileName, caseFixedName ) &&
+			 ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( caseFixedName, &buf ) != -1 )
+		{
+			return buf.st_mtime;
+		}
+#endif
 	}
 
-	long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
-	return time;
-}
-
-static FORCEINLINE bool is_file(const char *path)
-{
-	const char *last_slash = strrchr(path, FILEPATH_SLASH_CHAR);
-	const char *last_dot = strrchr(path, '.');
-
-	return last_dot != nullptr && (last_slash == nullptr || last_dot > last_slash);
+	return ( 0L );
 }
 
 static Detouring::Hook detour_CBaseFileSystem_IsDirectory;
-static bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFileName, const char* pPathID)
+static Symbols::Addon_FileSystem_IsDirectory func_Addon_FileSystem_IsDirectory = nullptr;
+static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char* pFileName, const char* pathID)
 {
-	VPROF_BUDGET("HolyLib - CBaseFileSystem::IsDirectory", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+	// Allow for UNC-type syntax to specify the path ID.
+	struct	_stat buf;
 
-	if (holylib_filesystem_easydircheck.GetBool() && is_file(pFileName))
+	char pTempBuf[MAX_PATH];
+	V_strcpy_safe( pTempBuf, pFileName );
+	V_StripTrailingSlash( pTempBuf );
+	pFileName = pTempBuf;
+
+	// RaphaelIT7: Just to avoid weird issues
+	NormalizeGamePath( pTempBuf );
+
+	char tempPathID[MAX_PATH] = {0};
+	// ParsePathID( pFileName, pathID, tempPathID );
+	if ( V_IsAbsolutePath( pFileName ) )
+	{
+		if ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( pFileName, &buf ) != -1 )
+		{
+			if ( buf.st_mode & _S_IFDIR )
+				return true;
+		}
 		return false;
+	}
 
-	return detour_CBaseFileSystem_IsDirectory.GetTrampoline<Symbols::CBaseFileSystem_IsDirectory>()(filesystem, pFileName, pPathID);
+	CSearchPathsIterator iter( _this, &pFileName, pathID, FILTER_CULLPACK );
+	for ( CSearchPath *pSearchPath = iter.GetFirst(); pSearchPath != nullptr; pSearchPath = iter.GetNext() )
+	{
+#ifdef SUPPORT_PACKED_STORE
+		if ( pSearchPath->GetPackedStore() )
+		{
+			// GMod
+			if ( pSearchPath->GetPackedStore()->DirectoryEntryExists( pFileName ) )
+				return true;
+		}
+		else
+#endif // SUPPORT_PACKED_STORE
+		{
+			char pTmpFileName[ MAX_FILEPATH ];
+			ComposeSearchPath( pTmpFileName, sizeof( pTmpFileName ), pSearchPath->GetPathString(), pFileName );
+			V_FixSlashes( pTmpFileName );
+
+			// GMod
+			if ( pSearchPath->m_bIsWorkshop )
+			{
+				Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
+				if ( func_Addon_FileSystem_IsDirectory( m_AddonFileSystem, pTmpFileName ) )
+					return true;
+			}
+			else
+			{
+				// RaphaelIT7: We force lower for consistency!
+				V_strlower( pTmpFileName );
+				FileCacheEntry eCacheEntry = g_pDiskFileTree.ContainsPath( pTmpFileName );
+
+				// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
+				if ( eCacheEntry != FileCacheEntry::FOLDER && eCacheEntry != FileCacheEntry::UNKNOWN )
+				{
+					// RaphaelIT7: Debugging
+					//if ( FS_stat( pTmpFileName, &buf ) != -1 )
+					//	__debugbreak();
+
+					continue;
+				}
+
+				// RaphaelIT7:
+				// We can just return true since it's said to be a folder?
+				// Verify: Lets be certain first before we truly just skip the disk check!
+				// return true;
+				if ( ((CBaseFileSystem*)g_pFullFileSystem)->FS_stat( pTmpFileName, &buf ) != -1 )
+				{
+					if ( buf.st_mode & _S_IFDIR )
+						return true;
+				} else {
+					// RaphaelIT7: As fallback since apparently it's no longer a folder?
+					g_pDiskFileTree.RemovePath( pTmpFileName );
+				}
+			}
+		}
+	}
+	return false;
 }
 
 /*
@@ -958,6 +1088,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	func_Addon_FileSystem_ResolveFile = (Symbols::Addon_FileSystem_ResolveFile)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::Addon_FileSystem_ResolveFileSym);
 	Detour::CheckFunction((void*)func_Addon_FileSystem_ResolveFile, "Addon::FileSystem::ResolveFile");
 
+	func_Addon_FileSystem_GetFileSize = (Symbols::Addon_FileSystem_GetFileSize)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::Addon_FileSystem_GetFileSizeSym);
+	Detour::CheckFunction((void*)func_Addon_FileSystem_GetFileSize, "Addon::FileSystem::GetFileSize");
+
+	func_Addon_FileSystem_IsDirectory = (Symbols::Addon_FileSystem_IsDirectory)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::Addon_FileSystem_IsDirectorySym);
+	Detour::CheckFunction((void*)func_Addon_FileSystem_IsDirectory, "Addon::FileSystem::IsDirectory");
+
 	func_CFileSystem_Stdio_FS_FindFirstFile = (Symbols::CFileSystem_Stdio_FS_FindFirstFile)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_FindFirstFileSym);
 	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_FindFirstFile, "CFileSystem_Stdio::FS_FindFirstFile");
 
@@ -976,6 +1112,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	g_pPathIDTable = Detour::ResolveSymbolWithOffset<CUtlSymbolTableMT>(filesystem_loader.GetModule(), Symbols::g_PathIDTableSym);
 #endif
 	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != nullptr);
+
+	if (g_pPathIDTable)
+	{
+		CBaseFileSystem::m_BSPPathID = g_pPathIDTable->AddString( "BSP" );
+		CBaseFileSystem::m_GamePathID = g_pPathIDTable->AddString( "GAME" );
+	}
 }
 
 /*
