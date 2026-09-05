@@ -280,7 +280,7 @@ public:
 	int m_cFileResultsDifferent;
 };
 
-class CPackedStore : public CAlignedNewDelete<16>
+class CPackedStore
 {
 public:
 	CPackedStore( char const *pFileBasename, char *pszFName, intp fnameSize, IBaseFileSystem *pFS, bool bOpenForWrite = false );

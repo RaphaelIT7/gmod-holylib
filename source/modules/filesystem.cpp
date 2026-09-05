@@ -633,6 +633,7 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 #ifdef SUPPORT_PACKED_STORE
 		if ( pSearchPath->GetPackedStore() )
 		{
+			Msg("What the heck (%s)\n", pFileName);
 			// GMod
 			if ( func_CPackedStore_DirectoryEntryExists( pSearchPath->GetPackedStore(), pFileName ) )
 				return true;
