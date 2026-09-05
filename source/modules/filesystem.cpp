@@ -168,8 +168,6 @@ static void OnSearchCacheChange(IConVar* convar, const char* pOldValue, float fl
 	g_pDiskFileTree.Rebuild();
 }
 
-static ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", FCVAR_ARCHIVE, 
-	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
 static ConVar holylib_filesystem_filecache("holylib_filesystem_filecache", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will build a file tree and use that for lookups to skip searchpaths.", OnSearchCacheChange);
 static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", FCVAR_ARCHIVE, 
