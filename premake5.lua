@@ -205,6 +205,9 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 		filter({"platforms:x86_64"})
 			defines("PLATFORM_64BITS")
 
+		filter({"toolset:gcc or toolset:clang"})
+			buildoptions({"-Wno-undef"})
+
 		filter("system:windows")
 			if not GMOD_X86_64 then
 				files(sourcePath .. "sourcesdk/tier0/platform.cpp")
