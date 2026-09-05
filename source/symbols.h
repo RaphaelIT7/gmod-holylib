@@ -430,6 +430,12 @@ namespace Symbols
 	using Addon_FileSystem_ResolveFile = std::string (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
 	extern const std::vector<Symbol> Addon_FileSystem_ResolveFileSym;
 
+	using Addon_FileSystem_GetFileSize = int64_t (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
+	extern const std::vector<Symbol> Addon_FileSystem_GetFileSizeSym;
+
+	using Addon_FileSystem_IsDirectory = bool (GMCOMMON_CALLING_CONVENTION*)(void* addonFS, std::string strFileName);
+	extern const std::vector<Symbol> Addon_FileSystem_IsDirectorySym;
+
 	using Addon_FileHandle_Size = unsigned int (GMCOMMON_CALLING_CONVENTION*)(void* handle);
 	extern const std::vector<Symbol> Addon_FileHandle_SizeSym;
 
