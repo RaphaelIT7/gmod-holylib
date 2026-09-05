@@ -110,8 +110,7 @@ public:
 	CUtlString			m_ZipName;
 
 	bool				m_bIsMapPath;
-	// dimhotepus: long -> time_t
-	time_t				m_lPackFileTime;
+	long				m_lPackFileTime;
 
 	int					m_refCount;
 	int					m_nOpenFiles;
