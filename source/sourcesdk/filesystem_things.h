@@ -169,7 +169,7 @@ class CSearchPath
 	bool m_bIsRemotePath;
 	bool m_bIsTrustedForPureServer;
 	bool m_bVPKHack; // GMOD - I assume it's related to https://garry.net/posts/vpk-search-paths
-	bool m_bIsWorkshop; // HOLYLIB - GMod has free padding here which we can use for this flag :3
+	bool m_bUnknown; // GMOD - uses this but unknown for what??? idk
 	CUtlSymbol m_Path;
 
 	// RaphaelIT7:
@@ -179,6 +179,8 @@ class CSearchPath
 	// Else we expect the folder to never change anyways
 	// NOTE: We use the free 2 byte padding here
 	bool m_bTrackDisk;
+	// We moved it down here as its safer here and the padding byte in the bools above is not reliable?
+	bool m_bIsWorkshop; // HOLYLIB - GMod has free padding here which we can use for this flag :3
 
 	const char *m_pDebugPath;
 	CPackFile *m_pPackFile;

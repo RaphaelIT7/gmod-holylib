@@ -344,6 +344,9 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 	// GMod
 	if ( openInfo.m_pSearchPath && openInfo.m_pSearchPath->m_bIsWorkshop || bIsWorkshop )
 	{
+		if ( !PathStartsWith( openInfo.m_pSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() ) )
+			Warning( "Search path %s was marked as workshop? Why!\n", openInfo.m_pSearchPath->GetPathString() );
+
 		Addon::FileHandle *pHandle = (Addon::FileHandle*)func_Addon_FileSystem_GetFileEntry( m_AddonFileSystem, openInfo.m_AbsolutePath );
 		if ( pHandle )
 		{
@@ -356,7 +359,7 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 		}
 
 		// RaphaelIT7: We avoid disk lookup for workshop/ as we expect it to not exist anyways
-		Msg("Workshop lookup %s (%s)\n", openInfo.m_AbsolutePath, pHandle ? "true" : "false");
+		// Msg("Workshop lookup %s (%s)\n", openInfo.m_AbsolutePath, pHandle ? "true" : "false");
 		return;
 	}
 
@@ -404,7 +407,7 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 		openInfo.m_pFileHandle->m_nLength = size;
 
 		openInfo.SetResolvedFilename( openInfo.m_AbsolutePath );
-		Msg( "Opened file %s\n", openInfo.m_AbsolutePath );
+		// Msg( "Opened file %s\n", openInfo.m_AbsolutePath );
 		
 		// LogFileOpen( "Loose", openInfo.m_pFileName, openInfo.m_AbsolutePath );
 
@@ -412,7 +415,7 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 		return;
 	}
 
-	Msg( "Failed to open file %s\n", openInfo.m_AbsolutePath );
+	// Msg( "Failed to open file %s\n", openInfo.m_AbsolutePath );
 
 	// RaphaelIT7: If this happens then the file was removed from disk and we didn't know yet
 	// g_pBaseFileSystem->m_DiskFileTree.RemovePath( openInfo.m_AbsolutePath );
@@ -437,7 +440,7 @@ CSearchPath* hook_CBaseFileSystem_NewSearchPath(void* _this, int addType)
 	// This is since GMod only skips bit 8 when getting the priority group but they don't skip the bits after...
 	// GMod uses 0xFFFFFEFF when it should be using 0xFE
 	CSearchPath* pPath = (CSearchPath*)detour_CBaseFileSystem_NewSearchPath.GetTrampoline<Symbols::CBaseFileSystem_NewSearchPath>()(_this, addType & 0x1FF);
-	pPath->m_bIsWorkshop = (addType & PATH_FLAG_ISWORKSHOP) != 0;
+	pPath->m_bIsWorkshop = false;
 	pPath->m_bTrackDisk = false;
 	g_pLastCreatedSearchPath = pPath;
 
@@ -954,7 +957,10 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		if ( !m_AddonFileSystem->ModPath().empty() ) // We check for empty as it may have not been set early on!
 		{
 			if ( PathStartsWith( pSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() ) )
+			{
+				Warning("Init marked path %s as workshop\n", pSearchPath->GetPathString());
 				pSearchPath->m_bIsWorkshop = true;
+			}
 		}
 	}
 
