@@ -26,31 +26,13 @@ public:
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
-	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
 	const char* Name() override { return "filesystem"; };
-	int Compatibility() override { return LINUX32 | WINDOWS32; };
+	int Compatibility() override { return LINUX32; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 static CFileSystemModule g_pFileSystemModule;
 IModule* pFileSystemModule = &g_pFileSystemModule;
-
-static ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", FCVAR_ARCHIVE, 
-	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
-static ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", FCVAR_ARCHIVE, 
-	"If enabled, it will cache the search path a file was located in and if the same file is requested, it will use that search path directly.");
-static ConVar holylib_filesystem_earlysearchcache("holylib_filesystem_earlysearchcache", "1", FCVAR_ARCHIVE, 
-	"If enabled, it will check early in CBaseFilesystem::OpenForRead if the file is in the search cache.");
-static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", FCVAR_ARCHIVE, 
-	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
-static ConVar holylib_filesystem_savesearchcache("holylib_filesystem_savesearchcache", "1", FCVAR_ARCHIVE,
-	"If enabled, it will write the search cache into a file and restore it when starting, using it to improve performance.");
-static ConVar holylib_filesystem_mergesearchcache("holylib_filesystem_mergesearchcache", "0", FCVAR_ARCHIVE,
-	"If enabled, when saving the search cache it will not remove old entries and instead keep them even if they were unused this session");
-static ConVar holylib_filesystem_skipinvalidluapaths("holylib_filesystem_skipinvalidluapaths", "1", FCVAR_ARCHIVE,
-	"If enabled, invalid lua paths like include/include/ will be skipped instantly");
-static ConVar holylib_filesystem_tryalternativeluapath("holylib_filesystem_tryalternativeluapath", "1", FCVAR_ARCHIVE,
-	"If enabled, if it can't find a file in the search cache, it will remove the first folder and try again as when loading Lua gmod loves to test different folders first");
 
 #if SYSTEM_WINDOWS
 #define FILEPATH_SLASH "\\"
@@ -60,6 +42,17 @@ static ConVar holylib_filesystem_tryalternativeluapath("holylib_filesystem_tryal
 #define FILEPATH_SLASH_CHAR '/'
 #endif
 
+class Addon::FileSystem : public IAddonSystem
+{
+public:
+	const std::string& ModPath() { return m_strModPath; };
+
+private:
+	std::map<std::string, std::map<std::string, std::string>> m_NotImportant;
+	std::list<std::string> m_NotImportant2;
+	std::string m_strModPath;
+};
+
 enum class FileCacheEntry : unsigned char
 {
 	UNKNOWN = 255, // if returned then check disk? (Exists just as a fallback for now)
@@ -68,140 +61,6 @@ enum class FileCacheEntry : unsigned char
 	FOLDER,
 };
 
-// RaphaelIT7:
-// For GMod's scale this will be a lot more complex than REngine...
-// Fun :)
-class CSearchPath;
-class CDiskFileTree : public CRefCounted<CRefCountServiceMT>
-{
-public:
-	void BuildTree( const char *pszRoot );
-	FileCacheEntry ContainsPath( const char *pszAbsolutePath ) const;
-
-	void AddPath( const char *pszAbsolutePath, FileCacheEntry type );
-	void RemovePath( const char *pszAbsolutePath );
-	void RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath );
-
-	const auto& GetFileList() const { return m_FileList; }
-
-private:
-	bool RecursiveTraverse( const char *pszFolderPath );
-
-	// We use StringHash & StringEq so that when searching we do not allocate an std::string
-	unordered_map<std::string, FileCacheEntry, StringHash, StringEq> m_FileList;
-};
-
-void CDiskFileTree::BuildTree( const char *pszRoot )
-{
-	if ( V_IsAbsolutePath( pszRoot ) )
-	{
-		char szFullPath[MAX_PATH];
-		V_strncpy( szFullPath, pszRoot, sizeof( szFullPath ) );
-		V_FixSlashes( szFullPath, '/' );
-		// RaphaelIT7:
-		// Somehow... we can have some of those.
-		// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
-		V_RemoveDotSlashes( szFullPath );
-		V_StripTrailingSlash( szFullPath );
-		V_strlower( szFullPath );
-
-		RecursiveTraverse( pszRoot );
-	}
-}
-
-FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath ) const
-{
-	if ( !holylib_filesystem_searchcache.GetBool() )
-		return FileCacheEntry::UNKNOWN;
-
-	auto it = m_FileList.find( pszAbsolutePath );
-	if ( it != m_FileList.end() )
-		return it->second;
-
-	// RaphaelIT7: BUG! If we print anything we crash due to a stackoverflow in tier0? Something with output!
-	//Msg( "Failed to find %s\n", pszAbsolutePath );
-	return FileCacheEntry::INVALID;
-}
-
-// RaphaelIT7 (ToDo): We need a shared mutex!
-void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
-{
-	auto it = m_FileList.find( pszAbsolutePath );
-	if ( it == m_FileList.end() )
-		m_FileList[pszAbsolutePath] = type;
-}
-
-void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
-{
-	auto it = m_FileList.find( pszAbsolutePath );
-	if ( it != m_FileList.end() )
-		m_FileList.erase( it );
-}
-
-void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath )
-{
-	auto it = m_FileList.find( pszOldAbsolutePath );
-	if ( it == m_FileList.end() )
-		return; // Lies! ToDo: How should we handle this?
-
-	m_FileList[ pszNewAbsolutePath ] = it->second;
-	m_FileList.erase( it );
-}
-
-static Symbols::CFileSystem_Stdio_FS_FindFirstFile func_CFileSystem_Stdio_FS_FindFirstFile = nullptr;
-static Symbols::CFileSystem_Stdio_FS_FindNextFile func_CFileSystem_Stdio_FS_FindNextFile = nullptr;
-static Symbols::CFileSystem_Stdio_FS_FindClose func_CFileSystem_Stdio_FS_FindClose = nullptr;
-// RaphaelIT7:
-// This is expensive! A trade of startup time vs runtime performance
-// ToDo: Check out if we can improve memory usage
-bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
-{
-	// If we have a entry then we already are tracking this one
-	if ( m_FileList.find( pszFolderPath ) != m_FileList.end() )
-	{
-		// Msg("Skipping already scanned folder %s\n", pszFolderPath);
-		return true;
-	}
-
-	char szSearchPath[MAX_PATH];
-	V_snprintf( szSearchPath, sizeof( szSearchPath ), "%s/*", pszFolderPath );
-
-	WIN32_FIND_DATA findData;
-	HANDLE hFind = func_CFileSystem_Stdio_FS_FindFirstFile( g_pFullFileSystem, szSearchPath, &findData );
-	if ( hFind == INVALID_HANDLE_VALUE )
-	{
-		Msg("FindFirst failed: '%s' (folder='%s')\n", szSearchPath, pszFolderPath);
-		return false;
-	}
-
-	do
-	{
-		if ( !V_stricmp( findData.cFileName, "." ) || !V_stricmp( findData.cFileName, ".." ) )
-			continue;
-
-		char szFullPath[MAX_PATH];
-		V_snprintf( szFullPath, sizeof( szFullPath ), "%s" CORRECT_PATH_SEPARATOR_S "%s", pszFolderPath, findData.cFileName );
-		V_FixSlashes( szFullPath, '/' );
-		// RaphaelIT7:
-		// Somehow... we can have some of those.
-		// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
-		V_RemoveDotSlashes( szFullPath );
-		V_StripTrailingSlash( szFullPath );
-		V_strlower( szFullPath );
-
-		const bool bDirectory = ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
-		if ( bDirectory ) {
-			if ( RecursiveTraverse( szFullPath ) )
-				m_FileList.emplace( szFullPath, FileCacheEntry::FOLDER);
-		} else
-			m_FileList.emplace( szFullPath, FileCacheEntry::FILE );
-	} while ( func_CFileSystem_Stdio_FS_FindNextFile( g_pFullFileSystem, hFind, &findData ) );
-
-	func_CFileSystem_Stdio_FS_FindClose( g_pFullFileSystem, hFind );
-	return true;
-}
-
-static CDiskFileTree g_pDiskFileTree;
 
 CUtlSymbol CBaseFileSystem::m_GamePathID;
 CUtlSymbol CBaseFileSystem::m_BSPPathID;
@@ -275,66 +134,186 @@ static void NormalizeGamePath( char *pszPath )
     *dst = '\0';
 }
 
+// RaphaelIT7:
+// For GMod's scale this will be a lot more complex than REngine...
+// Fun :)
+class CSearchPath;
+class CDiskFileTree : public CRefCounted<CRefCountServiceMT>
+{
+public:
+	void BuildTree( const char *pszRoot );
+	FileCacheEntry ContainsPath( const char *pszAbsolutePath ) const;
+
+	void AddPath( const char *pszAbsolutePath, FileCacheEntry type );
+	void RemovePath( const char *pszAbsolutePath );
+	void RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath );
+
+	const auto& GetFileList() const { return m_FileList; }
+	void Rebuild();
+
+private:
+	bool RecursiveTraverse( const char *pszFolderPath );
+
+	// We use StringHash & StringEq so that when searching we do not allocate an std::string
+	unordered_map<std::string, FileCacheEntry, StringHash, StringEq> m_FileList;
+};
+
+static CDiskFileTree g_pDiskFileTree;
+
+static void OnSearchCacheChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	if (!((ConVar*)convar)->GetBool())
+		return;
+
+	g_pDiskFileTree.Rebuild();
+}
+
+static ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", FCVAR_ARCHIVE, 
+	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
+static ConVar holylib_filesystem_filecache("holylib_filesystem_filecache", "1", FCVAR_ARCHIVE, 
+	"If enabled, it will build a file tree and use that for lookups to skip searchpaths.", OnSearchCacheChange);
+static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", FCVAR_ARCHIVE, 
+	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
+static ConVar holylib_filesystem_skipinvalidluapaths("holylib_filesystem_skipinvalidluapaths", "1", FCVAR_ARCHIVE,
+	"If enabled, invalid lua paths like include/include/ will be skipped instantly");
+
+void CDiskFileTree::BuildTree( const char *pszRoot )
+{
+	if ( V_IsAbsolutePath( pszRoot ) )
+	{
+		char szFullPath[MAX_PATH];
+		V_strncpy( szFullPath, pszRoot, sizeof( szFullPath ) );
+		V_FixSlashes( szFullPath, '/' );
+		// RaphaelIT7:
+		// Somehow... we can have some of those.
+		// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
+		V_RemoveDotSlashes( szFullPath );
+		V_StripTrailingSlash( szFullPath );
+		V_strlower( szFullPath );
+
+		RecursiveTraverse( pszRoot );
+	}
+}
+
+FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath ) const
+{
+	if ( !holylib_filesystem_filecache.GetBool() )
+		return FileCacheEntry::UNKNOWN;
+
+	auto it = m_FileList.find( pszAbsolutePath );
+	if ( it != m_FileList.end() )
+		return it->second;
+
+	// RaphaelIT7: BUG! If we print anything we crash due to a stackoverflow in tier0? Something with output!
+	//Msg( "Failed to find %s\n", pszAbsolutePath );
+	return FileCacheEntry::INVALID;
+}
+
+// RaphaelIT7 (ToDo): We need a shared mutex!
+void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
+{
+	auto it = m_FileList.find( pszAbsolutePath );
+	if ( it == m_FileList.end() )
+		m_FileList[pszAbsolutePath] = type;
+}
+
+void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
+{
+	auto it = m_FileList.find( pszAbsolutePath );
+	if ( it != m_FileList.end() )
+		m_FileList.erase( it );
+}
+
+void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath )
+{
+	auto it = m_FileList.find( pszOldAbsolutePath );
+	if ( it == m_FileList.end() )
+		return; // Lies! ToDo: How should we handle this?
+
+	m_FileList[ pszNewAbsolutePath ] = it->second;
+	m_FileList.erase( it );
+}
+
+void CDiskFileTree::Rebuild()
+{
+	m_FileList.clear();
+	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)g_pFullFileSystem->Addons();
+	FOR_EACH_LL_(((CBaseFileSystem*)g_pFullFileSystem)->m_SearchPaths, pSearchPath)
+	{
+		if ( V_IsAbsolutePath( pSearchPath->GetPathString() ) && (m_AddonFileSystem->ModPath().empty() || PathStartsWith( pSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() )) )
+			BuildTree( pSearchPath->GetPathString() );
+	}
+}
+
+static Symbols::CFileSystem_Stdio_FS_FindFirstFile func_CFileSystem_Stdio_FS_FindFirstFile = nullptr;
+static Symbols::CFileSystem_Stdio_FS_FindNextFile func_CFileSystem_Stdio_FS_FindNextFile = nullptr;
+static Symbols::CFileSystem_Stdio_FS_FindClose func_CFileSystem_Stdio_FS_FindClose = nullptr;
+// RaphaelIT7:
+// This is expensive! A trade of startup time vs runtime performance
+// ToDo: Check out if we can improve memory usage
+bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
+{
+	// If we have a entry then we already are tracking this one
+	if ( m_FileList.find( pszFolderPath ) != m_FileList.end() )
+	{
+		// Msg("Skipping already scanned folder %s\n", pszFolderPath);
+		return true;
+	}
+
+	char szSearchPath[MAX_PATH];
+	V_snprintf( szSearchPath, sizeof( szSearchPath ), "%s/*", pszFolderPath );
+
+	WIN32_FIND_DATA findData;
+	HANDLE hFind = func_CFileSystem_Stdio_FS_FindFirstFile( g_pFullFileSystem, szSearchPath, &findData );
+	if ( hFind == INVALID_HANDLE_VALUE )
+	{
+		DevWarning(PROJECT_NAME " filesystem: FindFirst failed: '%s' (Permissions are wrong or folder is empty?)\n", szSearchPath);
+		return false;
+	}
+
+	do
+	{
+		if ( !V_stricmp( findData.cFileName, "." ) || !V_stricmp( findData.cFileName, ".." ) )
+			continue;
+
+		char szFullPath[MAX_PATH];
+		V_snprintf( szFullPath, sizeof( szFullPath ), "%s" CORRECT_PATH_SEPARATOR_S "%s", pszFolderPath, findData.cFileName );
+		V_FixSlashes( szFullPath, '/' );
+		// RaphaelIT7:
+		// Somehow... we can have some of those.
+		// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
+		V_RemoveDotSlashes( szFullPath );
+		V_StripTrailingSlash( szFullPath );
+		V_strlower( szFullPath );
+
+		const bool bDirectory = ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
+		if ( bDirectory ) {
+			if ( RecursiveTraverse( szFullPath ) )
+				m_FileList.emplace( szFullPath, FileCacheEntry::FOLDER);
+		} else
+			m_FileList.emplace( szFullPath, FileCacheEntry::FILE );
+	} while ( func_CFileSystem_Stdio_FS_FindNextFile( g_pFullFileSystem, hFind, &findData ) );
+
+	func_CFileSystem_Stdio_FS_FindClose( g_pFullFileSystem, hFind );
+	return true;
+}
+
 /*
 	FileSystem module
 */
-
-// IMPORTANT BUG!
-// Source is missing a mutex for FindSearchPathByStoreId as m_SearchPathsMutex is never locked!
-#if SYSTEM_WINDOWS
-// Only way on Windows... I hate this so much
-CSearchPath *CBaseFileSystem::FindSearchPathByStoreId( int storeId )
-{
-	FOR_EACH_LL( m_SearchPaths, i )
-	{
-		CSearchPath& pSearchPath = m_SearchPaths[(unsigned short)i];
-		if ( pSearchPath.m_storeId == storeId )
-			return &pSearchPath;
-	}
-
-	return nullptr;
-}
-
-static inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
-{
-	return ((CBaseFileSystem*)g_pFullFileSystem)->FindSearchPathByStoreId(iStoreID);
-}
-#else
-static Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
-static inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
-{
-	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
-	{
-		static size_t pYappingCounter = 0;
-		if (++pYappingCounter < 100)
-			Warning(PROJECT_NAME ": Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
-		
-		return nullptr;
-	}
-
-	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, iStoreID);
-}
-#endif
-
-class Addon::FileSystem : public IAddonSystem
-{
-public:
-	const std::string& ModPath() { return m_strModPath; };
-
-private:
-	std::map<std::string, std::map<std::string, std::string>> m_NotImportant;
-	std::list<std::string> m_NotImportant2;
-	std::string m_strModPath;
-};
 
 // IMPORTANT:
 // GMod touched HandleOpenRegularFile and of course put a std::string in there causing an allocation every fking time it's called and a file is missing on disk!
 static Detouring::Hook detour_CBaseFileSystem_HandleOpenRegularFile;
 static Symbols::Addon_FileHandle_Size func_Addon_FileHandle_Size = nullptr;
+static Symbols::CBaseFileSystem_FixUpPath func_CBaseFileSystem_FixUpPath = nullptr;
 static Symbols::Addon_FileSystem_GetFileEntry func_Addon_FileSystem_GetFileEntry = nullptr;
 static Symbols::CBaseFileSystem_Trace_FOpen func_CBaseFileSystem_Trace_FOpen = nullptr;
 static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, CFileOpenInfo& openInfo, bool bIsAbsolutePath)
 {
+	if (!func_CBaseFileSystem_FixUpPath)
+		return detour_CBaseFileSystem_HandleOpenRegularFile.GetTrampoline<Symbols::CBaseFileSystem_HandleOpenRegularFile>()(_this, openInfo, bIsAbsolutePath);
+
 	openInfo.m_pFileHandle = nullptr;
 
 	// RaphaelIT7: BUG! Source apparently allows materials\\..\\backgrounds why?
@@ -432,7 +411,7 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 	// Msg( "Failed to open file %s\n", openInfo.m_AbsolutePath );
 
 	// RaphaelIT7: If this happens then the file was removed from disk and we didn't know yet
-	// g_pBaseFileSystem->m_DiskFileTree.RemovePath( openInfo.m_AbsolutePath );
+	g_pDiskFileTree.RemovePath( openInfo.m_AbsolutePath );
 }
 
 // RaphaelIT7: A special flag to mark the workshop/ path
@@ -507,42 +486,18 @@ void hook_CBaseFileSystem_AddSearchPathInternal(CBaseFileSystem* _this, const ch
 	}
 
 	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
-	if ( !m_AddonFileSystem->ModPath().empty() ) // We check for empty as it may have not been set early on!
+	/*if ( !m_AddonFileSystem->ModPath().empty() ) // We check for empty as it may have not been set early on!
 	{
 		if ( PathStartsWith( newPath, m_AddonFileSystem->ModPath().c_str() ) )
 		{
-			Warning( PROJECT_NAME " - filesystem: Marked %s a workshop path\n", newPath );
+			DevMsg( PROJECT_NAME " - filesystem: Marked %s a workshop path\n", newPath );
 			g_pLastCreatedSearchPath->m_bIsWorkshop = true;
 		}
-	}
+	}*/
 
-	if ( V_IsAbsolutePath( g_pLastCreatedSearchPath->GetPathString() ) && !g_pLastCreatedSearchPath->m_bIsWorkshop )
+	if ( V_IsAbsolutePath( g_pLastCreatedSearchPath->GetPathString() ) && (m_AddonFileSystem->ModPath().empty() || PathStartsWith( g_pLastCreatedSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() )) )
 		g_pDiskFileTree.BuildTree( g_pLastCreatedSearchPath->GetPathString() );
 }
-
-void CFileSystemModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
-{
-}
-
-static void GetPathFromIDCmd(const CCommand &args)
-{
-	if ( args.ArgC() < 1 || V_stricmp(args.Arg(1), "") == 0 )
-	{
-		Msg("Usage: holylib_filesystem_getpathfromid <id>\n");
-		return;
-	}
-
-	CSearchPath* path = FindSearchPathByStoreId(atoi(args.Arg(1)));
-	if (!path)
-	{
-		Msg("Failed to find CSearchPath :/\n");
-		return;
-	}
-
-	Msg("Id: %s\n", args.Arg(1));
-	Msg("Path %s\n", path->GetPathString()); // Does this crash? idk.
-}
-static ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
 
 static void DumpFileTree(const CCommand &args)
 {
@@ -558,6 +513,9 @@ static Symbols::CFileSystem_Stdio_FS_stat func_CFileSystem_Stdio_FS_stat = nullp
 static Symbols::Addon_FileSystem_GetFileSize func_Addon_FileSystem_GetFileSize = nullptr;
 static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSearchPath* path, const char* pFileName)
 {
+	if (!func_CFileSystem_Stdio_FS_stat || !func_Addon_FileSystem_GetFileSize)
+		return detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(_this, path, pFileName);
+
 	struct _stat buf;
 
 	if ( path->GetPackFile() )
@@ -630,6 +588,8 @@ static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSea
 			return buf.st_mtime;
 		}
 #endif
+
+		g_pDiskFileTree.RemovePath( pTmpFileName );
 	}
 
 	return ( 0L );
@@ -640,6 +600,9 @@ static Symbols::Addon_FileSystem_IsDirectory func_Addon_FileSystem_IsDirectory =
 static Symbols::CPackedStore_DirectoryEntryExists func_CPackedStore_DirectoryEntryExists = nullptr;
 static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char* pFileName, const char* pathID)
 {
+	if (!func_CFileSystem_Stdio_FS_stat || !func_CPackedStore_DirectoryEntryExists || !func_Addon_FileSystem_IsDirectory)
+		return detour_CBaseFileSystem_IsDirectory.GetTrampoline<Symbols::CBaseFileSystem_IsDirectory>()(_this, pFileName, pathID);
+
 	// Allow for UNC-type syntax to specify the path ID.
 	struct	_stat buf;
 
@@ -726,17 +689,19 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
  * This is the OpenForRead implementation but faster.
  */
 static Detouring::Hook detour_CBaseFileSystem_OpenForRead;
-static Symbols::CBaseFileSystem_FixUpPath func_CBaseFileSystem_FixUpPath;
-FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
+FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* _this, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
 {
+	if (!func_CBaseFileSystem_FixUpPath)
+		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(_this, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	char pFileNameBuff[MAX_PATH];
 	const char *pFileName = pFileNameBuff;
 
-	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+	func_CBaseFileSystem_FixUpPath(_this, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
-	FileHandle_t fh = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+	FileHandle_t fh = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(_this, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 
 	return fh;
 }
@@ -779,15 +744,18 @@ static std::string_view fixGamemodePath(std::string_view path)
 }
 
 static Detouring::Hook detour_CBaseFileSystem_GetFileTime;
-static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileNameT, const char *pPathID)
+static long hook_CBaseFileSystem_GetFileTime(IFileSystem* _this, const char *pFileNameT, const char *pPathID)
 {
+	if (!func_CBaseFileSystem_FixUpPath)
+		return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(_this, pFileNameT, pPathID);
+
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::GetFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	// Fixes GetFileTime missing the caches since entries have different slashes
 	char pFileNameBuff[MAX_PATH];
 	const char *pFileName = pFileNameBuff;
 
-	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+	func_CBaseFileSystem_FixUpPath(_this, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
 	std::string_view strFileName = pFileName; // Workaround for now.
 	if (pPathID && V_stricmp(pPathID, "lsv") == 0 && holylib_filesystem_fixgmodpath.GetBool()) // Some weird things happen in the lsv path.  
@@ -800,13 +768,16 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 			return 0L;
 	}
 
-	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
+	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(_this, pFileName, pPathID);
 }
 
 static Detouring::Hook detour_CBaseFileSystem_RelativePathToFullPath;
 static Symbols::Addon_FileSystem_ResolveFile func_Addon_FileSystem_ResolveFile = nullptr;
 static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem* _this, const char *pFileName, const char *pPathID, char *pDest, int maxLenInChars, PathTypeFilter_t pathFilter, PathTypeQuery_t *pPathType )
 {
+	//if (!func_CBaseFileSystem_FixUpPath || !func_Addon_FileSystem_ResolveFile || !func_CFileSystem_Stdio_FS_stat)
+	//	return detour_CBaseFileSystem_RelativePathToFullPath.GetTrampoline<Symbols::CBaseFileSystem_RelativePathToFullPath>()(_this, pFileName, pPathID, pDest, maxLenInChars, pathFilter, pPathType);
+
 	struct _stat buf;
 
 	if ( pPathType )
@@ -949,7 +920,7 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 			continue;
 		}
 
-		if ( func_CFileSystem_Stdio_FS_stat( g_pFullFileSystem, pTmpFileName, &buf, nullptr ) != -1 )
+		if ( func_CFileSystem_Stdio_FS_stat( _this, pTmpFileName, &buf, nullptr ) != -1 )
 		{
 			V_strncpy( pDest, pTmpFileName, maxLenInChars );
 			if ( pPathType && pSearchPath->m_bIsRemotePath )
@@ -957,6 +928,8 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 				*pPathType |= PATH_IS_REMOTE;
 			}
 			return pDest;
+		} else {
+			g_pDiskFileTree.RemovePath( pTmpFileName );
 		}
 	}
 
@@ -981,7 +954,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		{
 			if ( PathStartsWith( pSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() ) )
 			{
-				Warning("Init marked path %s as workshop\n", pSearchPath->GetPathString());
+				DevMsg(PROJECT_NAME " - filesystem: Init marked path %s as workshop\n", pSearchPath->GetPathString());
 				pSearchPath->m_bIsWorkshop = true;
 			}
 		}
@@ -1201,7 +1174,7 @@ void AsyncCallback(const FileAsyncRequest_t &request, int nBytesRead, FSAsyncSta
 		async->content = content;
 		asyncCallback.push_back(async);
 	} else {
-		Msg("[Luathreaded] file.AsyncRead Invalid request? (%s, %s)\n", request.pszFilename, request.pszPathID);
+		Msg(PROJECT_NAME " - filesystem: file.AsyncRead Invalid request? (%s, %s)\n", request.pszFilename, request.pszPathID);
 	}
 }
 

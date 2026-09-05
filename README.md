@@ -1219,128 +1219,27 @@ lua_run local a = SysTime() for k=1, 1000 do file.Exists("garrysmod.ver", "MOD")
 - I don't know if this has any bugs, but while using this for ~1 Month on a server, I didn't find any issues.<br>
 - It will also improve the `MOD` search path since it also has multiple search paths.<br>
 
-#### holylib_filesystem_earlysearchcache (default `1`)
-If enabled, it will check the searchcache inside `CBaseFileSystem::OpenForRead`.<br>
-
-#### holylib_filesystem_forcepath (default `1`)
-If enabled, it will force the pathID for specific files.<br>
-
-#### holylib_filesystem_splitgamepath (default `1`)
-If enabled, it will split each `GAME` path into multiple search paths, depending on it's contents.<br>
-Then when you try to find a file with the `GAME` search path, it will change the pathID to the content path.<br>
-
-Example:<br>
-File: `cfg/game.cfg`<br>
-Path: `GAME`<br>
-becomes:<br>
-File: `cfg/game.cfg`<br>
-Path: `CONTENT_CONFIGS`
-
-This will reduce the amount of searchpaths it has to go through which improves performance.<br>
-
-Content paths:<br>
-- `materials/` -> `CONTENT_MATERIALS`<br>
-- `models/` -> `CONTENT_MODELS`<br>
-- `sound/` -> `CONTENT_SOUNDS`<br>
-- `maps/` -> `CONTENT_MAPS`<br>
-- `resource/` -> `CONTENT_RESOURCE`<br>
-- `scripts/` -> `CONTENT_SCRIPTS`<br>
-- `cfg/` -> `CONTENT_CONFIGS`<br>
-- `gamemodes/` -> `LUA_GAMEMODES`<br>
-- `lua/includes/` -> `LUA_INCLUDES`<br>
-
-#### holylib_filesystem_splitluapath (default `0`)
-Does the same for `lsv` to save performance.<br>
-
-> BUG: This currently breaks workshop addons.<br>
-
-Lua paths:<br>
-- `sandbox/` -> `LUA_GAMEMODE_SANDBOX`<br>
-- `effects/` -> `LUA_EFFECTS`<br>
-- `entities/` -> `LUA_ENTITIES`<br>
-- `weapons/` -> `LUA_WEAPONS`<br>
-- `lua/derma/` -> `LUA_DERMA`<br>
-- `lua/drive/` -> `LUA_DRIVE`<br>
-- `lua/entities/` -> `LUA_LUA_ENTITIES`<br>
-- `vgui/` -> `LUA_VGUI`<br>
-- `postprocess/` -> `LUA_POSTPROCESS`<br>
-- `matproxy/` -> `LUA_MATPROXY`<br>
-- `autorun/` -> `LUA_AUTORUN`<br>
-
-#### holylib_filesystem_splitfallback (default `1`)
-If enabled, it will fallback to the original searchpath if it failed to find something in the split path.<br>
-This is quite slow, so disabling this will improve performance to find files that doesn't exist.<br>
-
-#### holylib_filesystem_predictpath (default `1`)
-If enabled, it will try to predict the path for a file.<br>
-
-Example:<br>
-Your loading a model.<br>
-First you load the `example.mdl` file.<br>
-Then you load the `example.phy` file.<br>
-Here we can check if the `example.mdl` file is in the searchcache.<br>
-If so, we try to use the searchpath of that file for the `.phy` file and since all model files should be in the same folder, this will work for most cases.<br>
-If we fail to predict a path, it will end up using one additional search path.<br>
-
-#### holylib_filesystem_predictexistance (default `0`)
-If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.<br>
-Doesn't rely on `holylib_filesystem_predictpath` but it also works with it together.<br>
-
-The logic for prediction is exactly the same as `holylib_filesystem_predictpath` but it will just stop checking if it doesn't find a file in the predicted path instead of checking then all other searchpaths.<br>
-
 #### holylib_filesystem_fixgmodpath (default `1`)
 If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.<br>
 Currently it fixes these paths:<br>
 - `[Active gamemode]/gamemode/[anything]/[active gamemode]/gamemode/` -> (Example: `sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/`)<br>
 - `include/include/`<br>
 
-#### (EXPERIMENTAL) holylib_filesystem_cachefilehandle (default `0`)
-If enabled, it will cache the file handle and return it if needed.<br>
-> [!NOTE]
-> This will probably cause issues if you open the same file multiple times.<br>
-
-> [!WARNING]
-> This is a noticeable improvement, but it seems to break .bsp files :/<br>
-
-### (EXPERIMENTAL) holylib_filesystem_savesearchcache (default `1`)
-If enabled, the search cache will be written into a file and loaded on startup to improve startup times<br>
-
-### (EXPERIMENTAL) holylib_filesystem_mergesearchcache (default `1`)
-If enabled, when saving the search cache it will not remove old entries and instead keep them even if they were unused this session<br>
-
 ### (EXPERIMENTAL) holylib_filesystem_skipinvalidluapaths (default `1`)
 If enabled, invalid lua paths like include/include/ will be skipped instantly<br>
-
-### (EXPERIMENTAL) holylib_filesystem_tryalternativeluapath (default `1`)
-If enabled, if it can't find a file in the search cache, it will remove the first folder and try again as when loading Lua gmod loves to test different folders first<br>
 
 #### holylib_debug_filesystem (default `0`)
 If enabled, it will print all filesyste suff.<br>
 
 ### ConCommands
 
-#### holylib_filesystem_dumpsearchcache
+#### holylib_filesystem_dumpfiletree
 Dumps the searchcache into the console.<br>
 ToDo: Allow one to dump it into a file.<br>
 
-#### holylib_filesystem_getpathfromid
-Dumps the path for the given searchpath id.<br>
-The id is the one listed with each file in the dumped searchcache.<br>
-
-#### holylib_filesystem_nukesearchcache
-Nukes the searchcache.<br>
-
-#### holylib_filesystem_showpredictionerrors
-Shows all files that were predicted to not exist.<br>
-
-#### holylib_filesystem_writesearchcache
-Writes the search cache into a file.<br>
-
-#### holylib_filesystem_readsearchcache
-Reads the search cache from a file.<br>
-
-#### holylib_filesystem_dumpabsolutesearchcache
-Prints the absolute search cache.<br>
+#### holylib_filesystem_rebuildfiletree
+Rebuilds the file tree.<br>
+Useful when you swapped a lot of files around.<br>
 
 ## util
 This module adds two new functions to the `util` library.<br>
