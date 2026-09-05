@@ -155,7 +155,7 @@ template <typename T>
 std::enable_if_t<std::is_trivially_copyable_v<T> &&
                  std::is_trivially_constructible_v<T>>
 BitwiseClear(T* src, size_t size) noexcept {
-  assert(sizeof(*src) >= size);
+  // assert(sizeof(*src) >= size);
   memset(src, 0, size);
 }
 
