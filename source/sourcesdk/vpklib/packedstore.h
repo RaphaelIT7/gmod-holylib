@@ -469,6 +469,30 @@ private:
 	bool InternalRemoveFileFromDirectory( const char *pszName );
 
 	friend class CPackedStoreReadCache;
+
+public: // GMod
+	// From https://garry.net/posts/vpk-search-paths
+	void SetSearchPath( const char* strPath )
+	{
+		Q_strncpy( m_strSearchPath, strPath, sizeof( m_strSearchPath ) );
+	}
+
+	// RaphaelIT7:
+	// I couldn't find this being called anywhere...
+	// In the code shown was in FindFileInVPKs which existed in 2012 but was removed when the filesystem was reworked?
+	// m_VPKFiles no longer exists
+	// https://github.com/nn-firc/source-sdk-2012/blob/c4bd4e14f37678628f2b5fe98324d07d3f117a29/filesystem/basefilesystem.cpp#L6575-L6579
+	bool ShouldSearch( const char* strSearchPath )
+	{
+		if ( !strSearchPath || Q_strlen( strSearchPath ) == 0 ) return true;
+		if ( Q_stricmp( strSearchPath, "GAME" ) == 0 ) return true;
+		if ( Q_stricmp( strSearchPath, m_strSearchPath ) == 0 ) return true;
+
+		// Msg( "Should Search? No. [%s][%s]\n", strSearchPath, m_strSearchPath );
+		return false;
+	}
+
+	char m_strSearchPath[64];
 };
 
 FORCEINLINE int CPackedStoreFileHandle::Read( void *pOutData, int nNumBytes )
