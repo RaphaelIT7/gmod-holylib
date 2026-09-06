@@ -943,9 +943,9 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 }
 
 static Symbols::CBaseFileSystem_GetWritePath func_CBaseFileSystem_GetWritePath = nullptr;
-inline void ComputeFullWritePath( char* pDest, int maxlen, const char *pRelativePath, const char *pWritePathID )
+inline void ComputeFullWritePath( CBaseFileSystem* _this, char* pDest, int maxlen, const char *pRelativePath, const char *pWritePathID )
 {
-	Q_strncpy( pDest, func_CBaseFileSystem_GetWritePath( g_pFullFileSystem, pRelativePath, pWritePathID ), maxlen );
+	Q_strncpy( pDest, func_CBaseFileSystem_GetWritePath( _this, pRelativePath, pWritePathID ), maxlen );
 	Q_strncat( pDest, pRelativePath, maxlen, COPY_ALL_CHARACTERS );
 	Q_FixSlashes( pDest );
 }
@@ -966,7 +966,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForWrite( CBaseFileSystem* _this, c
 	}
 	else
 	{
-		ComputeFullWritePath( szScratchFileName, sizeof( szScratchFileName ), pFileName, pathID );
+		ComputeFullWritePath( _this, szScratchFileName, sizeof( szScratchFileName ), pFileName, pathID );
 		pTmpFileName = szScratchFileName; 
 	}
 	
@@ -979,7 +979,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForWrite( CBaseFileSystem* _this, c
 static Detouring::Hook detour_CBaseFileSystem_CreateDirHierarchy;
 void hook_CBaseFileSystem_CreateDirHierarchy( CBaseFileSystem* _this, const char *pRelativePathT, const char *pathID )
 {
-	if (!func_CBaseFileSystem_FixUpPath)
+	if (!func_CBaseFileSystem_FixUpPath || !func_CBaseFileSystem_GetWritePath)
 	{
 		detour_CBaseFileSystem_CreateDirHierarchy.GetTrampoline<Symbols::CBaseFileSystem_CreateDirHierarchy>()(_this, pRelativePathT, pathID);
 		return;
@@ -995,7 +995,7 @@ void hook_CBaseFileSystem_CreateDirHierarchy( CBaseFileSystem* _this, const char
 	{
 		Assert( pathID );
 
-		ComputeFullWritePath( szScratchFileName, sizeof( szScratchFileName ), pRelativePath, pathID );
+		ComputeFullWritePath( _this, szScratchFileName, sizeof( szScratchFileName ), pRelativePath, pathID );
 	}
 	else
 	{
@@ -1233,6 +1233,9 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CFileSystem_Stdio_FS_stat = (Symbols::CFileSystem_Stdio_FS_stat)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CFileSystem_Stdio_FS_statSym);
 	Detour::CheckFunction((void*)func_CFileSystem_Stdio_FS_stat, "CFileSystem_Stdio::FS_stat");
+
+	func_CBaseFileSystem_GetWritePath = (Symbols::CBaseFileSystem_GetWritePath)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_GetWritePathSym);
+	Detour::CheckFunction((void*)func_CBaseFileSystem_GetWritePath, "CBaseFileSystem::GetWritePath");
 
 	func_CPackedStore_DirectoryEntryExists = (Symbols::CPackedStore_DirectoryEntryExists)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CPackedStore_DirectoryEntryExistsSym);
 	Detour::CheckFunction((void*)func_CPackedStore_DirectoryEntryExists, "CPackedStore::DirectoryEntryExists");
@@ -1612,6 +1615,9 @@ LUA_FUNCTION_STATIC(filesystem_TimeCreated)
 	const char* filePath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckStringOpt(2, "GAME");
 
+	if (!func_CFileSystem_Stdio_FS_stat)
+		LUA->ThrowError("Failed to load CFileSystem_Stdio::FS_stat");
+
 	struct _stat buf;
 	char pTmpFileName[MAX_PATH];
 	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
@@ -1631,6 +1637,9 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 {
 	const char* filePath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckStringOpt(2, "GAME");
+	
+	if (!func_CFileSystem_Stdio_FS_stat)
+		LUA->ThrowError("Failed to load CFileSystem_Stdio::FS_stat");
 
 	struct _stat buf;
 	char pTmpFileName[MAX_PATH];
