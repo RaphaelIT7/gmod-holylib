@@ -406,6 +406,15 @@ namespace Symbols
 	using CBaseFileSystem_AddSearchPathInternal = void* (GMCOMMON_CALLING_CONVENTION*)(void* _this, const char *pPath, const char *pathID, SearchPathAdd_t addType, bool bAddPackFiles);
 	extern const std::vector<Symbol> CBaseFileSystem_AddSearchPathInternalSym;
 
+	using CBaseFileSystem_CreateDirHierarchy = void* (GMCOMMON_CALLING_CONVENTION*)(void* _this, const char *pRelativePathT, const char *pathID);
+	extern const std::vector<Symbol> CBaseFileSystem_CreateDirHierarchySym;
+
+	using CBaseFileSystem_OpenForWrite = void* (GMCOMMON_CALLING_CONVENTION*)(void* _this, const char *pFileName, const char *pOptions, const char *pathID);
+	extern const std::vector<Symbol> CBaseFileSystem_OpenForWriteSym;
+
+	using CBaseFileSystem_GetWritePath = const char* (GMCOMMON_CALLING_CONVENTION*)(void* _this, const char *pFilename, const char *pathID);
+	extern const std::vector<Symbol> CBaseFileSystem_GetWritePathSym;
+
 	using CFileHandle_Constructor = void (GMCOMMON_CALLING_CONVENTION*)(void* handle, void* fs);
 	extern const std::vector<Symbol> CFileHandle_ConstructorSym;
 

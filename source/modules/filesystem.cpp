@@ -942,6 +942,110 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 	return nullptr;
 }
 
+static Symbols::CBaseFileSystem_GetWritePath func_CBaseFileSystem_GetWritePath = nullptr;
+inline void ComputeFullWritePath( char* pDest, int maxlen, const char *pRelativePath, const char *pWritePathID )
+{
+	Q_strncpy( pDest, func_CBaseFileSystem_GetWritePath( g_pFullFileSystem, pRelativePath, pWritePathID ), maxlen );
+	Q_strncat( pDest, pRelativePath, maxlen, COPY_ALL_CHARACTERS );
+	Q_FixSlashes( pDest );
+}
+
+static Detouring::Hook detour_CBaseFileSystem_OpenForWrite;
+static FileHandle_t hook_CBaseFileSystem_OpenForWrite( CBaseFileSystem* _this, const char *pFileName, const char *pOptions, const char *pathID )
+{
+	if (!func_CBaseFileSystem_GetWritePath)
+		return detour_CBaseFileSystem_OpenForWrite.GetTrampoline<Symbols::CBaseFileSystem_OpenForWrite>()(_this, pFileName, pOptions, pathID);
+
+	FileHandle_t hFileHandle = detour_CBaseFileSystem_OpenForWrite.GetTrampoline<Symbols::CBaseFileSystem_OpenForWrite>()(_this, pFileName, pOptions, pathID);
+	
+	const char *pTmpFileName;
+	char szScratchFileName[MAX_PATH];
+	if ( V_IsAbsolutePath( pFileName ) )
+	{
+		pTmpFileName = pFileName;
+	}
+	else
+	{
+		ComputeFullWritePath( szScratchFileName, sizeof( szScratchFileName ), pFileName, pathID );
+		pTmpFileName = szScratchFileName; 
+	}
+	
+	if (hFileHandle)
+		g_pDiskFileTree.AddPath( pTmpFileName, FileCacheEntry::FILE );
+
+	return hFileHandle;
+}
+
+static Detouring::Hook detour_CBaseFileSystem_CreateDirHierarchy;
+void hook_CBaseFileSystem_CreateDirHierarchy( CBaseFileSystem* _this, const char *pRelativePathT, const char *pathID )
+{
+	if (!func_CBaseFileSystem_FixUpPath)
+	{
+		detour_CBaseFileSystem_CreateDirHierarchy.GetTrampoline<Symbols::CBaseFileSystem_CreateDirHierarchy>()(_this, pRelativePathT, pathID);
+		return;
+	}
+
+	char pRelativePathBuff[ MAX_PATH ];
+	const char *pRelativePath = pRelativePathBuff;
+
+	func_CBaseFileSystem_FixUpPath( _this, pRelativePathT, pRelativePathBuff, sizeof( pRelativePathBuff ) );
+
+	char szScratchFileName[MAX_PATH];
+	if ( !V_IsAbsolutePath( pRelativePath ) )
+	{
+		Assert( pathID );
+
+		ComputeFullWritePath( szScratchFileName, sizeof( szScratchFileName ), pRelativePath, pathID );
+	}
+	else
+	{
+		V_strcpy_safe( szScratchFileName, pRelativePath );
+	}
+
+	intp len = V_strlen( szScratchFileName ) + 1;
+	char *end = szScratchFileName + len;
+	char *s = szScratchFileName;
+	while ( s < end )
+	{
+		if ( *s == CORRECT_PATH_SEPARATOR && s != szScratchFileName && ( IsLinux() || *( s - 1 ) != ':' ) )
+		{
+			*s = '\0';
+
+#if defined( _WIN32 )
+			if ( _mkdir( szScratchFileName ) && errno != EEXIST )
+#elif defined( POSIX )
+			if ( mkdir( szScratchFileName, S_IRWXU |  S_IRGRP |  S_IROTH ) && errno != EEXIST )// owner has rwx, rest have r
+#endif
+			{
+				::Warning( "Unable to create file or directory '%s' in hierarchy '%s': %s.\n",
+					szScratchFileName,
+					pRelativePathT,
+					std::generic_category().message(errno).c_str() );
+			} else {
+				g_pDiskFileTree.AddPath( szScratchFileName, FileCacheEntry::FOLDER );
+			}
+
+			*s = CORRECT_PATH_SEPARATOR;
+		}
+
+		s++;
+	}
+
+#if defined( _WIN32 )
+	if ( _mkdir( szScratchFileName ) && errno != EEXIST )
+#elif defined( POSIX )
+	if ( mkdir( szScratchFileName, S_IRWXU |  S_IRGRP |  S_IROTH ) && errno != EEXIST )
+#endif
+	{
+		::Warning( "Unable to create file '%s' in hierarchy '%s': %s.\n",
+			szScratchFileName,
+			pRelativePathT,
+			std::generic_category().message(errno).c_str() );
+	} else {
+		g_pDiskFileTree.AddPath( szScratchFileName, FileCacheEntry::FOLDER );
+	}
+}
+
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	if (Util::GetGModVersionNum() < 260718)
@@ -1013,6 +1117,8 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC2( hook_CBaseFileSystem_HandleOpenRegularFile, HandleOpenRegularFile, CBaseFileSystem*, CFileOpenInfo&, bool);
 	DETOUR_THISCALL_ADDFUNC1( hook_CBaseFileSystem_NewSearchPath, NewSearchPath, CBaseFileSystem*, int );
 	DETOUR_THISCALL_ADDFUNC4( hook_CBaseFileSystem_AddSearchPathInternal, AddSearchPathInternal, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t, bool );
+	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_OpenForWrite, OpenForWrite, CBaseFileSystem*, const char*, const char*, const char*);
+	DETOUR_THISCALL_ADDFUNC2( hook_CBaseFileSystem_CreateDirHierarchy, CreateDirHierarchy, CBaseFileSystem*, const char*, const char*);
 DETOUR_THISCALL_FINISH();
 #endif
 
@@ -1078,6 +1184,18 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_AddSearchPathInternal, "CBaseFileSystem::AddSearchPathInternal",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_AddSearchPathInternalSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_AddSearchPathInternal, AddSearchPathInternal), m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_OpenForWrite, "CBaseFileSystem::OpenForWrite",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_OpenForWriteSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_OpenForWrite, OpenForWrite), m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_CreateDirHierarchy, "CBaseFileSystem::CreateDirHierarchy",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_CreateDirHierarchySym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_CreateDirHierarchy, CreateDirHierarchy), m_pID
 	);
 
 	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);

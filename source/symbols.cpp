@@ -428,6 +428,18 @@ namespace Symbols
 		Symbol::FromName("_ZN15CBaseFileSystem21AddSearchPathInternalEPKcS1_jbb"),
 	};
 
+	const std::vector<Symbol> CBaseFileSystem_CreateDirHierarchySym = {
+		Symbol::FromName("_ZN15CBaseFileSystem18CreateDirHierarchyEPKcS1_"),
+	};
+
+	const std::vector<Symbol> CBaseFileSystem_OpenForWriteSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem12OpenForWriteEPKcS1_S1_"),
+	};
+
+	const std::vector<Symbol> CBaseFileSystem_GetWritePathSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem12GetWritePathEPKcS1_"),
+	};
+
 	const std::vector<Symbol> CFileHandle_ConstructorSym = {
 		Symbol::FromName("_ZN11CFileHandleC1EP15CBaseFileSystem"),
 	};
