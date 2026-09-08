@@ -20,7 +20,11 @@ return {
             when = HolyLib_IsModuleEnabled("filesystem"),
             func = function()
                 expect( filesystem.Time("garrysmod.ver", "MOD") ).toNot.equal(0)
-                expect( filesystem.Time("garrysmod.verrrr", "MOD") ).to.equal(0)
+                local time = filesystem.Time("garrysmod.verrrr", "MOD")
+                if time == 1 then
+                    print("Huh?", filesystem.RelativePathToFullPath("garrysmod.verrrr", "MOD"))
+                end
+                expect( time ).to.equal(0)
             end
         },
         {
