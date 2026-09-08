@@ -338,7 +338,7 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 
 	// GMod
 	//if ( openInfo.m_pSearchPath && openInfo.m_pSearchPath->m_bIsWorkshop || bIsWorkshop )
-	if (!m_AddonFileSystem->ModPath().empty() && PathStartsWith( openInfo.m_AbsolutePath, m_AddonFileSystem->ModPath().c_str() ) )
+	if ( !m_AddonFileSystem->ModPath().empty() && PathStartsWith( openInfo.m_AbsolutePath, m_AddonFileSystem->ModPath().c_str() ) )
 	{
 		Addon::FileHandle *pHandle = (Addon::FileHandle*)func_Addon_FileSystem_GetFileEntry( m_AddonFileSystem, openInfo.m_AbsolutePath );
 		if ( pHandle )
@@ -554,9 +554,10 @@ static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSea
 
 		V_FixSlashes( pTmpFileName );
 		// GMod
-		if ( path->m_bIsWorkshop )
+		//if ( path->m_bIsWorkshop )
+		Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
+		if ( !m_AddonFileSystem->ModPath().empty() && PathStartsWith( pTmpFileName, m_AddonFileSystem->ModPath().c_str() ) )
 		{
-			Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
 			int64 iSize = func_Addon_FileSystem_GetFileSize( m_AddonFileSystem, pTmpFileName );
 			if ( iSize >= 0 )
 				return 1L;
@@ -650,9 +651,10 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 			V_FixSlashes( pTmpFileName );
 
 			// GMod
-			if ( pSearchPath->m_bIsWorkshop )
+			//if ( pSearchPath->m_bIsWorkshop )
+			Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
+			if (!m_AddonFileSystem->ModPath().empty() && PathStartsWith( pTmpFileName, m_AddonFileSystem->ModPath().c_str() ))
 			{
-				Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
 				if ( func_Addon_FileSystem_IsDirectory( m_AddonFileSystem, pTmpFileName ) )
 					return true;
 			}
@@ -900,9 +902,10 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 		V_FixSlashes( pTmpFileName );
 
 		// GMod
-		if ( pSearchPath->m_bIsWorkshop )
+		// if ( pSearchPath->m_bIsWorkshop )
+		Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
+		if ( !m_AddonFileSystem->ModPath().empty() && PathStartsWith( pTmpFileName, m_AddonFileSystem->ModPath().c_str() ) )
 		{
-			Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)_this->Addons();
 			std::string strFullFileName = func_Addon_FileSystem_ResolveFile( m_AddonFileSystem, pTmpFileName );
 			if ( !strFullFileName.empty() )
 			{
