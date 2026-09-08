@@ -2336,8 +2336,7 @@ void CVoiceChatModule::PreLuaModuleLoaded(lua_State* L, const char* pFileName)
 	if (strFileName.find("voicebox") !=std::string::npos)
 	{
 		Msg(PROJECT_NAME " - voicechat: Removing SV_BroadcastVoiceData hook before voicebox is loaded\n");
-		detour_SV_BroadcastVoiceData.Disable();
-		detour_SV_BroadcastVoiceData.Destroy();
+		Detour::DisableHook(&detour_SV_BroadcastVoiceData);
 	}
 }
 

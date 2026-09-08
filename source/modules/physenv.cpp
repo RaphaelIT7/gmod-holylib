@@ -2913,8 +2913,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 
 	if (!detour_CPhysicsEnvironment_DestroyObject.IsValid() || !detour_CPhysicsEnvironment_CreatePolyObject.IsValid() || !detour_CPhysicsEnvironment_CreatePolyObjectStatic.IsValid())
 	{
-		detour_GMod_Util_IsPhysicsObjectValid.Disable();
-		detour_GMod_Util_IsPhysicsObjectValid.Destroy();
+		Detour::DisableHook(&detour_GMod_Util_IsPhysicsObjectValid);
 		Warning(PROJECT_NAME " - physenv: Removed GMod::Util::IsPhysicsObjectValid due to other detours failing to hook!\n");
 	}
 
