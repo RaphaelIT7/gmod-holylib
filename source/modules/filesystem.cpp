@@ -1066,8 +1066,12 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 			{
 				DevMsg(PROJECT_NAME " - filesystem: Init marked path %s as workshop\n", pSearchPath->GetPathString());
 				pSearchPath->m_bIsWorkshop = true;
+				continue;
 			}
 		}
+
+		if ( V_IsAbsolutePath( pSearchPath->GetPathString() ) )
+			g_pDiskFileTree.BuildTree( pSearchPath->GetPathString() );
 	}
 }
 
