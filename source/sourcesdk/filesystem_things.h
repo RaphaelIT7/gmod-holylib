@@ -4,6 +4,7 @@
 #include <utlhashtable.h>
 #include <utldict.h>
 #include "tier1/tier1.h"
+#include "vpklib/packedstore.h"
 
 #if defined( _WIN32 )
 
@@ -38,7 +39,14 @@
 // GMOD
 #define SUPPORT_PACKED_STORE
 
-class CPackedStoreRefCount;
+class CPackedStoreRefCount : public CPackedStore, public CRefCounted<CRefCountServiceMT>
+{
+public:
+	CPackedStoreRefCount( char const *pFileBasename, char *pszFName, intp fnameSize, IBaseFileSystem *pFS );
+
+	bool m_bSignatureValid;
+};
+
 extern CUtlSymbolTableMT* g_PathIDTable;
 class CPathIDInfo
 	{
@@ -57,6 +65,65 @@ class CPathIDInfo
 		const char *m_pDebugPathID;
 	};
 
+// An abstract pack file
+class CFileHandle;
+class CPackFile : public CRefCounted<CRefCountServiceMT>
+{
+public:
+	virtual ~CPackFile();
+
+	// The means by which you open files:
+	virtual CFileHandle *OpenFile( const char *pFileName, const char *pOptions = "rb" ) = 0;
+
+	// Check for existance in pack
+	virtual bool ContainsFile( const char *pFileName ) = 0;
+
+	// The two functions a pack file must provide
+	virtual bool Prepare( int64 fileLen = -1, int64 nFileOfs = 0 ) = 0;
+
+	// Returns the filename for a given file in the pack. Returns true if a filename is found, otherwise buffer is filled with "unknown"
+	virtual bool IndexToFilename( intp nIndex, char* buffer, intp nBufferSize ) = 0;
+
+	virtual void SetupPreloadData() {}
+	virtual void DiscardPreloadData() {}
+	virtual int64 GetPackFileBaseOffset() = 0;
+
+	// Helper for the filesystem's FindFirst/FindNext() API which mimics the old windows equivalent. pWildcard is the
+	// same pattern that you would pass to FindFirst, not a true wildcard.
+	// Mirrors the VPK code's similar call.
+	virtual void GetFileAndDirLists( const char *pFindWildCard, CUtlStringList &outDirnames, CUtlStringList &outFilenames, bool bSortedOutput ) = 0;
+
+	// Note: threading model for pack files assumes that data
+	// is segmented into pack files that aggregate files
+	// meant to be read in one thread. Performance characteristics
+	// tuned for that case
+	CThreadFastMutex	m_mutex;
+
+	// Path management:
+	void SetPath( const CUtlSymbol &path ) { m_Path = path; }
+	const CUtlSymbol& GetPath() const	{ Assert( m_Path != UTL_INVAL_SYMBOL ); return m_Path; }
+	CUtlSymbol			m_Path;
+
+	// possibly embedded pack
+	int64				m_nBaseOffset;
+
+	CUtlString			m_ZipName;
+
+	bool				m_bIsMapPath;
+	long				m_lPackFileTime;
+
+	int					m_refCount;
+	int					m_nOpenFiles;
+
+	FILE				*m_hPackFileHandleFS;
+#if defined( SUPPORT_PACKED_STORE )
+	CPackedStoreFileHandle m_hPackFileHandleVPK;
+#endif
+	bool				m_bIsExcluded;
+
+	int					m_PackFileID;
+};
+
 class CPackFile;
 class CPackedStore;
 // For verifying check CBaseFileSystem::CSearchPath::CSearchPath initialization order in IDA
@@ -74,6 +141,22 @@ class CSearchPath
 	const CUtlSymbol& GetPathID() const;
 	const char* GetPathIDString() const;
 
+	// Search path (c:\hl2\hl2) accessors.
+	void SetPath( CUtlSymbol id );
+	const CUtlSymbol& GetPath() const;
+
+	void SetPackFile(CPackFile *pPackFile) { m_pPackFile = pPackFile; }
+	CPackFile *GetPackFile() const { return m_pPackFile; }
+
+#ifdef SUPPORT_PACKED_STORE
+	void SetPackedStore( CPackedStoreRefCount *pPackedStore ) { m_pPackedStore = pPackedStore; }
+#endif
+	CPackedStoreRefCount *GetPackedStore() const { return m_pPackedStore; }
+
+	bool IsMapPath() const;
+
+	inline void MarkDiskTracking() { m_bTrackDisk = true; }
+
 	int32_t m_storeId;
 	// GMOD
 	// This influences how the searchpath is added in CBaseFileSystem::NewSearchPath (Also one of GMod's custom functions)
@@ -86,10 +169,22 @@ class CSearchPath
 	bool m_bIsRemotePath;
 	bool m_bIsTrustedForPureServer;
 	bool m_bVPKHack; // GMOD - I assume it's related to https://garry.net/posts/vpk-search-paths
+	bool m_bUnknown; // GMOD - uses this but unknown for what??? idk
 	CUtlSymbol m_Path;
+
+	// RaphaelIT7:
+	// Lets try to apply the same Idea that REngine uses
+
+	// If true then we setup a file watcher to update on disk changes
+	// Else we expect the folder to never change anyways
+	// NOTE: We use the free 2 byte padding here
+	bool m_bTrackDisk;
+	// We moved it down here as its safer here and the padding byte in the bools above is not reliable?
+	bool m_bIsWorkshop; // HOLYLIB - GMod has free padding here which we can use for this flag :3
+
 	const char *m_pDebugPath;
 	CPackFile *m_pPackFile;
-	CPackedStore *m_pPackFile2;
+	CPackedStoreRefCount *m_pPackedStore;
 };
 
 class CSearchPathOld
@@ -201,30 +296,32 @@ class CSearchPathsVisits
 		CUtlVector<int> m_Visits;	// This is a copy of IDs for the search paths we've visited, so 
 	};
 
+// RaphaelIT7:
+// We dropped m_SearchPaths, m_visits and CopySearchPaths()
+// Since it's a waste to copy and allocate those!
+// When opening a file / working with the iterator, nothing should be modifying m_SearchPaths anyways!
+// And we never visit a duplicate anyways, so we can safely get rid of m_visits
+// Optional: We could make it hold a readonly lock of m_SearchPathsMutex (after making m_SearchPathsMutex a CThreadRWLock/CThreadSpinRWLock)
 class CSearchPathsIterator
-	{
-	public:
-		CSearchPath *GetFirst();
-		CSearchPath *GetNext();
+{
+public:
+	CSearchPathsIterator( CBaseFileSystem *pFileSystem, const char **ppszFilename, const char *pszPathID, PathTypeFilter_t pathTypeFilter = FILTER_NONE );
+	CSearchPathsIterator( CBaseFileSystem *pFileSystem, const char *pszPathID, PathTypeFilter_t pathTypeFilter = FILTER_NONE );
 
-	public:
-		CSearchPathsIterator( const  CSearchPathsIterator & );
-		void operator=(const CSearchPathsIterator &);
-		void CopySearchPaths( const CUtlVector<CSearchPath>	&searchPaths )
-		{
-			m_SearchPaths = searchPaths;
-		}
+	CSearchPath *GetFirst();
+	CSearchPath *GetNext();
 
-		int							m_iCurrent;
-		CUtlSymbol					m_pathID;
-		CUtlVector<CSearchPath> 	m_SearchPaths;
-		CSearchPathsVisits			m_visits;
-		CSearchPath					m_EmptySearchPath;
-		CPathIDInfo					m_EmptyPathIDInfo;
-		PathTypeFilter_t			m_PathTypeFilter;
-		char						m_Filename[MAX_PATH];	// set for relative names only
-		bool						m_bExcluded;
-	};
+private:
+	CSearchPathsIterator( const  CSearchPathsIterator & );
+	void operator=(const CSearchPathsIterator &);
+
+	CUtlLinkedList<CSearchPath>::IndexLocalType_t	m_iCurrent;
+	CUtlSymbol					m_pathID;
+	CSearchPath					m_EmptySearchPath;
+	CPathIDInfo					m_EmptyPathIDInfo;
+	PathTypeFilter_t			m_PathTypeFilter;
+	char						m_Filename[MAX_PATH];	// set for relative names only
+};
 
 enum FileType_t
 {
@@ -233,71 +330,6 @@ enum FileType_t
 	FT_PACK_TEXT,
 	FT_MEMORY_BINARY,
 	FT_MEMORY_TEXT
-};
-
-class CPackedStore;
-class CPackedStoreFileHandle
-{
-public:
-	int m_nFileNumber;
-	int m_nFileOffset;
-	int m_nFileSize;
-	int m_nCurrentFileOffset;
-	void const *m_pMetaData;
-	uint16 m_nMetaDataSize;
-	CPackedStore *m_pOwner;
-	struct CFileHeaderFixedData *m_pHeaderData;
-	uint8 *m_pDirFileNamePtr;								// pointer to basename in dir block
-
-	FORCEINLINE operator bool( void ) const
-	{
-		return ( m_nFileNumber != -1 );
-	}
-
-	FORCEINLINE int Read( void *pOutData, int nNumBytes );
-
-	CPackedStoreFileHandle( void )
-	{
-		m_nFileNumber = -1;
-		m_nFileOffset = -1;
-		m_nFileSize = -1;
-		m_nCurrentFileOffset = -1;
-		m_pMetaData = nullptr;
-		m_nMetaDataSize = 0;
-		m_pOwner = nullptr;
-		m_pHeaderData = nullptr;
-		m_pDirFileNamePtr = nullptr;
-	}
-
-	int Seek( int nOffset, int nWhence )
-	{
-		switch( nWhence )
-		{
-			case SEEK_CUR:
-				nOffset = m_nFileOffset + nOffset ;
-				break;
-
-			case SEEK_END:
-				nOffset = m_nFileSize + nOffset;
-				break;
-		}
-		m_nCurrentFileOffset = MAX( 0, MIN( m_nFileSize, nOffset ) );
-		return m_nCurrentFileOffset;
-	}
-
-	int Tell( void ) const
-	{
-		return m_nCurrentFileOffset;
-	}
-
-	uint32 GetFileCRCFromHeaderData() const
-	{
-		uint32 *pCRC = (uint32 *)m_pHeaderData;
-		return *pCRC;
-	}
-
-	FORCEINLINE void GetPackFileName( char *pchFileNameOut, int cchFileNameOut );
-
 };
 
 class CFileTracker2 : IThreadedFileMD5Processor
@@ -329,6 +361,20 @@ public:
 	IFileList *GetFilesToUnloadForWhitelistChange( IPureServerWhitelist *pNewWhiteList ) { return NULL; }
 };
 
+namespace Addon
+{
+	class FileHandle;
+}
+
+// RaphaelIT7:
+// Using printf( "%s%s" ) is a real waste! So we replact it with this
+// This only now becomes a bit noticeable in performance results thanks to our cache making lookups fast already
+inline void ComposeSearchPath( char *pOut, size_t nOutSize, const char *pSearchPath, const char *pFileName )
+{
+	V_strncpy( pOut, pSearchPath, nOutSize );
+	V_strcat( pOut, pFileName, nOutSize );
+}
+
 class CPackFile;
 class CPackFileHandle;
 class CCompiledKeyValuesReader;
@@ -346,13 +392,13 @@ public:
 	void	Flush();
 	void	SetBufferSize( int nBytes );
 
-	int		Read( void* pBuffer, int nLength );
-	int		Read( void* pBuffer, int nDestSize, int nLength );
+	int Read( OUT_BYTECAP(nLength) void* pBuffer, int nLength );
+	int Read( void* pBuffer, int nDestSize, int nLength );
 
-	int		Write( const void* pBuffer, int nLength );
-	int		Seek( int64 nOffset, int nWhence );
-	int		Tell();
-	int		Size();
+	int Write( IN_BYTECAP(nLength) const void* pBuffer, int nLength );
+	unsigned int Seek( int64 nOffset, int nWhence );
+	unsigned int Tell();
+	unsigned int Size();
 
 	int64 AbsoluteBaseOffset();
 	bool	EndOfFile();
@@ -365,9 +411,8 @@ public:
 	{
 		Assert( pName );
 		Assert( !m_pszTrueFileName );
-		int len = Q_strlen( pName );
-		m_pszTrueFileName = new char[len + 1];
-		memcpy( m_pszTrueFileName, pName, len + 1 );
+
+		m_pszTrueFileName = V_strdup( pName );
 	}
 #endif
 
@@ -375,6 +420,8 @@ public:
 #if defined( SUPPORT_PACKED_STORE )
 	CPackedStoreFileHandle m_VPKHandle;
 #endif
+	// GMOD
+	Addon::FileHandle* m_pAddonFileHandle;
 	int64				m_nLength;
 	FileType_t			m_type;
 	FILE				*m_pFile;
@@ -389,7 +436,7 @@ protected:
 	};
 	unsigned int	m_nMagic;
 
-	bool IsValid();
+	bool IsValid() const;
 };
 
 class CFileOpenInfo
@@ -416,12 +463,27 @@ public:
 	{
 	}
 
-	void SetAbsolutePath(const char* pFormat, ...)
+	// RaphaelIT7: Backports from gmod-filesystem
+	void SetAbsolutePath( const char *pSearchPath, const char *pFileName )
 	{
+		::ComposeSearchPath( m_AbsolutePath, sizeof( m_AbsolutePath ), pSearchPath, pFileName );
+		V_FixSlashes( m_AbsolutePath );
 	}
 
-	void SetResolvedFilename(const char* pStr)
+	// RaphaelIT7: Backports from gmod-filesystem
+	void SetAbsolutePath( const char *pszAbsolutePath )
 	{
+		V_strncpy( m_AbsolutePath, pszAbsolutePath, sizeof( m_AbsolutePath ) );
+		V_FixSlashes( m_AbsolutePath );
+	}
+	
+	void SetResolvedFilename( const char *pStr )
+	{
+		if ( m_ppszResolvedFilename )
+		{
+			Assert( !( *m_ppszResolvedFilename ) );
+			*m_ppszResolvedFilename = strdup( pStr );
+		}
 	}
 
 	void HandleFileCRCTracking(const char* pRelativeFileName)
@@ -432,7 +494,7 @@ public:
 	CBaseFileSystem* m_pFileSystem;
 
 	// These are output parameters.
-	void* m_pFileHandle;
+	CFileHandle* m_pFileHandle;
 	char** m_ppszResolvedFilename;
 
 	void* m_pPackFile;
@@ -955,4 +1017,59 @@ public:
 
 	char m_pBaseDir[MAX_PATH];
 	int m_pBaseLength;
+};
+
+class CFileSystem_Stdio : public CBaseFileSystem
+{
+public:
+	CFileSystem_Stdio();
+	~CFileSystem_Stdio();
+
+	// Used to get at older versions
+	void *QueryInterface( const char *pInterfaceName ) override;
+
+	// Higher level filesystem methods requiring specific behavior
+	void GetLocalCopy( const char *pFileName ) override;
+	int	HintResourceNeed( const char *hintlist, int forgetEverything ) override;
+	bool IsFileImmediatelyAvailable(const char *pFileName) override;
+	WaitForResourcesHandle_t WaitForResources( const char *resourcelist ) override;
+	bool GetWaitForResourcesProgress( WaitForResourcesHandle_t handle, float *progress /* out */ , bool *complete /* out */ ) override;
+	void CancelWaitForResources( WaitForResourcesHandle_t handle ) override;
+	bool IsSteam() const override { return false; }
+	FilesystemMountRetval_t MountSteamContent( int nExtraAppId = -1 ) override { return FILESYSTEM_MOUNT_OK; }
+
+	bool GetOptimalIOConstraints( FileHandle_t hFile, unsigned *pOffsetAlign, unsigned *pSizeAlign, unsigned *pBufferAlign ) override;
+	void *AllocOptimalReadBuffer( FileHandle_t hFile, unsigned nSize, unsigned nOffset ) override;
+	void FreeOptimalReadBuffer( void *p ) override;
+
+public: // Gimme that
+	// implementation of CBaseFileSystem virtual functions
+	FILE *FS_fopen( const char *filename, const char *options, unsigned flags, int64 *size ) override;
+	void FS_setbufsize( FILE *fp, unsigned nBytes ) override;
+	void FS_fclose( FILE *fp ) override;
+	void FS_fseek( FILE *fp, int64 pos, int seekType ) override;
+	long FS_ftell( FILE *fp ) override;
+	int FS_feof( FILE *fp ) override;
+	size_t FS_fread( OUT_BYTECAP(destSize) void *dest, size_t destSize, size_t size, FILE *fp ) override;
+	size_t FS_fwrite( IN_BYTECAP(size) const void *src, size_t size, FILE *fp ) override;
+	bool FS_setmode( FILE *fp, FileMode_t mode ) override;
+	size_t FS_vfprintf( FILE *fp, const char *fmt, va_list list ) override;
+	int FS_ferror( FILE *fp ) override;
+	int FS_fflush( FILE *fp ) override;
+	char *FS_fgets( OUT_Z_CAP(destSize) char *dest, int destSize, FILE *fp ) override;
+	int FS_stat( const char *path, struct _stat *buf, bool *pbLoadedFromSteamCache=NULL  ) override;
+	int FS_chmod( const char *path, int pmode ) override;
+	HANDLE FS_FindFirstFile(const char *findname, WIN32_FIND_DATA *dat) override;
+	bool FS_FindNextFile(HANDLE handle, WIN32_FIND_DATA *dat) override;
+	bool FS_FindClose(HANDLE handle) override;
+	int FS_GetSectorSize( FILE * ) override;
+
+private:
+	bool CanAsync() const
+	{
+		return m_bCanAsync;
+	}
+
+	bool m_bMounted;
+	bool m_bCanAsync;
 };

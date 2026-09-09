@@ -622,7 +622,7 @@ bool Lua::CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int n
 
 const char* Lua::TValueToString(TValue* pVal)
 {
-	static thread_local char pBuffer[300];
+	static thread_local char pBuffer[200];
 	char pTempBuffer[64]; // Should at minimum be STRFMT_MAXBUF_PTR
 	if (tvisbool(pVal)) {
 		snprintf(pBuffer, sizeof(pBuffer), "(bool) %s", tvistrue(pVal) ? "true" : "false");
