@@ -14,8 +14,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-constexpr size_t s_textSize = 1024;
-static thread_local std::unique_ptr<char[]> s_text(new char[1024]);
+static inline constexpr size_t s_textSize = 1024;
+static thread_local std::unique_ptr<char[]> s_text(new char[s_textSize]);
 
 //
 // CmdKeyValues message

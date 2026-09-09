@@ -892,8 +892,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		}
 #endif
 	} else {
-		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
-		CBaseEntity* ent = Util::Get_Entity(LUA, 2, false);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 2, true);
 
 		LUA->PushBool(TestPVS(pVisCluster.get(), ent->GetAbsOrigin()));
 	}

@@ -7,6 +7,7 @@
 #include "sourcesdk/hltvserver.h"
 #include "usermessages.h"
 #include "sourcesdk/hltvdirector.h"
+#include <shared_mutex>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -112,6 +113,7 @@ LUA_FUNCTION_STATIC(CHLTVClient__tostring)
  * 
  * We can clear it later by looping thru all clients and then nuking and recreating it with only the current clients values.
  */
+static std::shared_mutex g_iTargetMutex;
 static unordered_map<int, int> g_iTarget;
 LUA_FUNCTION_STATIC(CHLTVClient_SetCameraMan)
 {
@@ -124,7 +126,11 @@ LUA_FUNCTION_STATIC(CHLTVClient_SetCameraMan)
 		CBaseEntity* pEnt = Util::Get_Entity(LUA, 2, false);
 		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
 	}
-	g_iTarget[pClient->GetUserID()] = iTarget;
+
+	{
+		std::unique_lock<std::shared_mutex> lock(g_iTargetMutex);
+		g_iTarget[pClient->GetUserID()] = iTarget;
+	}
 
 	IGameEvent* pEvent = Util::gameeventmanager->CreateEvent("hltv_cameraman");
 	if (pEvent)
@@ -322,7 +328,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 	}
 
 	int iClientIndex = (int)LUA->CheckNumber(1);
-	if (iClientIndex >= hltv->GetClientCount())
+	if (iClientIndex < 0 || iClientIndex >= hltv->GetClientCount())
 	{
 		LUA->PushNil();
 		return 1;
@@ -368,13 +374,16 @@ LUA_FUNCTION_STATIC(sourcetv_SetCameraMan)
 		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
 	}
 
-	for (int i = 0; i < hltv->GetClientCount(); ++i)
 	{
-		CHLTVClient* pClient = hltv->Client(i);
-		if (!pClient->IsConnected())
-			continue;
+		std::unique_lock<std::shared_mutex> lock(g_iTargetMutex);
+		for (int i = 0; i < hltv->GetClientCount(); ++i)
+		{
+			CHLTVClient* pClient = hltv->Client(i);
+			if (!pClient->IsConnected())
+				continue;
 
-		g_iTarget[pClient->GetUserID()] = iTarget;
+			g_iTarget[pClient->GetUserID()] = iTarget;
+		}
 	}
 
 	IGameEvent* pEvent = Util::gameeventmanager->CreateEvent("hltv_cameraman");
@@ -546,6 +555,7 @@ static void hook_CHLTVServer_BroadcastEvent(CHLTVServer* pServer, IGameEvent* pE
 
 		if (!g_bLuaGameEvent && bIsShotEvent) // If you fire lua gameevents, they can take control.
 		{
+			std::shared_lock<std::shared_mutex> lock(g_iTargetMutex);
 			auto it = g_iTarget.find(pClient->GetUserID());
 			if (it != g_iTarget.end() && it->second != 0) // target id is not 0 so this client has an active target.
 				continue;

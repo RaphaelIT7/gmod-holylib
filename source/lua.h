@@ -647,12 +647,11 @@ namespace Lua
 				return;
 
 			m_pState = GetLuaData(pLua);
+			m_pLua = pLua;
 			// ToDo: Maybe verify the state is valid? But that would imply we'd be using an invalid interface.
 			// The Mutex of the main state is almost always kept locked except when ThinkMainInterface is called
 			if (!(ThreadInMainThread() && g_Lua == m_pLua))
 				m_pState->pThreadingMutex.lock();
-
-			m_pLua = pLua;
 		}
 
 		~StateAccess()

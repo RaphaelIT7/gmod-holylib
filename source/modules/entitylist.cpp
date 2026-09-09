@@ -3,6 +3,7 @@
 #include "module.h"
 #include "lua.h"
 #include "player.h"
+#include <shared_mutex>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -25,7 +26,8 @@ IModule* pEntListModule = &g_pEntListModule;
 Push_LuaClass(EntityList)
 Get_LuaClass(EntityList, "EntityList")
 
-static unordered_set<EntityList*> pEntityLists; // Fk... Now we have multiple threads partying on here. ToDo: Mutex
+static std::shared_mutex pEntityListsMutex;
+static unordered_set<EntityList*> pEntityLists;
 
 class LuaEntityModuleData : public Lua::ModuleData
 {
@@ -46,6 +48,8 @@ EntityList::EntityList()
 {
 	if (g_pEntListModule.InDebug())
 		Msg("Created EntityList %p\n", this);
+
+	std::unique_lock<std::shared_mutex> lock(pEntityListsMutex);
 	pEntityLists.insert(this);
 }
 
@@ -55,6 +59,8 @@ EntityList::~EntityList()
 		Msg("Deleted-2 EntityList %p - %p\n", this, m_pLua);
 
 	Invalidate();
+
+	std::unique_lock<std::shared_mutex> lock(pEntityListsMutex);
 	pEntityLists.erase(this);
 }
 
@@ -279,14 +285,7 @@ LUA_FUNCTION_STATIC(CreateEntityListFromGlobal)
 	EntityList& pGlobalEntityList = GetGlobalEntityList(LUA);
 	EntityList* pList = new EntityList();
 	pList->SetLua(LUA);
-
-	auto pMap = pList->GetReferences();
-	auto pVec = pList->GetEntities();
-	for (auto& [pEnt, iReference] : pGlobalEntityList.GetReferences())
-	{
-		pMap[pEnt] = iReference;
-		pVec.push_back(pEnt);
-	}
+	pList->CopyFrom(&pGlobalEntityList);
 
 	Push_EntityList(LUA, pList);
 	return 1;
@@ -308,6 +307,8 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 
 void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 {
+	std::shared_lock<std::shared_mutex> lock(pEntityListsMutex);
+
 	if (g_pEntListModule.InDebug())
 		Msg("Deleted Entity: %p (%i)\n", pEntity, (int)pEntityLists.size());
 

@@ -648,7 +648,13 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		pEntry->pName = new char[strlen(str) + 1];
 		strcpy(pEntry->pName, str);
 
-		pEntry->pUserData = (void*)table->GetStringUserData(i, &pEntry->iUserDataLength);
+		// We must also copy the UserData as the pointer may be freed?
+		const void* pUserData = table->GetStringUserData(i, &pEntry->iUserDataLength);
+		if (pUserData && pEntry->iUserDataLength > 0)
+		{
+			pEntry->pUserData = new char[pEntry->iUserDataLength];
+			memcpy(pEntry->pUserData, pUserData, pEntry->iUserDataLength);
+		}
 
 		pElements.push_back(pEntry);
 	}
@@ -668,6 +674,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		table->AddString(true, pEntry->pName, pEntry->iUserDataLength, pEntry->pUserData);
 
 		delete[] pEntry->pName; // Apparently the stringtable itself will make a copy of it and manage it? So Yeet our string.
+		delete[] (char*)pEntry->pUserData;
 		delete pEntry;
 	}
 	pElements.clear();
@@ -688,7 +695,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 
 	Util::DoUnsafeCodeCheck(LUA);
 
-	if (idx >= table->GetNumStrings())
+	if (idx < 0 || idx >= table->GetNumStrings())
 		return 0;
 
 	if (!pUserData)
@@ -706,6 +713,12 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetStringUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 
+	if (idx < 0 || idx >= table->GetNumStrings())
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
 	int iLength = 0;
 	const char* pData = (const char*)table->GetStringUserData(idx, &iLength);
 	LUA->PushString(pData, iLength);
@@ -721,7 +734,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
 
 	Util::DoUnsafeCodeCheck(LUA);
 
-	if (idx >= table->GetNumStrings())
+	if (idx < 0 || idx >= table->GetNumStrings())
 		return 0;
 
 	table->SetStringUserData(idx, sizeof(int), &pUserData);
@@ -733,7 +746,13 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetNumberUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 
-	int dataLen; 
+	if (idx < 0 || idx >= table->GetNumStrings())
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	int dataLen;
 	const void *pData = table->GetStringUserData(idx, &dataLen);
 	if (pData && dataLen == sizeof(int))
 		LUA->PushNumber(*((const int*)table->GetStringUserData(idx, 0)));
@@ -751,7 +770,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetPrecacheUserData)
 
 	Util::DoUnsafeCodeCheck(LUA);
 
-	if (idx >= table->GetNumStrings())
+	if (idx < 0 || idx >= table->GetNumStrings())
 		return 0;
 
 	CPrecacheUserData p;
@@ -766,7 +785,13 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetPrecacheUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 
-	int dataLen; 
+	if (idx < 0 || idx >= table->GetNumStrings())
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	int dataLen;
 	const void *pData = table->GetStringUserData(idx, &dataLen);
 	if (pData && dataLen == sizeof(CPrecacheUserData))
 		LUA->PushNumber(((const CPrecacheUserData*)table->GetStringUserData(idx, 0))->flags);

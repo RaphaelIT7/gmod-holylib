@@ -891,9 +891,6 @@ Default__index(VProfCounter);
 Default__newindex(VProfCounter);
 Default__GetTable(VProfCounter);
 Default__gc(VProfCounter,
-	VProfCounter* pCounter = (VProfCounter*)pStoredData;
-	if (pCounter)
-		delete pCounter;
 )
 
 LUA_FUNCTION_STATIC(VProfCounter_GetName)
@@ -962,9 +959,6 @@ Default__index(CVProfNode);
 Default__newindex(CVProfNode);
 Default__GetTable(CVProfNode);
 Default__gc(CVProfNode,
-	CVProfNode* pNode = (CVProfNode*)pStoredData;
-	if (pNode)
-		delete pNode;
 )
 
 LUA_FUNCTION_STATIC(VProfNode_GetName)
@@ -1272,12 +1266,12 @@ LUA_FUNCTION_STATIC(vprof_GetCounter)
 	if (counter->strName)
 	{
 		counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(counter->strName);
-
-		Push_VProfCounter(LUA, counter);
 	} else {
+		LUA->Pop(1);
 		LUA->PushNil();
 	}
 #else
+	LUA->Pop(1);
 	LUA->PushNil();
 #endif
 	return 1;

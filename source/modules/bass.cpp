@@ -749,7 +749,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_FeedEmpty)
 
 	int nSamples = (sampleRate * durationMs) / 1000;
 	int nBytes = nSamples * channels * sizeof(short);
-	if (nBytes > 50000) // More than 50kb stackalloc? Hmmm... what are you doing...
+	if (nBytes <= 0 || nBytes > 50000) // More than 50kb stackalloc? Hmmm... what are you doing...
 	{
 		LUA->PushBool(false);
 		LUA->PushNil();
@@ -758,7 +758,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_FeedEmpty)
 
 	char* pSilence = (char*)_alloca(nBytes);
 	memset(pSilence, 0, nBytes);
-	
+
 	const char* pError = nullptr;
 	channel->WriteData(pSilence, nBytes, &pError);
 	LUA->PushBool(pError == nullptr);
@@ -1166,7 +1166,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_FeedEmpty)
 
 	int nSamples = (sampleRate * durationMs) / 1000;
 	int nBytes = nSamples * channels * sizeof(short);
-	if (nBytes > 50000) // More than 50kb stackalloc? Hmmm... what are you doing...
+	if (nBytes <= 0 || nBytes > 50000) // More than 50kb stackalloc? Hmmm... what are you doing...
 	{
 		LUA->PushBool(false);
 		return 1;

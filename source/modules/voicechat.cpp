@@ -1608,7 +1608,8 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 		delete pVoiceData;
 
-		Util::servergameclients->GMOD_OnReceivedVoicePacket( pPlayer->edict() );
+		if (pPlayer)
+			Util::servergameclients->GMOD_OnReceivedVoicePacket( pPlayer->edict() );
 
 		if (bHandled)
 			return;

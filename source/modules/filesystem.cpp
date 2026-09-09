@@ -1283,6 +1283,8 @@ struct IAsyncFile
 	int nBytesRead;
 	int status;
 	const char* content = nullptr;
+	std::string strFileName;
+	std::string strPathID;
 };
 
 std::vector<IAsyncFile*> asyncCallback;
@@ -1319,15 +1321,17 @@ LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 	bool sync = LUA->GetBool(4);
 
 	FileAsyncRequest_t* request = new FileAsyncRequest_t;
-	request->pszFilename = fileName;
-	request->pszPathID = gamePath;
 	request->pfnCallback = AsyncCallback;
 	request->flags = sync ? FSASYNC_FLAGS_SYNC : 0;
 
 	IAsyncFile* file = new IAsyncFile;
 	file->callback = reference;
 	file->req = request;
+	file->strFileName = fileName;
+	file->strPathID = gamePath;
 
+	request->pszFilename = file->strFileName.c_str();
+	request->pszPathID = file->strPathID.c_str();
 	request->pContext = file;
 
 	LUA->PushNumber(g_pFullFileSystem->AsyncReadMultiple(request, 1));
@@ -1337,8 +1341,8 @@ LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 
 void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	std::vector<IAsyncFile*> files;
-	for(IAsyncFile* file : asyncCallback) {
+	for(IAsyncFile* file : asyncCallback)
+	{
 		Util::ReferencePush(pLua, file->callback);
 		pLua->PushString(file->req->pszFilename);
 		pLua->PushString(file->req->pszPathID);
@@ -1346,7 +1350,9 @@ void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 		pLua->PushString(file->content);
 		pLua->CallFunctionProtected(4, 0, true);
 		Util::ReferenceFree(pLua, file->callback, "FileAsyncReadThink");
-		files.push_back(file);
+
+		delete file->req;
+		delete file;
 	}
 
 	asyncCallback.clear();

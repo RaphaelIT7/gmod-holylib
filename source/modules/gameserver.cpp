@@ -10,6 +10,7 @@
 #include "sourcesdk/net_chan.h"
 #include <framesnapshot.h>
 #include <netadr_new.h> // Better than the normal sdk one as this one actually sets stuff properly.
+#include <shared_mutex>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -230,7 +231,7 @@ LUA_FUNCTION_STATIC(CBaseClient_Disconnect)
 	bool bSilent = LUA->GetBool(3);
 	bool bNoEvent = LUA->GetBool(4);
 
-	if (bSilent)
+	if (bSilent && pClient->GetNetChannel())
 		pClient->GetNetChannel()->Shutdown(nullptr); // nullptr = Send no disconnect message
 
 	if (bNoEvent)
@@ -1639,12 +1640,18 @@ public:
 	bf_read m_DataIn;
 };
 
+static std::shared_mutex g_pNetMessageHandlersMutex;
 static unordered_set<ILuaNetMessageHandler*> g_pNetMessageHandlers;
 ILuaNetMessageHandler::ILuaNetMessageHandler(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	m_pLuaNetChanMessage = new NET_LuaNetChanMessage;
 	m_pLuaNetChanMessage->m_pMessageHandler = this;
-	g_pNetMessageHandlers.insert(this);
+
+	{
+		std::unique_lock<std::shared_mutex> lock(g_pNetMessageHandlersMutex);
+		g_pNetMessageHandlers.insert(this);
+	}
+
 	m_pLua = pLua;
 }
 
@@ -1663,7 +1670,10 @@ ILuaNetMessageHandler::~ILuaNetMessageHandler()
 		m_pLuaNetChanMessage = nullptr;
 	}
 
-	g_pNetMessageHandlers.erase(this);
+	{
+		std::unique_lock<std::shared_mutex> lock(g_pNetMessageHandlersMutex);
+		g_pNetMessageHandlers.erase(this);
+	}
 
 	if (!ThreadInMainThread())
 	{
@@ -2400,6 +2410,7 @@ LUA_FUNCTION_STATIC(gameserver_RemoveNetChannel)
 
 LUA_FUNCTION_STATIC(gameserver_GetCreatedNetChannels)
 {
+	std::shared_lock<std::shared_mutex> lock(g_pNetMessageHandlersMutex);
 	LUA->PreCreateTable(g_pNetMessageHandlers.size(), 0);
 		int idx = 0;
 		for (auto& handler : g_pNetMessageHandlers)

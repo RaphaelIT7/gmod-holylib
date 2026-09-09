@@ -2,6 +2,8 @@
 
 #include "public/imodule.h"
 #include <vector>
+#include <shared_mutex>
+#include <atomic>
 #include "unordered_stuff.h"
 #include "public/iconfigsystem.h"
 
@@ -35,8 +37,8 @@ protected:
 	char* m_pCVarName = nullptr;
 	ConVar* m_pDebugCVar = nullptr;
 	char* m_pDebugCVarName = nullptr;
-	bool m_bEnabled = false;
-	bool m_bIsShutdown = false;
+	std::atomic<bool> m_bEnabled = false;
+	std::atomic<bool> m_bIsShutdown = false;
 	bool m_bCompatible = false;
 	bool m_bStartup = false;
 	char* m_strDebugValue; // Workaround for a crash.
@@ -111,6 +113,7 @@ public:
 	inline int GetClientMax() { return m_iClientMax; };
 	inline std::vector<CModule*>& GetModules() { return m_pModules; };
 	inline unordered_set<GarrysMod::Lua::ILuaInterface*>& GetLuaInterfaces() { return m_pLuaInterfaces; };
+	inline std::shared_mutex& GetLuaInterfacesMutex() { return m_pLuaInterfacesMutex; };
 	inline IConfig* GetConfig() { return m_pConfig; };
 	inline const char* GetMapName() { return m_strMapName.c_str(); };
 	inline ServerState GetServerState() { return m_nServerState; };
@@ -141,10 +144,12 @@ private: // ServerActivate stuff
 
 private:
 	// All Lua interfaces that were loaded.
+	std::shared_mutex m_pLuaInterfacesMutex;
 	unordered_set<GarrysMod::Lua::ILuaInterface*> m_pLuaInterfaces;
-	
+
 	inline void AddLuaInterface(GarrysMod::Lua::ILuaInterface* pLua)
 	{
+		std::unique_lock<std::shared_mutex> lock(m_pLuaInterfacesMutex);
 		auto it = m_pLuaInterfaces.find(pLua);
 		if (it != m_pLuaInterfaces.end())
 			return;
@@ -154,6 +159,7 @@ private:
 
 	inline void RemoveLuaInterface(GarrysMod::Lua::ILuaInterface* pLua)
 	{
+		std::unique_lock<std::shared_mutex> lock(m_pLuaInterfacesMutex);
 		auto it = m_pLuaInterfaces.find(pLua);
 		if (it == m_pLuaInterfaces.end())
 			return;

@@ -203,6 +203,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 
 			if (status & LoadStatus_LuaInit)
 			{
+				std::shared_lock<std::shared_mutex> lock(g_pModuleManager.GetLuaInterfacesMutex());
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
 				{
 					m_pModule->LuaInit(pLua, false);
@@ -215,6 +216,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 
 			if (status & LoadStatus_LuaServerInit)
 			{
+				std::shared_lock<std::shared_mutex> lock(g_pModuleManager.GetLuaInterfacesMutex());
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
 				{
 					m_pModule->LuaInit(pLua, true);
@@ -240,6 +242,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 
 			if (status & LoadStatus_LuaInit)
 			{
+				std::shared_lock<std::shared_mutex> lock(g_pModuleManager.GetLuaInterfacesMutex());
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
 					m_pModule->LuaShutdown(pLua);
 			}
@@ -422,13 +425,23 @@ void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 
 		if (bServerInit)
 		{
+			std::shared_lock<std::shared_mutex> lock(m_pLuaInterfacesMutex);
 			for (GarrysMod::Lua::ILuaInterface* LUA : m_pLuaInterfaces)
 			{
 				if (LUA == pLua)
 					continue;
 
-				VCALL_LUA_ENABLED_MODULES(LuaInit(pLua, bServerInit));
-				VCALL_LUA_ENABLED_MODULES(PostLuaInit(pLua, bServerInit));
+				for (CModule* pModule : m_pModules)
+				{
+					if (!pModule->FastIsEnabled())
+						continue;
+
+					if (g_Lua != LUA && !pModule->GetModule()->SupportsMultipleLuaStates())
+						continue;
+
+					pModule->GetModule()->LuaInit(LUA, bServerInit);
+					pModule->GetModule()->PostLuaInit(LUA, bServerInit);
+				}
 			}
 		}
 	}
@@ -539,7 +552,7 @@ void CModuleManager::OnClientDisconnect(CBaseClient* pClient)
 void CModuleManager::LevelInit(const char* pMapName)
 {
 	m_pStatus |= LoadStatus_LevelInit;
-	m_strMapName = pMapName || "";
+	m_strMapName = pMapName ? pMapName : "";
 
 	VCALL_ENABLED_MODULES(LevelInit(pMapName));
 }
@@ -642,9 +655,12 @@ static void ModuleStatus(const CCommand &args)
 		g_pModuleManager.DumpModule(module);
 
 	Msg("------- Lua Interfaces -------\n");
-	Msg("Count: %i\n", (int)g_pModuleManager.GetLuaInterfaces().size());
+	{
+		std::shared_lock<std::shared_mutex> lock(g_pModuleManager.GetLuaInterfacesMutex());
+		Msg("Count: %i\n", (int)g_pModuleManager.GetLuaInterfaces().size());
 
-	for (GarrysMod::Lua::ILuaInterface* interface : g_pModuleManager.GetLuaInterfaces())
-		Msg("\"%p\"", interface);
+		for (GarrysMod::Lua::ILuaInterface* interface : g_pModuleManager.GetLuaInterfaces())
+			Msg("\"%p\"", interface);
+	}
 }
 static ConCommand modulestatus("holylib_modulestatus", ModuleStatus, "Debug command. Prints out the status of all modules.", 0);

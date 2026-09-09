@@ -374,7 +374,7 @@ LUA_FUNCTION_STATIC(Disconnect)
 		return 1;
 	}
 
-	if (bSilent)
+	if (bSilent && pClient->GetNetChannel())
 		pClient->GetNetChannel()->Shutdown(nullptr); // nullptr = Send no disconnect message
 
 	if (bNoEvent)

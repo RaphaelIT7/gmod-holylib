@@ -658,6 +658,7 @@ public:
 	{
 		m_iObjectWakeFunction = iObjectWakeFunction;
 		m_iObjectSleepFunction = iObjectSleepFunction;
+		pLua = g_Lua;
 	}
 
 private:
@@ -1703,10 +1704,10 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 	int materialIndex = (int)LUA->CheckNumber(3);
 	Vector* pOrigin = Get_Vector(LUA, 4, true);
 	QAngle* pAngles = Get_QAngle(LUA, 5, true);
-	bool bStatic = LUA->GetBool(6);
 
 	objectparams_t params;
 	FillObjectParams(params, 6, LUA);
+	bool bStatic = LUA->GetBool(7);
 	Push_IPhysicsObject(LUA, pEnvironment->CreateSphereObject(radius, materialIndex, *pOrigin, *pAngles, &params, bStatic));
 	return 1;
 }

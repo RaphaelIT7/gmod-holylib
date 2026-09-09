@@ -292,7 +292,10 @@ LUA_FUNCTION_STATIC(timer_Toggle)
 	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		timer->active = !timer->active;
-		timer->nextRunTime = GetTime() + timer->nextRunTime;
+		if (timer->active)
+			timer->nextRunTime = GetTime() + timer->nextRunTime;
+		else
+			timer->nextRunTime = timer->nextRunTime - GetTime();
 		LUA->PushBool(timer->active);
 	} else
 		LUA->PushBool(false);

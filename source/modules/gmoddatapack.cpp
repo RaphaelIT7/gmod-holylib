@@ -839,7 +839,14 @@ public:
 			return;
 		}
 
-		LuaPackEntry& pEntry = m_pLuaFileCache[fileID];
+		LuaPackEntry* pPackEntry = GetPackEntry(fileID);
+		if (!pPackEntry)
+		{
+			Warning(PROJECT_NAME " - gmoddatapack: fileID %i for \"%s\" is out of range of our cache!\n", fileID, fileName.c_str());
+			return;
+		}
+
+		LuaPackEntry& pEntry = *pPackEntry;
 		std::lock_guard<std::shared_mutex> lock(pEntry.mutex);
 		bool bRemoveServerCode = gmoddatapack_removeserverif.GetBool();
 		bool bRemoveComments = gmoddatapack_removecomments.GetBool();
@@ -1004,11 +1011,14 @@ static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
 				if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
 					break;
 
-				LuaDataPack::LuaPackEntry* pEntry = &g_pLuaDataPack.m_pLuaFileCache[fileID];
+				LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
+				if (!pEntry)
+					continue;
+
 				std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
 				if (pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
 					continue;
-				
+
 				g_pLuaDataPack.ProcessContent(pEntry, fileID);
 			}
 		}
@@ -1019,11 +1029,14 @@ static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
 			if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
 				break;
 
-			LuaDataPack::LuaPackEntry* pEntry = &g_pLuaDataPack.m_pLuaFileCache[fileID];
+			LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
+			if (!pEntry)
+				continue;
+
 			std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
 			if (pEntry->IsReady() || !pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
 				continue;
-				
+
 			g_pLuaDataPack.CompressFile(pEntry, fileID);
 		}
 	}
@@ -1317,6 +1330,9 @@ void CGModDataPackModule::Think(bool bSimulating)
 	for (int fileID : g_pLuaDataPack.m_pStringTableUpdateQueue)
 	{
 		LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
+		if (!pEntry)
+			continue;
+
 		std::lock_guard<std::shared_mutex> entryLock(pEntry->mutex);
 
 		std::vector<unsigned char> pHash = HashString(pEntry->content.c_str(), pEntry->content.length() + 1);

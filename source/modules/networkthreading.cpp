@@ -190,13 +190,13 @@ static bool ShouldBlockPacketFromIP(netpacket_s* packet)
 		return false;
 
 	{
-		std::shared_lock<std::shared_mutex> lock(g_pIPFilterMutex);
+		std::shared_lock<std::shared_mutex> lock(g_pIPListMutex);
 		auto it = g_pIPList.find(AddrToIP(packet));
 		if (it != g_pIPList.end())
 			return it->second.ShouldBlock();
 	}
 
-	std::unique_lock<std::shared_mutex> lock(g_pIPFilterMutex);
+	std::unique_lock<std::shared_mutex> lock(g_pIPListMutex);
 	// Just in case of a race condition
 	auto it = g_pIPList.find(AddrToIP(packet));
 	if (it != g_pIPList.end())
@@ -213,7 +213,7 @@ static void IncomingPacketFromIP(netpacket_s* packet, bool bIsValid)
 		return;
 
 	// We expect an entry to already have been created by ShouldBlockPacketFromIP
-	std::shared_lock<std::shared_mutex> lock(g_pIPFilterMutex);
+	std::unique_lock<std::shared_mutex> lock(g_pIPListMutex);
 	auto it = g_pIPList.find(AddrToIP(packet));
 	if (it != g_pIPList.end())
 		it->second.IncomingPacket(bIsValid);

@@ -17,7 +17,7 @@
 //-----------------------------------------------------------------------------
 char const *GetFlagString( int flags )
 {
-	static char ret[ 512 ];
+	static char ret[ 64 ];
 	ret[ 0 ] = 0;
 
 	bool first = true;

@@ -4,6 +4,7 @@
 #include "lua.h"
 #include "player.h"
 #include "lua/CLuaInterface.h"
+#include <shared_mutex>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -52,12 +53,14 @@ public:
 };
 
 class LuaInterface;
+static std::shared_mutex g_pLuaInterfacesMutex;
 static unordered_set<LuaInterface*> g_pLuaInterfaces;
 class LuaInterface
 {
 public:
 	LuaInterface()
 	{
+		std::unique_lock<std::shared_mutex> lock(g_pLuaInterfacesMutex);
 		g_pLuaInterfaces.insert(this);
 	}
 
@@ -65,6 +68,7 @@ public:
 	{
 		DestroyThread();
 
+		std::unique_lock<std::shared_mutex> lock(g_pLuaInterfacesMutex);
 		auto it = g_pLuaInterfaces.find(this);
 		if (it != g_pLuaInterfaces.end())
 			g_pLuaInterfaces.erase(it);
@@ -89,12 +93,14 @@ public:
 			m_pThreadID = nullptr;
 		}
 
-		if (m_pTasks.size() > 0)
 		{
-			for (auto& task : m_pTasks)
-				delete task;
-
+			m_pMutex.Lock();
+			std::vector<InterfaceTask*> pTasks = std::move(m_pTasks);
 			m_pTasks.clear();
+			m_pMutex.Unlock();
+
+			for (auto& task : pTasks)
+				delete task;
 		}
 
 		g_pModuleManager.LuaShutdown(m_pInterface);
@@ -323,6 +329,8 @@ LUA_FUNCTION_STATIC(luathreads_CreateInterface)
 LUA_FUNCTION_STATIC(luathreads_FindInterface)
 {
 	const char* pName = LUA->CheckString(1);
+
+	std::shared_lock<std::shared_mutex> lock(g_pLuaInterfacesMutex);
 	for (LuaInterface* pInterface : g_pLuaInterfaces)
 	{
 		if (V_stricmp(pName, pInterface->GetName()) != 0)
@@ -338,6 +346,7 @@ LUA_FUNCTION_STATIC(luathreads_FindInterface)
 
 LUA_FUNCTION_STATIC(luathreads_GetInterfaces)
 {
+	std::shared_lock<std::shared_mutex> lock(g_pLuaInterfacesMutex);
 	LUA->PreCreateTable(g_pLuaInterfaces.size(), 0);
 	int idx = 0;
 	for (LuaInterface* pInterface : g_pLuaInterfaces)
@@ -390,7 +399,9 @@ void CLuaThreadsModule::Shutdown()
 		pLuaThreadPool = nullptr;
 	}
 
-	for (LuaInterface* pInterface : g_pLuaInterfaces)
+	// Copy it since g_pLuaInterfaces is modified in deconstructor
+	std::vector<LuaInterface*> pInterfaces(g_pLuaInterfaces.begin(), g_pLuaInterfaces.end());
+	for (LuaInterface* pInterface : pInterfaces)
 		delete pInterface;
 
 	g_pLuaInterfaces.clear();

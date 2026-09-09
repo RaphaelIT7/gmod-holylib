@@ -181,6 +181,11 @@ There may be further options which will control other module specific functions.
 \- \-> Fixed wrong pushing of constants possibly causing crashes<br>
 \- \-> Add missing null checks for upvalues<br>
 \- \-> Heavily changed most `luagc` functions that traversed objects to avoid recursion<br>
+\- [#] Filesystem module changes<br>
+\- \-> Reworked the entire optimization code<br>
+\- \-> Fixed invalid pointer issues with `filesystem.AsyncRead`<br>
+\- \-> Fixed an memory leak with `FileAsyncReadThink` not freeing memory<br>
+\- [#] Fixed `bitbuf.CreateStackWriteBuffer` actually pushing a `bf_read`<br>
 
 You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main
@@ -1185,7 +1190,7 @@ Will return `0` if the file wasn't found.<br>
 
 ### ConVars
 
-#### holylib_filesystem_searchcache (default `1`)
+#### holylib_filesystem_filecache (default `1`)
 If enabled, it will cause the filesystem to use a cache for the searchpaths.<br>
 When you try to open a file with a path like `GAME` which has multiple searchpaths, it will check each one until its found.<br>
 Now, the first time it searches for it, if it finds it, we add the file and the searchpath to a cache and the next time the same file is searched for, we try to use our cache search path.<br>

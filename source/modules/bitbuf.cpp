@@ -264,6 +264,9 @@ LUA_FUNCTION_STATIC(bf_read_ReadBits)
 
 	int numBits = (int)LUA->CheckNumber(2);
 	int size = PAD_NUMBER( Bits2Bytes(numBits), 4);
+	if (!holylib_canstackalloc(size))
+		LUA->ThrowError("Cannot stackalloc at this size!");
+
 	byte* buffer = (byte*)stackalloc( size );
 	bf->ReadBits(buffer, numBits);
 	LUA->PushString((const char*)buffer, size);
@@ -306,6 +309,9 @@ LUA_FUNCTION_STATIC(bf_read_ReadBytes)
 	bf_read* bf = Get_bf_read(LUA, 1, true);
 
 	int numBytes = (int)LUA->CheckNumber(2);
+	if (!holylib_canstackalloc(numBytes))
+		LUA->ThrowError("Cannot stackalloc at this size!");
+
 	byte* buffer = (byte*)stackalloc( numBytes );
 	bf->ReadBytes(buffer, numBytes);
 	LUA->PushString((const char*)buffer, numBytes);
@@ -879,7 +885,7 @@ LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 	if (!cData)
 		LUA->ThrowError("Failed to allocate data for buffer!");
 
-	memcpy(cData, pBf->GetBasePointer(), iSize);
+	memcpy(cData, pBf->GetBasePointer(), MIN(iSize, iNewSize));
 
 	bf_read* pNewBf = new bf_read(cData, iNewSize);
 
@@ -995,11 +1001,11 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
 	bf_write pNewBf(cData, nSize);
 
 	LUA->Push(2);
-	
+
 	// Pushes it onto the stack, since we never use the Push_ HolyLib function.
 	// this will be untracked by the GC BUT you'll have to pop it off the stack BEFORE we leave the scope!
 	LuaUserData pStackLuaData;
-	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true);
+	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_write), &pNewBf, true);
 	pStackLuaData.Push(LUA);
 
 	LUA->CallFunctionProtected(1, 0, true);
