@@ -574,7 +574,7 @@ struct WavAudioFile {
 
 	int ReadData(void* pData, int nDataLength)
 	{
-		if ((currentPos + nDataLength) > dataSize)
+		if (nDataLength < 0 || (currentPos + nDataLength) > dataSize)
 			return 0;
 
 		memcpy(pData, data + currentPos, nDataLength);

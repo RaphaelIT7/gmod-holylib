@@ -1084,7 +1084,15 @@ LUA_FUNCTION_STATIC(stringtable_RemoveTable)
 
 	Util::DoUnsafeCodeCheck(LUA);
 
-	networkStringTableContainerServer->m_Tables.FastRemove(pTable->GetTableId());
+	auto removedID = pTable->GetTableId();
+	int lastIndex = networkStringTableContainerServer->m_Tables.Count() - 1;
+	networkStringTableContainerServer->m_Tables.FastRemove(removedID);
+	if (removedID != lastIndex)
+	{
+		CNetworkStringTable* pMovedTable = networkStringTableContainerServer->m_Tables[removedID];
+		if (pMovedTable)
+			pMovedTable->m_id = removedID;
+	}
 	//DeleteGlobal_INetworkStringTable(pTable); // We don't need this since we hooked into the deconstructor.
 	Delete_INetworkStringTable(LUA, pTable); // Delete our Lua pointer.
 

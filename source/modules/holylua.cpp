@@ -114,6 +114,11 @@ void CHolyLuaModule::HolyLua_Init()
 
 	GarrysMod::Lua::ILuaInterface* pHolyLua = Lua::CreateInterface();
 
+	{
+		Lua::CriticalThreadAccess pThreadScope;
+		g_HolyLua.store(pHolyLua);
+	}
+
 	// Now add all supported HolyLib modules into the new interface.
 	g_pModuleManager.LuaInit(pHolyLua, false);
 
@@ -140,9 +145,6 @@ void CHolyLuaModule::HolyLua_Init()
 			g_pFullFileSystem->Close(fh);
 		}
 	}
-
-	Lua::CriticalThreadAccess pThreadScope;
-	g_HolyLua.store(pHolyLua);
 }
 
 void CHolyLuaModule::HolyLua_Shutdown()

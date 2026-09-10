@@ -728,8 +728,9 @@ void LJ_FASTCALL lj_recext_cfunc(jit_State *J, RecordFFData *rd, CFuncCallInfo* 
   uint32_t args = CCI_NARGS(callinfo);
   TRef tr = TREF_NIL;
   if (args > 0) {
-    for (uint32_t i=(callinfo->givestate ? 1 : 0); i < args; ++i) {
-      if (!tref_istype(J->base[i], lj_recext_ctype_to_irtype(callinfo->argType[i]))) {
+    uint32_t argOffset = callinfo->givestate ? 1 : 0;
+    for (uint32_t i=argOffset; i < args; ++i) {
+      if (!tref_istype(J->base[i - argOffset], lj_recext_ctype_to_irtype(callinfo->argType[i]))) {
         lj_recff_nyi(J, rd);
         return;
       }
@@ -747,7 +748,7 @@ void LJ_FASTCALL lj_recext_cfunc(jit_State *J, RecordFFData *rd, CFuncCallInfo* 
     }
 
     for (uint32_t i=1; i < args; ++i) {
-      tr = emitir(IRT(IR_CARG, IRT_NIL), tr, recext_processtype(J, tr, J->base[i], &rd->argv[i], callinfo->argType[i]));
+      tr = emitir(IRT(IR_CARG, IRT_NIL), tr, recext_processtype(J, tr, J->base[i - argOffset], &rd->argv[i - argOffset], callinfo->argType[i]));
       if (tr == TREF_INVALID) // processing failed. Abort!
       {
         lj_recff_nyi(J, rd);
@@ -774,6 +775,7 @@ void LJ_FASTCALL lj_recext_cfunc(jit_State *J, RecordFFData *rd, CFuncCallInfo* 
     if (retType == IRT_FLOAT) {
       result = emitconv(result, IRT_NUM, retType, 0);
     } else if (callinfo->retType == TR_TYPE_CHARS) {
+      emitir(IRTG(IR_NE, IRT_TRUE), result, lj_ir_kint(J, 0)); // GUARD to avoid null pointer crashes
       TRef strlen = lj_ir_call(J, IRCALL_strlen, result);
       result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
     } else if (callinfo->retType == TR_TYPE_STRING) {

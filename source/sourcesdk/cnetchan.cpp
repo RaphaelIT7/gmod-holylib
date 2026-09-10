@@ -726,7 +726,7 @@ void CNetChan::SetMaxBufferSize(bool bReliable, int nBytes, bool bVoice )
 	int		copybits = stream->GetNumBitsWritten();
 	int		copybytes = Bits2Bytes( copybits );
 
-	if ( copybytes >= nBytes )
+	if ( copybytes >= nBytes || copybytes > (int)sizeof(copybuf) )
 	{
 		ConMsg("CNetChan::SetMaxBufferSize: cant preserve exiting data %i>%i.\n", copybytes, nBytes );
 		return;

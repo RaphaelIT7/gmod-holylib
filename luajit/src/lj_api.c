@@ -34,6 +34,12 @@
 // RaphaelIT7: idk where to put this yet
 #include <immintrin.h>
 
+#if defined(_MSC_VER)
+#define THREADLOCAL __declspec(thread)
+#else
+#define THREADLOCAL __thread
+#endif
+
 /* -- Common helper functions --------------------------------------------- */
 
 #define lj_checkapi_slot(idx) \
@@ -328,7 +334,7 @@ LUALIB_API void luaL_checkany(lua_State *L, int idx)
 // Based off https://github.com/meepen/gluajit/blob/master/src/lj_api.c#L225-L247
 /*extern "C"*/ const char* GMODLUA_GetUserType(lua_State* L, int iStackPos)
 {
-  static char strName[128]; // RaphaelIT7: This doesn't seem thread safe at all...
+  static THREADLOCAL char strName[128];
   const char* strTypeName = "UserData";
   cTValue *o = index2adr(L, iStackPos);
   GCtab *mt = NULL;

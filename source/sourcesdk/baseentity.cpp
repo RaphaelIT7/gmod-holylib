@@ -25,17 +25,10 @@ CBaseEntity* CGlobalEntityList::NextEnt(CBaseEntity* pCurrentEnt)
 
 	while (pList)
 	{
-#if 0
 		if (pList->m_pEntity)
-		{
-			IServerUnknown* pUnk = static_cast<IServerUnknown*>(const_cast<IHandleEntity*>(pList->m_pEntity));
-			CBaseEntity* pRet = pUnk->GetBaseEntity();
-			if (pRet)
-				return pRet;
-		}
-#else
-		return (CBaseEntity*)pList->m_pEntity;
-#endif
+			return (CBaseEntity*)pList->m_pEntity;
+
+		pList = NextEntInfo(pList);
 	}
 
 	return nullptr;

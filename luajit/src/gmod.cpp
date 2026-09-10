@@ -209,7 +209,7 @@ extern "C" void GMOD_LuaPrint(const char* str, lua_State* L) // Should be how gm
 {
 	if (!L->luabase) // except for this, gmod doesn't do this, but we do making testing jit less of a pain
 	{
-		printf(str);
+		printf("%s", str);
 		return;
 	}
 

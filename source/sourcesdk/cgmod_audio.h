@@ -93,7 +93,7 @@ public:
 	static void CALLBACK EncoderProcessCallback(HENCODE handle, DWORD channel, const void *buffer, DWORD length, void *user);
 	static void CALLBACK EncoderProcessCallback(HENCODE handle, DWORD channel, const void *buffer, DWORD length, QWORD offset, void *user); // MP3 & FLAC need this one
 	static void CALLBACK EncoderFreedCallback(HENCODE handle, DWORD status, void *user); // Also calls OnDecoderDied 
-	static bool CALLBACK EncoderServerClientCallback(HENCODE handle, BOOL connect, const char* client, char headers[1024], void* user);
+	static BOOL CALLBACK EncoderServerClientCallback(HENCODE handle, BOOL connect, const char* client, char headers[1024], void* user);
 
 	HENCODE m_pEncoder;
 	FileHandle_t m_pFileHandle;

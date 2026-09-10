@@ -63,13 +63,14 @@ void hook_SV_EnsureInstanceBaseline(ServerClass *pServerClass, int iEdict, const
 	CUtlMemory< CSendProxyRecipients > recip( (CSendProxyRecipients*)tempData, pServerClass->m_pTable->m_pPrecalc->GetNumDataTableProxies() );
 	
 	g_bSkipGMODTableEncode = true;
-	if ( !func_SendTable_Encode( pServerClass->m_pTable, pEdict->GetUnknown(), &writeBuf, iEdict, &recip, false ) )
+	bool bEncoded = func_SendTable_Encode( pServerClass->m_pTable, pEdict->GetUnknown(), &writeBuf, iEdict, &recip, false );
+	g_bSkipGMODTableEncode = false;
+	if ( !bEncoded )
 	{
 		Warning( PROJECT_NAME " - SV_EnsureInstanceBaseline: SendTable_Encode returned false (ent %d).\n", iEdict );
 		detour_SV_EnsureInstanceBaseline.GetTrampoline<Symbols::SV_EnsureInstanceBaseline>()(pServerClass, iEdict, pData, nBytes);
 		return;
 	}
-	g_bSkipGMODTableEncode = false;
 
 	detour_SV_EnsureInstanceBaseline.GetTrampoline<Symbols::SV_EnsureInstanceBaseline>()(pServerClass, iEdict, writeBuffer, writeBuf.GetNumBytesWritten());
 }

@@ -1533,7 +1533,8 @@ bool CGModAudioChannelEncoder::GetLastError(const char** pErrorOut)
 	if (m_strLastError.length() == 0)
 		return false;
 
-	static thread_local std::string g_strLastError = m_strLastError; // To avoid memory corruption.
+	static thread_local std::string g_strLastError; // To avoid memory corruption.
+	g_strLastError = m_strLastError;
 	*pErrorOut = g_strLastError.c_str();
 
 	delete this; // Freeing ourself!
@@ -1560,7 +1561,8 @@ CGModAudioChannelEncoder::~CGModAudioChannelEncoder()
 static inline bool IsDecodeChannel(DWORD handle)
 {
 	BASS_CHANNELINFO info;
-	func_BASS_ChannelGetInfo(handle, &info);
+	if (!func_BASS_ChannelGetInfo(handle, &info))
+		return false;
 
 	return (info.flags & BASS_STREAM_DECODE) == BASS_STREAM_DECODE;
 }
@@ -1667,7 +1669,8 @@ void CGModAudioChannelEncoder::InitEncoder(unsigned long nEncoderFlags)
 
 void CGModAudioChannelEncoder::HandleFinish(void* nSignalData)
 {
-	if (nSignalData == (void*)EncoderForceShutdownPointer || (m_nStatus != GModEncoderStatus::FINISHED && (!m_pCallback || !m_pCallback->ShouldForceFinish(this, nSignalData))))
+	bool bForceShutdown = nSignalData == (void*)EncoderForceShutdownPointer;
+	if (!bForceShutdown && m_nStatus != GModEncoderStatus::FINISHED && (!m_pCallback || !m_pCallback->ShouldForceFinish(this, nSignalData)))
 		return; // Not yet finished
 
 	if (m_pCallback)
@@ -1733,7 +1736,7 @@ void CALLBACK CGModAudioChannelEncoder::EncoderFreedCallback(HENCODE handle, DWO
 	}
 }
 
-bool CGModAudioChannelEncoder::EncoderServerClientCallback(HENCODE handle, BOOL connect, const char* client, char headers[1024], void* user)
+BOOL CGModAudioChannelEncoder::EncoderServerClientCallback(HENCODE handle, BOOL connect, const char* client, char headers[1024], void* user)
 {
 	return ((CGModAudioChannelEncoder*)user)->ServerCallback(connect, client, headers);
 }
@@ -1741,7 +1744,7 @@ bool CGModAudioChannelEncoder::EncoderServerClientCallback(HENCODE handle, BOOL 
 bool CGModAudioChannelEncoder::ServerInit( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut )
 {
 	*pErrorOut = nullptr;
-	if (func_BASS_Encode_ServerInit(m_pEncoder, port, buffer, burst, flags, nullptr, this) == 0)
+	if (func_BASS_Encode_ServerInit(m_pEncoder, port, buffer, burst, flags, EncoderServerClientCallback, this) == 0)
 	{
 		*pErrorOut = BassErrorToString(func_BASS_ErrorGetCode());
 		return false;
@@ -1752,7 +1755,7 @@ bool CGModAudioChannelEncoder::ServerInit( const char* port, unsigned long buffe
 
 bool CGModAudioChannelEncoder::ServerKick(const char * client)
 {
-	return func_BASS_Encode_ServerKick( m_pChannel, client );
+	return func_BASS_Encode_ServerKick( m_pEncoder, client );
 }
 
 void CGModAudioChannelEncoder::SetPaused(bool bPaused)
