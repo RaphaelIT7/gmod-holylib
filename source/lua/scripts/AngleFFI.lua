@@ -286,9 +286,9 @@ function methods:Up()
     local cr = math.cos(rr)
     local sr = math.sin(rr)
 
-    local x = cp * cy
-    local y = cp * sy
-    local z = -sp
+    local x = cr * sp * cy + sr * sy
+    local y = cr * sp * sy - sr * cy
+    local z = cr * cp
 
     return Vector(x, y, z)
 end
