@@ -3,7 +3,7 @@ local nativeUp = FindMetaTable("Angle").Up
 local epsilon = 0.00001
 local components = { -360, -180, -90, -30, 0, 30, 90, 180, 360 }
 
-local function expectVector(actual, expected)
+local function expectVector(actual, expected, expect)
     expect( isvector(actual) ).to.beTrue()
     expect( math.abs(actual.x - expected.x) < epsilon ).to.beTrue()
     expect( math.abs(actual.y - expected.y) < epsilon ).to.beTrue()
@@ -16,12 +16,12 @@ return {
         {
             name = "Returns the expected up axis for cardinal rotations",
             func = function()
-                expectVector(angleUp(Angle(0, 0, 0)), Vector(0, 0, 1))
-                expectVector(angleUp(Angle(0, 90, 0)), Vector(0, 0, 1))
-                expectVector(angleUp(Angle(90, 0, 0)), Vector(1, 0, 0))
-                expectVector(angleUp(Angle(0, 0, 90)), Vector(0, -1, 0))
-                expectVector(angleUp(Angle(0, 0, -90)), Vector(0, 1, 0))
-                expectVector(angleUp(Angle(0, 0, 180)), Vector(0, 0, -1))
+                expectVector(angleUp(Angle(0, 0, 0)), Vector(0, 0, 1), expect)
+                expectVector(angleUp(Angle(0, 90, 0)), Vector(0, 0, 1), expect)
+                expectVector(angleUp(Angle(90, 0, 0)), Vector(1, 0, 0), expect)
+                expectVector(angleUp(Angle(0, 0, 90)), Vector(0, -1, 0), expect)
+                expectVector(angleUp(Angle(0, 0, -90)), Vector(0, 1, 0), expect)
+                expectVector(angleUp(Angle(0, 0, 180)), Vector(0, 0, -1), expect)
             end
         },
         {
@@ -31,7 +31,7 @@ return {
                     for _, yaw in ipairs(components) do
                         for _, roll in ipairs(components) do
                             local angle = Angle(pitch, yaw, roll)
-                            expectVector(angleUp(angle), nativeUp(angle))
+                            expectVector(angleUp(angle), nativeUp(angle), expect)
                         end
                     end
                 end
