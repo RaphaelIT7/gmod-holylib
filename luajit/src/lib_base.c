@@ -387,7 +387,8 @@ static int load_aux(lua_State *L, int status, int envarg)
   }
 }
 
-LJLIB_CF(loadfile)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(loadfile)
 {
   GCstr *fname = lj_lib_optstr(L, 1);
   GCstr *mode = lj_lib_optstr(L, 2);
@@ -397,6 +398,7 @@ LJLIB_CF(loadfile)
 			  mode ? strdata(mode) : NULL);
   return load_aux(L, status, 3);
 }
+#endif
 
 static const char *reader_func(lua_State *L, void *ud, size_t *size)
 {
@@ -420,7 +422,13 @@ static const char *reader_func(lua_State *L, void *ud, size_t *size)
 LJLIB_CF(load)
 {
   GCstr *name = lj_lib_optstr(L, 2);
+#if defined(LJ_NO_SANDBOX)
   GCstr *mode = lj_lib_optstr(L, 3);
+  const char *pMode = mode ? strdata(mode) : NULL;
+#else
+  // We do not allow to load bytecode & only allow text!
+  const char *pMode = "t";
+#endif
   int status;
   if (L->base < L->top &&
       (tvisstr(L->base) || tvisnumber(L->base) || tvisbuf(L->base))) {
@@ -437,13 +445,11 @@ LJLIB_CF(load)
       len = str->len;
     }
     lua_settop(L, 4);  /* Ensure env arg exists. */
-    status = luaL_loadbufferx(L, s, len, name ? strdata(name) : s,
-			      mode ? strdata(mode) : NULL);
+    status = luaL_loadbufferx(L, s, len, name ? strdata(name) : s, pMode);
   } else {
     lj_lib_checkfunc(L, 1);
     lua_settop(L, 5);  /* Reserve a slot for the string from the reader. */
-    status = lua_loadx(L, reader_func, NULL, name ? strdata(name) : "=(load)",
-		       mode ? strdata(mode) : NULL);
+    status = lua_loadx(L, reader_func, NULL, name ? strdata(name) : "=(load)", pMode);
   }
   return load_aux(L, status, 4);
 }
