@@ -186,6 +186,8 @@ There may be further options which will control other module specific functions.
 \- \-> Fixed invalid pointer issues with `filesystem.AsyncRead`<br>
 \- \-> Fixed an memory leak with `FileAsyncReadThink` not freeing memory<br>
 \- [#] Fixed `bitbuf.CreateStackWriteBuffer` actually pushing a `bf_read`<br>
+\- [#] Fixed `systimer.UnPause` working on non-paused timers<br>
+\- [#] Fixed `HolyLib.FadeClientVolume` pushing a return value when it has none<br>
 
 You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main

@@ -173,12 +173,9 @@ LUA_FUNCTION_STATIC(timer_Pause)
 	const char* name = LUA->CheckString(1);
 
 	ILuaTimer* timer = FindTimer(LUA, name);
-	if (timer) {
-		if (timer->active) {
-			timer->active = false;
-			LUA->PushBool(true);
-		} else
-			LUA->PushBool(false);
+	if (timer && timer->active) {
+		timer->active = false;
+		LUA->PushBool(true);
 	} else
 		LUA->PushBool(false);
 
@@ -308,7 +305,7 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 	const char* name = LUA->CheckString(1);
 
 	ILuaTimer* timer = FindTimer(LUA, name);
-	if (timer) {
+	if (timer && !timer->active) {
 		timer->active = true;
 		timer->nextRunTime = GetTime() + timer->delay;
 		LUA->PushBool(true);

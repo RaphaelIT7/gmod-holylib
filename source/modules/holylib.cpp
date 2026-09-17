@@ -76,8 +76,7 @@ LUA_FUNCTION_STATIC(FadeClientVolume)
 
 	// It basically just runs a command clientside.
 	Util::engineserver->FadeClientVolume(pEdict, fadePercent, fadeOutSeconds, holdTime, fadeInSeconds);
-
-	return 1;
+	return 0;
 }
 
 LUA_JIT_WRAPPED_0(ServerExecute)

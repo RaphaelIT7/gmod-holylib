@@ -152,6 +152,9 @@ void CHolyLuaModule::HolyLua_Shutdown()
 	// NOTE: Our own mutex supports this style of usage, a normal std::mutex would deadlock!
 	Lua::CriticalThreadAccess pCriticalThreadScope;
 	auto LUA = GetHolyLuaInterface();
+	if (!LUA)
+		return;
+
 	g_pModuleManager.LuaShutdown(LUA);
 
 	Lua::DestroyInterface(LUA);
