@@ -19,7 +19,7 @@ env:
 
 jobs:
   build_plugin_windows:
-    name: "Build Plugin"
+    name: "Build Plugin (Main branch)"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
       PROJECT_NAME: "holylib"
@@ -31,7 +31,7 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
       BUILD_CACHE: "true"
@@ -56,26 +56,6 @@ jobs:
       BUILD_CACHE: "true"
       UPLOAD_PDB: "true"
       BUILD_WINDOWS_DEDICATED: "true"
-
-  build_plugin_windows_64x_main:
-    name: "Build Plugin (64x - Main Branch)"
-    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
-    with:
-      PROJECT_NAME: "holylib"
-      BUILD_64x: "true"
-      BUILD_32x: "false"
-      REALM: "sv"
-      LINUX_FILEEXTENTION: "so"
-      BUILD_WINDOWS: "true"
-      BUILD_LINUX: "false"
-      ADDITIONAL_POSTARTIFACTNAME: " - Main branch"
-      ARTIFACT_EXPIRE: "7"
-      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
-      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
-      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
-      GARRYSMOD_COMMON_BRANCH: "holylib"
-      BUILD_CACHE: "true"
-      UPLOAD_PDB: "true"
 
   build_plugin_linux:
     name: "Build Plugin"
