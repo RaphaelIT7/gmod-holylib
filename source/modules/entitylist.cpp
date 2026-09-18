@@ -243,7 +243,8 @@ LUA_FUNCTION_STATIC(EntityList_AddEntity)
 	EntityList* pData = Get_EntityList(LUA, 1, true);
 	CBaseEntity* pEntity = Util::Get_Entity(LUA, 2, true);
 
-	pData->AddEntity(pEntity, false);
+	if (pData->GetReferences().find(pEntity) == pData->GetReferences().end())
+		pData->AddEntity(pEntity, false);
 
 	return 0;
 }

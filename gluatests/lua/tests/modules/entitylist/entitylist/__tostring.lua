@@ -23,5 +23,25 @@ return {
                 expect( entityList:__tostring() ).to.equal( "EntityList [0]" )
             end
         },
+        {
+            name = "Returns the amount of entities in the list",
+            when = HolyLib_IsModuleEnabled("entitylist"),
+            func = function()
+                local entityList = CreateEntityList()
+                entityList:AddEntity( game.GetWorld() )
+
+                expect( entityList:__tostring() ).to.equal( "EntityList [1]" )
+            end
+        },
+        {
+            name = "Returns 'EntityList [NULL]' once the list was gc'd",
+            when = HolyLib_IsModuleEnabled("entitylist"),
+            func = function()
+                local entityList = CreateEntityList()
+                entityList:__gc()
+
+                expect( entityList:__tostring() ).to.equal( "EntityList [NULL]" )
+            end
+        },
     }
 }

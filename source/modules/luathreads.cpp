@@ -237,8 +237,10 @@ Default__IsValid(LuaInterface);
 LUA_FUNCTION_STATIC(LuaInterface_RunString)
 {
 	LuaInterface* pData = Get_LuaInterface(LUA, 1, true);
+	const char* strCode = LUA->CheckString(2);
+
 	RunStringTask* pTask = new RunStringTask;
-	pTask->strCode = LUA->CheckString(2);
+	pTask->strCode = strCode;
 
 	pData->AddTask(pTask);
 
@@ -264,6 +266,7 @@ LUA_FUNCTION_STATIC(LuaInterface_SetName)
 LUA_FUNCTION_STATIC(LuaInterface_EnableThinking)
 {
 	LuaInterface* pData = Get_LuaInterface(LUA, 1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Bool);
 	bool bEnable = LUA->GetBool(2);
 
 	if (bEnable && pData->HasThread())

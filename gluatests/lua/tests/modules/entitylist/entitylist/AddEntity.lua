@@ -35,6 +35,19 @@ return {
             end
         },
         {
+            name = "Adding the same entity twice does not create a duplicate entry",
+            when = HolyLib_IsModuleEnabled("entitylist"),
+            func = function()
+                local entityList = CreateEntityList()
+                local ent = ents.GetAll()[1]
+
+                entityList:AddEntity( ent )
+                entityList:AddEntity( ent )
+
+                expect( #entityList:GetEntities() ).to.equal( 1 )
+            end
+        },
+        {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("entitylist"),
             func = function()

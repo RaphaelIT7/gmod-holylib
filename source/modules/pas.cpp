@@ -67,7 +67,15 @@ LUA_FUNCTION_STATIC(pas_CheckBoxInPAS)
 {
 	Vector* mins = Get_Vector(LUA, 1, true);
 	Vector* maxs = Get_Vector(LUA, 2, true);
-	Vector* orig = Get_Vector(LUA, 3, true);
+
+	Vector* orig;
+	if (LUA->IsType(3, GarrysMod::Lua::Type::Vector))
+	{
+		orig = Get_Vector(LUA, 3, true);
+	} else {
+		CBaseEntity* ent = Util::Get_Entity(LUA, 3, true);
+		orig = (Vector*)&ent->GetAbsOrigin();
+	}
 
 	std::unique_ptr<Util::VisData> pVisCluster(Util::CM_Vis(*orig, DVIS_PAS));
 

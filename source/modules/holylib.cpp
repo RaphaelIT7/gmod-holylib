@@ -35,8 +35,6 @@ IModule* pHolyLibModule = &g_pHolyLibModule;
 LUA_FUNCTION_STATIC(Reconnect)
 {
 	CBasePlayer* ent = Util::Get_Player(LUA, 1, true);
-	if (!ent)
-		LUA->ArgError(1, "Tried to use a NULL player!");
 
 	CBaseClient* client = Util::GetClientByIndex(ent->GetClientIndex());
 	if (client->GetNetChannel()) {
@@ -333,14 +331,10 @@ LUA_FUNCTION_STATIC(HideMsg) // ToDo: Final logic is still missing.
 	std::string pRegex = LUA->CheckString(1);
 	bool bRemove = LUA->GetBool(2);
 
-	auto it = g_pHideMsg.find(pRegex);
-	if (it != g_pHideMsg.end())
-	{
-		if (bRemove)
-			g_pHideMsg.erase(it);
-	} else {
+	if (bRemove)
+		g_pHideMsg.erase(pRegex);
+	else
 		g_pHideMsg.insert(pRegex);
-	}
 
 	return 0;
 }

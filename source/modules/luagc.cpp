@@ -88,6 +88,9 @@ class TraverseInfo
 public:
 	void AddNext(GCobj* pObj)
 	{
+		if (!pObj)
+			return;
+
 		if (m_bLocked)
 			return;
 

@@ -140,6 +140,7 @@ LUA_FUNCTION_STATIC(timer_Create)
 	} else {
 		Util::ReferenceFree(timer->pLua, timer->function, "timer.Create - old function");
 		Util::ReferenceFree(timer->pLua, timer->identifierReference, "timer.Create - old identifyer");
+		timer->markDelete = false;
 	}
 
 	LUA->Push(4);
@@ -175,6 +176,7 @@ LUA_FUNCTION_STATIC(timer_Pause)
 	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer && timer->active) {
 		timer->active = false;
+		timer->nextRunTime = timer->nextRunTime - GetTime();
 		LUA->PushBool(true);
 	} else
 		LUA->PushBool(false);
@@ -273,9 +275,9 @@ LUA_FUNCTION_STATIC(timer_TimeLeft)
 	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer)
 		if (timer->active)
-			LUA->PushNumber(timer->nextRunTime - GetTime());
+			LUA->PushNumber((timer->nextRunTime - GetTime()) / (1000.0 * 1000.0));
 		else
-			LUA->PushNumber(timer->nextRunTime);
+			LUA->PushNumber(timer->nextRunTime / (1000.0 * 1000.0));
 	else
 		LUA->PushNumber(0);
 
@@ -307,7 +309,7 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer && !timer->active) {
 		timer->active = true;
-		timer->nextRunTime = GetTime() + timer->delay;
+		timer->nextRunTime = GetTime() + timer->nextRunTime;
 		LUA->PushBool(true);
 	} else
 		LUA->PushBool(false);
@@ -372,13 +374,13 @@ void CSysTimerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 		{
 			timer->nextRunTime = time + timer->delay;
 
-			Util::ReferencePush(pLua, timer->function);
-			pLua->CallFunctionProtected(0, 0, true); // We should add a custom error handler to not have errors with no stack (Which somehow can happen but only observed in gmod clients)
-
 			if (timer->repetitions == 1)
 				timer->markDelete = true;
 			else
 				timer->repetitions--;
+
+			Util::ReferencePush(pLua, timer->function);
+			pLua->CallFunctionProtected(0, 0, true); // We should add a custom error handler to not have errors with no stack (Which somehow can happen but only observed in gmod clients)
 		}
 	}
 
