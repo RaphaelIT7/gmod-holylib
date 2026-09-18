@@ -8,12 +8,15 @@
 #include "lua.h"
 #include <algorithm>
 #include <cstring>
+#include <shared_mutex>
 #include "edict.h"
 #include "unordered_stuff.h"
 #include "sdk_backports.h"
 
 #include <isteamugc.h>
 #include "sourcesdk/baseserver.h"
+
+#include "rengine/filewatcher.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -26,6 +29,7 @@ public:
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void Think(bool bSimulating) override;
 	const char* Name() override { return "filesystem"; };
 	int Compatibility() override { return LINUX32; };
 	bool SupportsMultipleLuaStates() override { return true; };
@@ -103,36 +107,40 @@ static bool PathStartsWith( const char *pszPath, const char *pszPrefix )
 // V_RemoveDotSlashes exists BUT it doesn't do both seperators unlike this one
 static void NormalizeGamePath( char *pszPath )
 {
-    char* src = pszPath;
-    char* dst = pszPath;
-    while ( *src )
-    {
-        if ( src[0] == '.' && ( src[1] == '\\' || src[1] == '/' ) )
-        {
-            src += 2;
-            continue;
-        }
+	char* src = pszPath;
+	char* dst = pszPath;
+	while ( *src )
+	{
+		if ( src[0] == '.' && ( src[1] == '\\' || src[1] == '/' ) )
+		{
+			src += 2;
+			continue;
+		}
 
-        if ( src[0] == '.' && src[1] == '.' && ( src[2] == '\\' || src[2] == '/' ) )
-        {
-            // Remove previous component.
-            if ( dst > pszPath )
-            {
-                --dst;
+		if ( src[0] == '.' && src[1] == '.' && ( src[2] == '\\' || src[2] == '/' ) )
+		{
+			// Remove previous component.
+			if ( dst > pszPath )
+			{
+				--dst;
 
-                while ( dst > pszPath && dst[-1] != '\\' && dst[-1] != '/' )
-                    --dst;
-            }
+				while ( dst > pszPath && dst[-1] != '\\' && dst[-1] != '/' )
+					--dst;
+			}
 
-            src += 3;
-            continue;
-        }
+			src += 3;
+			continue;
+		}
 
-        *dst++ = *src++;
-    }
+		*dst++ = *src++;
+	}
 
-    *dst = '\0';
+	*dst = '\0';
 }
+
+static Symbols::CFileSystem_Stdio_FS_FindFirstFile func_CFileSystem_Stdio_FS_FindFirstFile = nullptr;
+static Symbols::CFileSystem_Stdio_FS_FindNextFile func_CFileSystem_Stdio_FS_FindNextFile = nullptr;
+static Symbols::CFileSystem_Stdio_FS_FindClose func_CFileSystem_Stdio_FS_FindClose = nullptr;
 
 // RaphaelIT7:
 // For GMod's scale this will be a lot more complex than REngine...
@@ -142,7 +150,7 @@ class CDiskFileTree : public CRefCounted<CRefCountServiceMT>
 {
 public:
 	void BuildTree( const char *pszRoot );
-	FileCacheEntry ContainsPath( const char *pszAbsolutePath ) const;
+	FileCacheEntry ContainsPath( const char *pszAbsolutePath );
 
 	void AddPath( const char *pszAbsolutePath, FileCacheEntry type );
 	void RemovePath( const char *pszAbsolutePath );
@@ -151,21 +159,207 @@ public:
 	const auto& GetFileList() const { return m_FileList; }
 	void Rebuild();
 
+	std::shared_mutex& GetMutex() { return m_FileListMutex; }
+
 private:
 	bool RecursiveTraverse( const char *pszFolderPath );
 
 	// We use StringHash & StringEq so that when searching we do not allocate an std::string
 	unordered_map<std::string, FileCacheEntry, StringHash, StringEq> m_FileList;
+	std::shared_mutex m_FileListMutex;
 };
 
-static CDiskFileTree g_pDiskFileTree;
+static CDiskFileTree g_DiskFileTree;
+
+static ConVar holylib_filesystem_static("holylib_filesystem_static", "0", FCVAR_ARCHIVE,
+	"If enabled, then no file watchers are created as it is assumed at runtime the filesystem won't change externally");
+
+class CFileWatcherSystem : public IFileWatcherSystem
+{
+public: // IFileWatcherSystem
+	// Not important for us
+	void OnFileModify(const char* pszFullFilePath) {};
+
+	void OnFileCreated(const char* pszFullFilePath)
+	{
+		if (g_pFileSystemModule.InDebug())
+			Msg(PROJECT_NAME " - filesystem(OnFileCreated): %s\n", pszFullFilePath);
+
+		g_DiskFileTree.AddPath(NormalizePath(pszFullFilePath), FileCacheEntry::FILE);
+	}
+
+	void OnFileDeleted(const char* pszFullFilePath)
+	{
+		if (g_pFileSystemModule.InDebug())
+			Msg(PROJECT_NAME " - filesystem(OnFileDeleted): %s\n", pszFullFilePath);
+
+		g_DiskFileTree.RemovePath(NormalizePath(pszFullFilePath));
+	}
+
+	void OnFileRenamed(const char* pOldFullFilePath, const char* pszNewFullFilePath)
+	{
+		if (g_pFileSystemModule.InDebug())
+			Msg(PROJECT_NAME " - filesystem(OnFileRenamed): %s -> %s\n", pOldFullFilePath, pszNewFullFilePath);
+
+		g_DiskFileTree.RenamePath(NormalizePath(pOldFullFilePath), NormalizePath(pszNewFullFilePath));
+	}
+
+	void OnFolderCreated(const char* pszFullFolderPath)
+	{
+		if (g_pFileSystemModule.InDebug())
+			Msg(PROJECT_NAME " - filesystem(OnFolderCreated): %s\n", pszFullFolderPath);
+
+		const char* pszNormalized = NormalizePath(pszFullFolderPath);
+		g_DiskFileTree.AddPath(pszNormalized, FileCacheEntry::FOLDER);
+		CreateWatcher(pszNormalized);
+	}
+
+	void OnFolderDeleted(const char* pszFullFolderPath)
+	{
+		if (g_pFileSystemModule.InDebug())
+			Msg(PROJECT_NAME " - filesystem(OnFolderDeleted): %s\n", pszFullFolderPath);
+
+		g_DiskFileTree.RemovePath(NormalizePath(pszFullFolderPath));
+	}
+
+	void OnFolderRenamed(const char* pszOldFullFolderPath, const char* pNewFullFolderPath)
+	{
+		if (g_pFileSystemModule.InDebug())
+			Msg(PROJECT_NAME " - filesystem(OnFolderRenamed): %s -> %s\n", pszOldFullFolderPath, pNewFullFolderPath);
+
+		const char* pszNewNormalized = NormalizePath(pNewFullFolderPath);
+		g_DiskFileTree.RenamePath(NormalizePath(pszOldFullFolderPath), pszNewNormalized);
+		CreateWatcher(pszNewNormalized);
+	}
+
+	void RegisterInternalWatcher(CFileWatcher* pWatcher)
+	{
+		std::lock_guard<std::mutex> lock(m_WatchersMutex);
+		auto it = m_Watchers.find(pWatcher);
+		if (it == m_Watchers.end())
+			m_Watchers.insert(pWatcher);
+
+		auto folderIt = m_WatcherFolders.find(pWatcher->GetFullFolderPath());
+		if (folderIt == m_WatcherFolders.end())
+			m_WatcherFolders.insert(pWatcher->GetFullFolderPath());
+	}
+
+	void UnregisterInternalWatcher(CFileWatcher* pWatcher)
+	{
+		auto it = m_Watchers.find(pWatcher);
+		if (it != m_Watchers.end())
+			m_Watchers.erase(it);
+
+		auto folderIt = m_WatcherFolders.find(pWatcher->GetFullFolderPath());
+		if (folderIt != m_WatcherFolders.end())
+			m_WatcherFolders.erase(folderIt);
+
+		pWatcher->GiveYummyToLumi();
+	}
+
+public:
+	void CreateWatcher(const char* pszFullFolderPath)
+	{
+		if (holylib_filesystem_static.GetBool())
+			return;
+
+		if (g_pFileSystemModule.InDebug())
+			Msg(PROJECT_NAME " - filesystem(CreateWatcher): %s\n", pszFullFolderPath);
+
+		char szFolderPath[MAX_PATH];
+		V_strncpy(szFolderPath, pszFullFolderPath, sizeof(szFolderPath));
+		V_FixSlashes(szFolderPath, '/');
+		V_RemoveDotSlashes(szFolderPath);
+		V_StripTrailingSlash(szFolderPath);
+		V_strlower(szFolderPath);
+
+		new CFileWatcher(szFolderPath);
+
+		char szSearchPath[MAX_PATH];
+		V_snprintf(szSearchPath, sizeof(szSearchPath), "%s/*", pszFullFolderPath);
+
+		WIN32_FIND_DATA findData;
+		HANDLE hFind = func_CFileSystem_Stdio_FS_FindFirstFile(g_pFullFileSystem, szSearchPath, &findData);
+		if (hFind == INVALID_HANDLE_VALUE)
+			return;
+
+		do
+		{
+			if (!V_stricmp(findData.cFileName, ".") || !V_stricmp(findData.cFileName, ".."))
+				continue;
+
+			if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+				continue;
+
+			char szFullPath[MAX_PATH];
+			V_snprintf(szFullPath, sizeof(szFullPath), "%s" CORRECT_PATH_SEPARATOR_S "%s", pszFullFolderPath, findData.cFileName);
+			V_FixSlashes(szFullPath, '/');
+			V_RemoveDotSlashes(szFullPath);
+			V_StripTrailingSlash(szFullPath);
+			V_strlower(szFullPath);
+
+			CreateWatcher(szFullPath);
+		} while (func_CFileSystem_Stdio_FS_FindNextFile(g_pFullFileSystem, hFind, &findData));
+
+		func_CFileSystem_Stdio_FS_FindClose(g_pFullFileSystem, hFind);
+	}
+
+	void RunCallbacks()
+	{
+		std::lock_guard<std::mutex> lock(m_WatchersMutex);
+#if SYSTEM_WINDOWS
+		for (auto& pWatcher : m_Watchers)
+			pWatcher->CheckForChanges();
+#else
+		CFileWatcher::CheckForChanges();
+#endif
+
+		std::erase_if(m_Watchers, [this](CFileWatcher* pWatcher) {
+			bool bFood = pWatcher->FoodForLumi();
+			if (bFood)
+				UnregisterInternalWatcher(pWatcher);
+
+			return bFood;
+		});
+	}
+
+	const char* NormalizePath(const char* pszAbsolutePath)
+	{
+		m_bNextFullPath = !m_bNextFullPath;
+		V_strncpy( m_szFullPath[m_bNextFullPath], pszAbsolutePath, sizeof( m_szFullPath[m_bNextFullPath] ) );
+		V_FixSlashes( m_szFullPath[m_bNextFullPath], '/' );
+		// RaphaelIT7:
+		// Somehow... we can have some of those.
+		// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
+		V_RemoveDotSlashes( m_szFullPath[m_bNextFullPath] );
+		V_StripTrailingSlash( m_szFullPath[m_bNextFullPath] );
+		V_strlower( m_szFullPath[m_bNextFullPath] );
+
+		return m_szFullPath[m_bNextFullPath];
+	}
+
+private:
+	bool m_bNextFullPath = false; // Since we need two buffers
+	char m_szFullPath[2][MAX_PATH];
+	std::mutex m_WatchersMutex;
+	ankerl::unordered_dense::set<CFileWatcher*> m_Watchers{};
+	ankerl::unordered_dense::set<std::string_view> m_WatcherFolders{};
+};
+
+static CFileWatcherSystem g_FileWatcherSystem;
+IFileWatcherSystem* g_pFileWatcherSystem = &g_FileWatcherSystem;
+
+void CFileSystemModule::Think(bool bSimulating)
+{
+	g_FileWatcherSystem.RunCallbacks();
+}
 
 static void OnSearchCacheChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
 	if (!((ConVar*)convar)->GetBool())
 		return;
 
-	g_pDiskFileTree.Rebuild();
+	g_DiskFileTree.Rebuild();
 }
 
 static ConVar holylib_filesystem_filecache("holylib_filesystem_filecache", "1", FCVAR_ARCHIVE, 
@@ -177,27 +371,28 @@ static ConVar holylib_filesystem_skipinvalidluapaths("holylib_filesystem_skipinv
 
 void CDiskFileTree::BuildTree( const char *pszRoot )
 {
-	if ( V_IsAbsolutePath( pszRoot ) )
-	{
-		char szFullPath[MAX_PATH];
-		V_strncpy( szFullPath, pszRoot, sizeof( szFullPath ) );
-		V_FixSlashes( szFullPath, '/' );
-		// RaphaelIT7:
-		// Somehow... we can have some of those.
-		// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
-		V_RemoveDotSlashes( szFullPath );
-		V_StripTrailingSlash( szFullPath );
-		V_strlower( szFullPath );
+	if ( !V_IsAbsolutePath( pszRoot ) )
+		return;
 
-		RecursiveTraverse( pszRoot );
-	}
+	char szFullPath[MAX_PATH];
+	V_strncpy( szFullPath, pszRoot, sizeof( szFullPath ) );
+	V_FixSlashes( szFullPath, '/' );
+	// RaphaelIT7:
+	// Somehow... we can have some of those.
+	// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
+	V_RemoveDotSlashes( szFullPath );
+	V_StripTrailingSlash( szFullPath );
+	V_strlower( szFullPath );
+
+	RecursiveTraverse( pszRoot );
 }
 
-FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath ) const
+FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath )
 {
 	if ( !holylib_filesystem_filecache.GetBool() )
 		return FileCacheEntry::UNKNOWN;
 
+	std::shared_lock<std::shared_mutex> lock(m_FileListMutex);
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it != m_FileList.end() )
 		return it->second;
@@ -207,9 +402,9 @@ FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath ) const
 	return FileCacheEntry::INVALID;
 }
 
-// RaphaelIT7 (ToDo): We need a shared mutex!
 void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
 {
+	std::unique_lock<std::shared_mutex> lock(m_FileListMutex);
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it == m_FileList.end() )
 		m_FileList[pszAbsolutePath] = type;
@@ -217,6 +412,7 @@ void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
 
 void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
 {
+	std::unique_lock<std::shared_mutex> lock(m_FileListMutex);
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it != m_FileList.end() )
 		m_FileList.erase( it );
@@ -224,9 +420,13 @@ void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
 
 void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath )
 {
+	std::unique_lock<std::shared_mutex> lock(m_FileListMutex);
 	auto it = m_FileList.find( pszOldAbsolutePath );
 	if ( it == m_FileList.end() )
-		return; // Lies! ToDo: How should we handle this?
+	{
+		Rebuild(); // ToDo: We could go to disk and check what pszNewAbsolutePath is and what is going on, but this is easier right now (#Lazy)
+		return;
+	}
 
 	m_FileList[ pszNewAbsolutePath ] = it->second;
 	m_FileList.erase( it );
@@ -241,6 +441,7 @@ void CDiskFileTree::Rebuild()
 	if (Util::GetGModVersionNum() < 260718)
 		return;
 
+	std::unique_lock<std::shared_mutex> lock(m_FileListMutex);
 	m_FileList.clear();
 	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)g_pFullFileSystem->Addons();
 	FOR_EACH_LL_(((CBaseFileSystem*)g_pFullFileSystem)->m_SearchPaths, pSearchPath)
@@ -250,9 +451,6 @@ void CDiskFileTree::Rebuild()
 	}
 }
 
-static Symbols::CFileSystem_Stdio_FS_FindFirstFile func_CFileSystem_Stdio_FS_FindFirstFile = nullptr;
-static Symbols::CFileSystem_Stdio_FS_FindNextFile func_CFileSystem_Stdio_FS_FindNextFile = nullptr;
-static Symbols::CFileSystem_Stdio_FS_FindClose func_CFileSystem_Stdio_FS_FindClose = nullptr;
 // RaphaelIT7:
 // This is expensive! A trade of startup time vs runtime performance
 // ToDo: Check out if we can improve memory usage
@@ -363,7 +561,7 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 	FileCacheEntry eCacheEntry = FileCacheEntry::UNKNOWN;
 	if ( !bIsAbsolutePath )
 	{
-		eCacheEntry = g_pDiskFileTree.ContainsPath( openInfo.m_AbsolutePath );
+		eCacheEntry = g_DiskFileTree.ContainsPath( openInfo.m_AbsolutePath );
 
 		// openInfo.m_pFileName is a mess due to \\..\\ not yet being normalized!
 		// eCacheEntry = openInfo.m_pSearchPath->ContainsPath( openInfo.m_pFileName );
@@ -416,7 +614,7 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 	// Msg( "Failed to open file %s\n", openInfo.m_AbsolutePath );
 
 	// RaphaelIT7: If this happens then the file was removed from disk and we didn't know yet
-	g_pDiskFileTree.RemovePath( openInfo.m_AbsolutePath );
+	g_DiskFileTree.RemovePath( openInfo.m_AbsolutePath );
 }
 
 // RaphaelIT7: A special flag to mark the workshop/ path
@@ -501,13 +699,19 @@ void hook_CBaseFileSystem_AddSearchPathInternal(CBaseFileSystem* _this, const ch
 	}*/
 
 	if ( V_IsAbsolutePath( g_pLastCreatedSearchPath->GetPathString() ) && (m_AddonFileSystem->ModPath().empty() || PathStartsWith( g_pLastCreatedSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() )) )
-		g_pDiskFileTree.BuildTree( g_pLastCreatedSearchPath->GetPathString() );
+	{
+		if (V_stricmp(g_pLastCreatedSearchPath->GetPathIDString(), "BASE_PATH") == 0)
+			g_FileWatcherSystem.CreateWatcher( g_pLastCreatedSearchPath->GetPathString() );
+
+		std::unique_lock<std::shared_mutex> lock(g_DiskFileTree.GetMutex());
+		g_DiskFileTree.BuildTree( g_pLastCreatedSearchPath->GetPathString() );
+	}
 }
 
 static void DumpFileTree(const CCommand &args)
 {
 	Msg("Filelist:\n");
-	for (auto& [key, val] : g_pDiskFileTree.GetFileList())
+	for (auto& [key, val] : g_DiskFileTree.GetFileList())
 		Msg("\t%s (%i)\n", key.c_str(), (int)val);
 }
 static ConCommand dumpfiletree("holylib_filesystem_dumpfiletree", DumpFileTree, "Dumps the filetree", 0);
@@ -570,7 +774,7 @@ static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSea
 		// RaphaelIT7: We force lower for consistency!
 		V_strlower( pTmpFileName );
 		NormalizeGamePath( pTmpFileName );
-		FileCacheEntry eCacheEntry = g_pDiskFileTree.ContainsPath( pTmpFileName );
+		FileCacheEntry eCacheEntry = g_DiskFileTree.ContainsPath( pTmpFileName );
 
 		// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
 		if ( eCacheEntry == FileCacheEntry::INVALID )
@@ -595,7 +799,7 @@ static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSea
 		}
 #endif
 
-		g_pDiskFileTree.RemovePath( pTmpFileName );
+		g_DiskFileTree.RemovePath( pTmpFileName );
 	}
 
 	return ( 0L );
@@ -662,7 +866,7 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 			{
 				// RaphaelIT7: We force lower for consistency!
 				V_strlower( pTmpFileName );
-				FileCacheEntry eCacheEntry = g_pDiskFileTree.ContainsPath( pTmpFileName );
+				FileCacheEntry eCacheEntry = g_DiskFileTree.ContainsPath( pTmpFileName );
 
 				// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
 				if ( eCacheEntry != FileCacheEntry::FOLDER && eCacheEntry != FileCacheEntry::UNKNOWN )
@@ -684,7 +888,7 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 						return true;
 				} else {
 					// RaphaelIT7: As fallback since apparently it's no longer a folder?
-					g_pDiskFileTree.RemovePath( pTmpFileName );
+					g_DiskFileTree.RemovePath( pTmpFileName );
 				}
 			}
 		}
@@ -723,13 +927,6 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* _this, const char
  */
 static std::string_view fixGamemodePath(std::string_view path)
 {
-	// BUG: I have no idea why... previously we passed filesystem as an argument
-	// that somehow corrupted itself, using g_pFullFileSystem though goes completely fine???
-
-	// Just debug stuff... The one line does these three things at once
-	//Gamemode::System* pGamemodeSystem = g_pFullFileSystem->Gamemodes();
-	//const IGamemodeSystem::UpdatedInformation& pActiveGamemode = (const IGamemodeSystem::UpdatedInformation&)pGamemodeSystem->Active();
-	//std::string_view activeGamemode = pActiveGamemode.name;
 	std::string_view activeGamemode = g_pFullFileSystem->Gamemodes()->Active().name;
 	if (activeGamemode.empty())
 		return path;
@@ -786,11 +983,8 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 	//	return detour_CBaseFileSystem_RelativePathToFullPath.GetTrampoline<Symbols::CBaseFileSystem_RelativePathToFullPath>()(_this, pFileName, pPathID, pDest, maxLenInChars, pathFilter, pPathType);
 
 	struct _stat buf;
-
 	if ( pPathType )
-	{
 		*pPathType = PATH_IS_NORMAL;
-	}
 
 	// Convert filename to lowercase.  All files in the
 	// game logical filesystem must be accessed by lowercase name
@@ -803,22 +997,6 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 
 	// Fill in the default in case it's not found...
 	V_strncpy( pDest, pFileName, maxLenInChars );
-
-// @FD This is arbitrary and seems broken.  If the caller needs this filter, they should
-//     request it with the flag themselves.  As it is, I cannot search all the file paths
-//     for a file using this function because there is no option that says, "No, really, I
-//     mean ALL SEARCH PATHS."  The current problem I'm trying to fix is that sounds are not
-//     working if they are in the BSP.  I wrote code that assumed that I could just ask for
-//     the absolute path of a file, since we are able to open files with these absolute
-//     filenames, and that each particular filesystem call wouldn't have its own individual
-//     quirks.
-//	if ( IsPC() && pathFilter == FILTER_NONE )
-//	{
-//		// X360TBD: PC legacy behavior never returned pack paths
-//		// do legacy behavior to ensure naive callers don't break
-//		pathFilter = FILTER_CULLPACK;
-//	}
-	
 
 	CSearchPathsIterator iter( _this, &pFileName, pPathID, pathFilter );
 	for ( CSearchPath *pSearchPath = iter.GetFirst(); pSearchPath != nullptr; pSearchPath = iter.GetNext() )
@@ -916,7 +1094,7 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 
 		// RaphaelIT7: We force lower for consistency!
 		V_strlower( pTmpFileName );
-		FileCacheEntry eCacheEntry = g_pDiskFileTree.ContainsPath( pTmpFileName );
+		FileCacheEntry eCacheEntry = g_DiskFileTree.ContainsPath( pTmpFileName );
 
 		// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
 		if ( eCacheEntry == FileCacheEntry::INVALID )
@@ -937,7 +1115,7 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 			}
 			return pDest;
 		} else {
-			g_pDiskFileTree.RemovePath( pTmpFileName );
+			g_DiskFileTree.RemovePath( pTmpFileName );
 		}
 	}
 
@@ -974,7 +1152,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForWrite( CBaseFileSystem* _this, c
 	}
 	
 	if (hFileHandle)
-		g_pDiskFileTree.AddPath( pTmpFileName, FileCacheEntry::FILE );
+		g_DiskFileTree.AddPath( pTmpFileName, FileCacheEntry::FILE );
 
 	return hFileHandle;
 }
@@ -1025,7 +1203,7 @@ void hook_CBaseFileSystem_CreateDirHierarchy( CBaseFileSystem* _this, const char
 					pRelativePathT,
 					std::generic_category().message(errno).c_str() );
 			} else {
-				g_pDiskFileTree.AddPath( szScratchFileName, FileCacheEntry::FOLDER );
+				g_DiskFileTree.AddPath( szScratchFileName, FileCacheEntry::FOLDER );
 			}
 
 			*s = CORRECT_PATH_SEPARATOR;
@@ -1045,8 +1223,61 @@ void hook_CBaseFileSystem_CreateDirHierarchy( CBaseFileSystem* _this, const char
 			pRelativePathT,
 			std::generic_category().message(errno).c_str() );
 	} else {
-		g_pDiskFileTree.AddPath( szScratchFileName, FileCacheEntry::FOLDER );
+		g_DiskFileTree.AddPath( szScratchFileName, FileCacheEntry::FOLDER );
 	}
+}
+
+static Detouring::Hook detour_CBaseFileSystem_RenameFile;
+bool hook_CBaseFileSystem_RenameFile( CBaseFileSystem* _this, char const *pOldPath, char const *pNewPath, const char *pathID )
+{
+	if (!func_CBaseFileSystem_FixUpPath || !func_CBaseFileSystem_GetWritePath)
+		return detour_CBaseFileSystem_RenameFile.GetTrampoline<Symbols::CBaseFileSystem_RenameFile>()(_this, pOldPath, pNewPath, pathID);
+
+	// Allow for UNC-type syntax to specify the path ID.
+	char pPathIdCopy[MAX_PATH];
+	const char *pOldPathId = pathID;
+	if ( pathID )
+	{
+		V_strcpy_safe( pPathIdCopy, pathID );
+		pOldPathId = pPathIdCopy;
+	}
+
+	char pNewFileName[ MAX_PATH ];
+	char szScratchFileName[MAX_PATH];
+
+	// The source file may be in a fallback directory, so just resolve the actual path, don't assume pathid...
+	_this->RelativePathToFullPath( pOldPath, pOldPathId, szScratchFileName, sizeof(szScratchFileName) );
+
+	// Figure out the dest path
+	if ( !V_IsAbsolutePath( pNewPath ) )
+		ComputeFullWritePath( _this, pNewFileName, sizeof( pNewFileName ), pNewPath, pathID );
+	else
+		V_strcpy_safe( pNewFileName, pNewPath );
+
+	// RaphaelIT7: We force lower for consistency!
+	V_strlower( pNewFileName );
+	NormalizeGamePath( pNewFileName );
+	V_strlower( szScratchFileName );
+	NormalizeGamePath( szScratchFileName );
+
+	// Make sure the directory exitsts, too
+	char pPathOnly[ MAX_PATH ];
+	V_strcpy_safe( pPathOnly, pNewFileName );
+	V_StripFilename( pPathOnly );
+	hook_CBaseFileSystem_CreateDirHierarchy( _this, pPathOnly, pathID );
+
+	// Now copy the file over.
+	if ( rename( szScratchFileName, pNewFileName ) )
+	{
+		::Warning( "Unable to rename file '%s' to '%s': %s.\n",
+			szScratchFileName,
+			pNewFileName,
+			std::generic_category().message(errno).c_str() );
+		return false;
+	} else
+		g_DiskFileTree.RenamePath( szScratchFileName, pNewFileName );
+
+	return true;
 }
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
@@ -1071,7 +1302,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		}
 
 		if ( V_IsAbsolutePath( pSearchPath->GetPathString() ) )
-			g_pDiskFileTree.BuildTree( pSearchPath->GetPathString() );
+			g_DiskFileTree.BuildTree( pSearchPath->GetPathString() );
 	}
 }
 
@@ -1121,6 +1352,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_IsDirectory, bool, IsDirectory, CBaseFileSystem*, const char*, const char* );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_FastFileTime, long, FastFileTime, CBaseFileSystem*, const CSearchPath*, const char* );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_GetFileTime, long, GetFileTime, CBaseFileSystem*, const char*, const char* );
+	DETOUR_THISCALL_ADDRETFUNC3( hook_CBaseFileSystem_RenameFile, bool, RenameFile, CBaseFileSystem*, const char*, const char*, const char*);
 	DETOUR_THISCALL_ADDFUNC2( hook_CBaseFileSystem_HandleOpenRegularFile, HandleOpenRegularFile, CBaseFileSystem*, CFileOpenInfo&, bool);
 	DETOUR_THISCALL_ADDFUNC1( hook_CBaseFileSystem_NewSearchPath, NewSearchPath, CBaseFileSystem*, int );
 	DETOUR_THISCALL_ADDFUNC4( hook_CBaseFileSystem_AddSearchPathInternal, AddSearchPathInternal, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t, bool );
@@ -1197,6 +1429,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_OpenForWrite, "CBaseFileSystem::OpenForWrite",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_OpenForWriteSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_OpenForWrite, OpenForWrite), m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_RenameFile, "CBaseFileSystem::RenameFile",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_RenameFileSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_RenameFile, RenameFile), m_pID
 	);
 
 	Detour::Create(

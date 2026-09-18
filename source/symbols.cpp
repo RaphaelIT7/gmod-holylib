@@ -391,20 +391,6 @@ namespace Symbols
 		Symbol::FromSignature("\x4C\x8B\xDC\x55\x56"), // 4C 8B DC 55 56
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_AddVPKFileSym = { //Search for 'DUPLICATE: [%s]\n'
-		Symbol::FromName("_ZN15CBaseFileSystem10AddVPKFileEPKcS1_j"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x41\x54\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 49 89 D6 41 55 41 54 53 48 89 FB
-		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x20\x03\x00\x00\x53\x56\x57"), // 55 8B EC 81 EC 20 03 00 00 53 56 57
-		Symbol::FromSignature("\x40\x55\x56\x57\x41\x56\x41\x57\x48\x81\xEC\xB0\x03\x00\x00"), // 40 55 56 57 41 56 41 57 48 81 EC B0 03 00 00
-	};
-
-	const std::vector<Symbol> CBaseFileSystem_CloseSym = { //Search for 'CBaseFileSystem::Close'
-		Symbol::FromName("_ZN15CBaseFileSystem5CloseEPv"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x49\x89\xF4\x53\x48\x83\xEC\x08\x48\x8B\x1D\x2A\x2A\x2A\x2A\x8B\x8B\x0C\x10\x00\x00\x85\xC9\x41\x0F\x95\xC5\x0F\x85\x2A\x2A\x2A\x2A\x4D\x85\xE4\x0F\x84\x2A\x2A\x2A\x2A\x49\x8B\x04\x24"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 49 89 F4 53 48 83 EC 08 48 8B 1D ? ? ? ? 8B 8B 0C 10 00 00 85 C9 41 0F 95 C5 0F 85 ? ? ? ? 4D 85 E4 0F 84 ? ? ? ? 49 8B 04 24
-		Symbol::FromSignature("\x55\x8B\xEC\x56\x57\x8B\xF9\x8B*****\x8B\xB1\x0C\x10\x00\x00\x85\xF6************************\x8B\x4D\x08\x85\xC9**\x68****\x8D**\x6A*\x50\xE8****\x83****\x8B\x01\x6A\x01"), // 55 8B EC 56 57 8B F9 8B ?? ?? ?? ?? ?? 8B B1 0C 10 00 00 85 F6 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 8B 4D 08 85 C9 ?? ?? 68 ?? ?? ?? ?? 8D ?? ?? 6A ?? 50 E8 ?? ?? ?? ?? 83 ?? ?? ?? ?? 8B 01 6A 01
-		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xEC\x30\x48\x8B\xF1\x48\x8B\xDA\x48\x8B\x0D\x2A\x2A\x2A\x2A\x8B\xB9\x0C\x10\x00\x00\x85\xFF\x74\x2A\xC7\x44\x24\x28\x04\x00\x00\x00\x4C\x8D\x0D\x2A\x2A\x2A\x2A\x45\x33\xC0\xC6\x44\x24\x20\x00\x48\x8D\x15\x2A\x2A\x2A\x2A\xFF\x15\x2A\x2A\x2A\x2A"), // 48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 30 48 8B F1 48 8B DA 48 8B 0D ? ? ? ? 8B B9 0C 10 00 00 85 FF 74 ? C7 44 24 28 04 00 00 00 4C 8D 0D ? ? ? ? 45 33 C0 C6 44 24 20 00 48 8D 15 ? ? ? ? FF 15 ? ? ? ?
-	};
-
 	const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym = {
 		Symbol::FromName("_ZNK15CBaseFileSystem11CSearchPath14GetDebugStringEv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x8B\x47\x28"), //55 48 89 E5 53 48 83 EC 18 48 8B 47 28
@@ -434,6 +420,10 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseFileSystem_OpenForWriteSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem12OpenForWriteEPKcS1_S1_"),
+	};
+
+	const std::vector<Symbol> CBaseFileSystem_RenameFileSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem10RenameFileEPKcS1_S1_"),
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_GetWritePathSym = {

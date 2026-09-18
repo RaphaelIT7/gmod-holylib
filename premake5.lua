@@ -153,6 +153,8 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 			sourcePath .. [[lz4/*.cpp]],
 			sourcePath .. [[uwebsockets/*.h]],
 			sourcePath .. [[uwebsockets/*.cpp]],
+			sourcePath .. [[rengine/*.h]],
+			sourcePath .. [[rengine/*.cpp]],
 
 			rootDir .. "lua/*.h",
 			rootDir .. "source/lua/scripts/*.lua",

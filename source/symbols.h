@@ -412,6 +412,9 @@ namespace Symbols
 	using CBaseFileSystem_OpenForWrite = void* (GMCOMMON_CALLING_CONVENTION*)(void* _this, const char *pFileName, const char *pOptions, const char *pathID);
 	extern const std::vector<Symbol> CBaseFileSystem_OpenForWriteSym;
 
+	using CBaseFileSystem_RenameFile = bool (GMCOMMON_CALLING_CONVENTION*)(void* _this, char const *pOldPath, char const *pNewPath, const char *pathID);
+	extern const std::vector<Symbol> CBaseFileSystem_RenameFileSym;
+
 	using CBaseFileSystem_GetWritePath = const char* (GMCOMMON_CALLING_CONVENTION*)(void* _this, const char *pFilename, const char *pathID);
 	extern const std::vector<Symbol> CBaseFileSystem_GetWritePathSym;
 
