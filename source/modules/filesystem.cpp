@@ -392,7 +392,7 @@ FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath )
 	if ( !holylib_filesystem_filecache.GetBool() )
 		return FileCacheEntry::UNKNOWN;
 
-	std::shared_lock<std::shared_mutex> lock(m_FileListMutex);
+	std::shared_lock<std::shared_mutex> lock( m_FileListMutex );
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it != m_FileList.end() )
 		return it->second;
@@ -404,7 +404,7 @@ FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath )
 
 void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
 {
-	std::unique_lock<std::shared_mutex> lock(m_FileListMutex);
+	std::unique_lock<std::shared_mutex> lock( m_FileListMutex );
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it == m_FileList.end() )
 		m_FileList[pszAbsolutePath] = type;
@@ -412,7 +412,7 @@ void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
 
 void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
 {
-	std::unique_lock<std::shared_mutex> lock(m_FileListMutex);
+	std::unique_lock<std::shared_mutex> lock( m_FileListMutex );
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it != m_FileList.end() )
 		m_FileList.erase( it );
@@ -420,16 +420,47 @@ void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
 
 void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath )
 {
-	std::unique_lock<std::shared_mutex> lock(m_FileListMutex);
+	std::unique_lock<std::shared_mutex> lock( m_FileListMutex );
 	auto it = m_FileList.find( pszOldAbsolutePath );
 	if ( it == m_FileList.end() )
 	{
-		Rebuild(); // ToDo: We could go to disk and check what pszNewAbsolutePath is and what is going on, but this is easier right now (#Lazy)
+		// Actually let's not Rebuild() since the FileSystem will call this from Rename BUT the FileWatcher may also report it ontop!
+		// ToDo: Figure out how we could keep the disk tree & fs in sync without both possibly conflicting
+		// 
+		//Rebuild(); // ToDo: We could go to disk and check what pszNewAbsolutePath is and what is going on, but this is easier right now (#Lazy)
 		return;
 	}
 
+	bool bIsFolder = it->second == FileCacheEntry::FOLDER;
 	m_FileList[ pszNewAbsolutePath ] = it->second;
 	m_FileList.erase( it );
+
+	if ( !bIsFolder )
+		return;
+
+	// Expensive...
+	// We must update all children too!
+
+	const size_t nOldLength = strlen( pszOldAbsolutePath );
+	for ( auto it = m_FileList.begin(); it != m_FileList.end(); )
+	{
+		const std::string &strPath = it->first;
+		if ( strPath.size() <= nOldLength || strPath.compare( 0, nOldLength, pszOldAbsolutePath ) != 0 || strPath[nOldLength] != '/' )
+		{
+			++it;
+			continue;
+		}
+
+		auto node = m_FileList.extract( it++ );
+
+		std::string &strNewPath = node.first;
+		strNewPath.replace( 0, nOldLength, pszNewAbsolutePath );
+
+		if ( g_pFileSystemModule.InDebug() )
+			Msg( PROJECT_NAME " - filesystem(RenamePath - Folder children): %s\n", strNewPath.c_str() );
+
+		m_FileList.insert( std::move( node ) );
+	}
 }
 
 void CDiskFileTree::Rebuild()
