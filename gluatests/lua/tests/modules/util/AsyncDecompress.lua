@@ -57,9 +57,9 @@ return {
             timeout = 2,
             func = function()
                 local data = string.rep("HolyLib was here! ", 100)
-                local compressed = util.Compress( data )
+                __Decompressed_Data = util.Compress( data ) -- must not be GCd!
 
-                util.AsyncDecompress( compressed, function( decompressed )
+                util.AsyncDecompress( __Decompressed_Data, function( decompressed )
                     expect( decompressed ).to.equal( data )
 
                     done()
@@ -72,7 +72,8 @@ return {
             async = true,
             timeout = 2,
             func = function()
-                util.AsyncDecompress( "short", function( decompressed )
+            	__Decompresse_Short = "short" -- must not be GCd!
+                util.AsyncDecompress( __Decompresse_Short, function( decompressed )
                     expect( decompressed ).to.beNil()
 
                     done()
@@ -86,9 +87,9 @@ return {
             timeout = 2,
             func = function()
                 local data = string.rep("HolyLib was here! ", 100)
-                local compressed = util.Compress( data )
+                __Decompressed_ratio = util.Compress( data ) -- must not be GCd!
 
-                util.AsyncDecompress( compressed, function( decompressed )
+                util.AsyncDecompress( __Decompressed_ratio, function( decompressed )
                     expect( decompressed ).to.beNil()
 
                     done()

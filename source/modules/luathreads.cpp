@@ -302,7 +302,7 @@ inline void StartLuaThreadPool()
 	Util::StartThreadPool(pLuaThreadPool, luathreads.GetInt());
 }
 
-static void RunTasksJob(LuaInterface*& entry)
+static void RunTasksJob(LuaInterface* entry)
 {
 	entry->RunTasks();
 }

@@ -120,7 +120,7 @@ public:
 
 	int iCallback = -1;
 	bool bCompress = true;
-	char iStatus = 0; // -1 = Failed | 0 = Running | 1 = Done
+	std::atomic<char> iStatus = 0; // -1 = Failed | 0 = Running | 1 = Done
 
 	const char* pData = nullptr;
 	int iDataReference = -1; // Keeping a reference to stop GC from potentially nuking it.
@@ -146,7 +146,7 @@ public:
 
 LUA_GetModuleData(LuaUtilModuleData, g_pUtilModule, Util);
 
-static void CompressJob(CompressEntry*& entry)
+static void CompressJob(CompressEntry* entry)
 {
 	if (entry->m_bCancel) // No Lua? We stop.
 		return;
@@ -630,12 +630,12 @@ public:
 	TValue* m_pObject = nullptr;
 	bool m_bPretty = false;
 
-	bool m_bIsDone = false;
+	std::atomic<bool> m_bIsDone = false;
 	rapidjson::StringBuffer m_strOut;
 	int m_iCallback = -1;
 };
 
-static void JsonJob(JsonEntry*& entry)
+static void JsonJob(JsonEntry* entry)
 {
 	if (entry->m_bCancel)
 	{

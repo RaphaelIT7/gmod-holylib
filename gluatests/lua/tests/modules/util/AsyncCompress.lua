@@ -56,12 +56,12 @@ return {
             async = true,
             timeout = 2,
             func = function()
-                local data = string.rep("HolyLib was here! ", 100)
+                _COMPRESSED_DATA = string.rep("HolyLib was here! ", 100) -- must not be GCd!
 
-                util.AsyncCompress( data, function( compressed )
+                util.AsyncCompress( _COMPRESSED_DATA, function( compressed )
                     expect( compressed ).toNot.beNil()
-                    expect( compressed ).toNot.equal( data )
-                    expect( util.Decompress( compressed ) ).to.equal( data )
+                    expect( compressed ).toNot.equal( _COMPRESSED_DATA )
+                    expect( util.Decompress( compressed ) ).to.equal( _COMPRESSED_DATA )
 
                     done()
                 end )
@@ -73,12 +73,12 @@ return {
             async = true,
             timeout = 2,
             func = function()
-                local data = string.rep("HolyLib was here! ", 100)
+                _COMPRESSED_DATA_2 = string.rep("HolyLib was here! ", 100) -- must not be GCd!
 
-                util.AsyncCompress( data, 9, 65536, function( compressed )
+                util.AsyncCompress( _COMPRESSED_DATA_2, 9, 65536, function( compressed )
                     expect( compressed ).toNot.beNil()
-                    expect( compressed ).toNot.equal( data )
-                    expect( util.Decompress( compressed ) ).to.equal( data )
+                    expect( compressed ).toNot.equal( _COMPRESSED_DATA_2 )
+                    expect( util.Decompress( compressed ) ).to.equal( _COMPRESSED_DATA_2 )
 
                     done()
                 end )

@@ -1449,7 +1449,7 @@ struct VoiceEffectJob {
 	bool bFailed = false;
 };
 
-static void VoiceEffect(VoiceEffectJob*& pJob)
+static void VoiceEffect(VoiceEffectJob* pJob)
 {
 	if (pJob->pStreamData != nullptr)
 	{
@@ -1810,7 +1810,7 @@ static std::string_view getFileExtension(const std::string_view& fileName) {
 	return fileName.substr(lastDotPos + 1);
 }
 
-static void VoiceStreamJob(VoiceStreamTask*& task)
+static void VoiceStreamJob(VoiceStreamTask* task)
 {
 	switch(task->iType)
 	{

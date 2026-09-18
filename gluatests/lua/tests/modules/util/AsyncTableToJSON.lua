@@ -56,16 +56,16 @@ return {
             async = true,
             timeout = 2,
             func = function()
-                local tbl = {
+                _TABLE_TO_JSON = { -- must not be GCd!
                     [1] = 1,
                     [2] = 2,
                     [3] = 3,
                     ["Test"] = "Hello World",
                 }
 
-                util.AsyncTableToJSON( tbl, function( json )
+                util.AsyncTableToJSON( _TABLE_TO_JSON, function( json )
                     expect( json ).to.beA( "string" )
-                    expect( json ).to.equal( util.FancyTableToJSON( tbl ) )
+                    expect( json ).to.equal( util.FancyTableToJSON( _TABLE_TO_JSON ) )
 
                     done()
                 end )
@@ -77,13 +77,13 @@ return {
             async = true,
             timeout = 2,
             func = function()
-                local tbl = {
+                _TABLE_TO_JSON_2 = { -- must not be GCd!
                     ["Test"] = "Hello World",
                 }
 
-                util.AsyncTableToJSON( tbl, function( json )
-                    expect( json ).to.equal( util.FancyTableToJSON( tbl, true ) )
-                    expect( json ).toNot.equal( util.FancyTableToJSON( tbl, false ) )
+                util.AsyncTableToJSON( _TABLE_TO_JSON_2, function( json )
+                    expect( json ).to.equal( util.FancyTableToJSON( _TABLE_TO_JSON_2, true ) )
+                    expect( json ).toNot.equal( util.FancyTableToJSON( _TABLE_TO_JSON_2, false ) )
 
                     done()
                 end, true )
