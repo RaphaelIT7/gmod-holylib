@@ -162,7 +162,8 @@ public:
 	std::shared_mutex& GetMutex() { return m_FileListMutex; }
 
 private:
-	bool RecursiveTraverse( const char *pszFolderPath );
+	// bForceScan = true makes the root dir be always scanned
+	bool RecursiveTraverse( const char *pszFolderPath, bool bForceScan = false, bool bCreateWatchers = false );
 
 	// We use StringHash & StringEq so that when searching we do not allocate an std::string
 	unordered_map<std::string, FileCacheEntry, StringHash, StringEq> m_FileList;
@@ -210,8 +211,9 @@ public: // IFileWatcherSystem
 			Msg(PROJECT_NAME " - filesystem(OnFolderCreated): %s\n", pszFullFolderPath);
 
 		const char* pszNormalized = NormalizePath(pszFullFolderPath);
+		CreateWatcher(pszNormalized); // First so that when we do a scan, any file added while were scanning is not messed up 
+
 		g_DiskFileTree.AddPath(pszNormalized, FileCacheEntry::FOLDER);
-		CreateWatcher(pszNormalized);
 	}
 
 	void OnFolderDeleted(const char* pszFullFolderPath)
@@ -234,7 +236,7 @@ public: // IFileWatcherSystem
 
 	void RegisterInternalWatcher(CFileWatcher* pWatcher)
 	{
-		std::lock_guard<std::mutex> lock(m_WatchersMutex);
+		std::lock_guard<std::recursive_mutex> lock(m_WatchersMutex);
 		auto it = m_Watchers.find(pWatcher);
 		if (it == m_Watchers.end())
 			m_Watchers.insert(pWatcher);
@@ -262,6 +264,12 @@ public:
 	{
 		if (holylib_filesystem_static.GetBool())
 			return;
+
+		{
+			std::lock_guard<std::recursive_mutex> lock(m_WatchersMutex);
+			if (m_WatcherFolders.find(pszFullFolderPath) == m_WatcherFolders.end())
+				return; // We already have a watcher on this folder
+		}
 
 		if (g_pFileSystemModule.InDebug())
 			Msg(PROJECT_NAME " - filesystem(CreateWatcher): %s\n", pszFullFolderPath);
@@ -306,7 +314,7 @@ public:
 
 	void RunCallbacks()
 	{
-		std::lock_guard<std::mutex> lock(m_WatchersMutex);
+		std::lock_guard<std::recursive_mutex> lock(m_WatchersMutex);
 #if SYSTEM_WINDOWS
 		for (auto& pWatcher : m_Watchers)
 			pWatcher->CheckForChanges();
@@ -341,7 +349,7 @@ public:
 private:
 	bool m_bNextFullPath = false; // Since we need two buffers
 	char m_szFullPath[2][MAX_PATH];
-	std::mutex m_WatchersMutex;
+	std::recursive_mutex m_WatchersMutex;
 	ankerl::unordered_dense::set<CFileWatcher*> m_Watchers{};
 	ankerl::unordered_dense::set<std::string_view> m_WatcherFolders{};
 };
@@ -485,10 +493,10 @@ void CDiskFileTree::Rebuild()
 // RaphaelIT7:
 // This is expensive! A trade of startup time vs runtime performance
 // ToDo: Check out if we can improve memory usage
-bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
+bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath, bool bForceScan, bool bCreateWatchers )
 {
 	// If we have a entry then we already are tracking this one
-	if ( m_FileList.find( pszFolderPath ) != m_FileList.end() )
+	if ( !bForceScan && m_FileList.find( pszFolderPath ) != m_FileList.end() )
 	{
 		// Msg("Skipping already scanned folder %s\n", pszFolderPath);
 		return true;
@@ -522,6 +530,9 @@ bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath )
 
 		const bool bDirectory = ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
 		if ( bDirectory ) {
+			if (bCreateWatchers)
+				g_FileWatcherSystem.CreateWatcher( szFullPath );
+
 			if ( RecursiveTraverse( szFullPath ) )
 				m_FileList.emplace( szFullPath, FileCacheEntry::FOLDER);
 		} else
