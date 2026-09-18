@@ -333,6 +333,22 @@ Lua::ThreadAccessMutex Lua::g_pThreadAccessMutex;
 thread_local unsigned int Lua::ThreadAccessMutex::shared_locks = 0;
 thread_local unsigned int Lua::ThreadAccessMutex::exclusive_locks = 0;
 
+static inline void PushHolyLibEnums(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	// Setup HolyLib Vars
+	LUA->PushBool(true);
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB");
+
+	LUA->PushString(HolyLib_GetRunNumber());
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_RUN_NUMBER");
+
+	LUA->PushString(HolyLib_GetBranch());
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_BRANCH");
+
+	LUA->PushString(HolyLib_GetVersion());
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_VERSION");
+}
+
 extern void SetupUnHolyVTableForThisShit(GarrysMod::Lua::ILuaInterface* pLua);
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
@@ -351,19 +367,6 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	}
 
 	g_Lua = LUA;
-
-	// Setup HolyLib Vars
-	LUA->PushBool(true);
-	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB");
-
-	LUA->PushString(HolyLib_GetRunNumber());
-	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_RUN_NUMBER");
-
-	LUA->PushString(HolyLib_GetBranch());
-	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_BRANCH");
-
-	LUA->PushString(HolyLib_GetVersion());
-	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_VERSION");
 
 	// Lua Interface setup to prepare them for modules.
 	Lua::CreateLuaData(g_Lua, true);
@@ -917,6 +920,9 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 	CLuaInterface* pLua = (CLuaInterface*)LUA;
 	LUA->ReferencePush(pLua->m_nLuaErrorReporter);
 	data->SetErrorFunc();
+
+	// Any state that HolyLib owns/touches should have these enums
+	PushHolyLibEnums(LUA);
 
 	if (pLua == g_Lua)
 	{
