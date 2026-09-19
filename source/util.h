@@ -67,13 +67,19 @@ namespace Util
 
 	#define SHIFT_STACK(stack, offset) (stack > 0) ? (stack + offset) : (stack - offset)
 
+	// RaphaelIT7 (ToDo): On next cleanup move all Lua code into the Lua namespace!
+	FORCEINLINE bool IsHolyState(const GarrysMod::Lua::ILuaInterface* L)
+	{
+		return (L->GetState())->dummy_ffid != 1; // FF_C = 1
+	}
+
 	/*
 	 * RawSetI & RawGetI are way faster but Gmod doesn't expose or even use them :(
 	 */
 	extern Symbols::lua_rawseti func_lua_rawseti;
 	inline void RawSetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
-		if (LUA != g_Lua)
+		if (IsHolyState(LUA))
 		{
 			lua_rawseti(LUA->GetState(), iStackPos, iValue);
 			return;
@@ -93,7 +99,7 @@ namespace Util
 	extern Symbols::lua_rawgeti func_lua_rawgeti;
 	inline void RawGetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
-		if (LUA != g_Lua)
+		if (IsHolyState(LUA))
 		{
 			lua_rawgeti(LUA->GetState(), iStackPos, iValue);
 			return;
@@ -111,10 +117,8 @@ namespace Util
 	extern Symbols::luaL_checklstring func_luaL_checklstring;
 	inline const char* CheckLString(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, size_t* nOutLength)
 	{
-		if (LUA != g_Lua)
-		{
+		if (IsHolyState(LUA))
 			return luaL_checklstring(LUA->GetState(), nStackPos, nOutLength);
-		}
 
 		if (func_luaL_checklstring)
 		{
@@ -136,7 +140,7 @@ namespace Util
 	 */
 	inline void ReferencePush(GarrysMod::Lua::ILuaInterface* LUA, int iReference)
 	{
-		if (LUA != g_Lua)
+		if (IsHolyState(LUA))
 		{
 			lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
 			return;

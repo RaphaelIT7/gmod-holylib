@@ -142,7 +142,6 @@ namespace Lua
 	 */
 	extern bool PushHook(const char* pName, GarrysMod::Lua::ILuaInterface* pLua = g_Lua);
 	extern void AddDetour();
-	extern void SetManualShutdown();
 	extern void ManualShutdown();
 	extern GarrysMod::Lua::ILuaInterface* GetRealm(unsigned char);
 	extern GarrysMod::Lua::ILuaShared* GetShared();
@@ -157,6 +156,16 @@ namespace Lua
 	// But it didn't work on Windows clients as we do also interact with both server and client state
 	// yet g_Lua is only the state HolyLib was loaded in effectively breaking the other state
 	// So now we simply mark our own states.
+
+	FORCEINLINE bool IsGModState(const lua_State* L)
+	{
+		return L->dummy_ffid == FF_C;
+	}
+
+	FORCEINLINE bool IsHolyState(const lua_State* L)
+	{
+		return L->dummy_ffid != FF_C;
+	}
 
 	extern bool g_bUsingLuaJIT; // Hacky workaround for the LuaJIT module- this is due to GCstr being different between old 2.1 and new
 	FORCEINLINE TValue* index2adr(lua_State* L, int iStackPos)

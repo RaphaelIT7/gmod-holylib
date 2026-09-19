@@ -68,8 +68,9 @@ public:
 	virtual void SetGhostInj() { m_bGhostInj = true; };
 	virtual bool IsUsingGhostInj() { return m_bGhostInj; };
 
-	virtual void SetModuleRealm(Module_Realm realm) { m_pRealm = realm; };
-	virtual Module_Realm GetModuleRealm() { return m_pRealm; };
+	// Keeps track of which realm were loaded from
+	virtual void SetLoadRealm(Module_Realm realm) { m_eRealm = realm; };
+	virtual Module_Realm GetLoadRealm() { return m_eRealm; };
 
 	virtual void MarkAsBinaryModule() { m_bMarkedAsBinaryModule = true;  };
 	virtual bool IsMarkedAsBinaryModule() { return m_bMarkedAsBinaryModule; };
@@ -123,7 +124,7 @@ public:
 private:
 	std::vector<CModule*> m_pModules;
 	int m_pStatus = 0;
-	Module_Realm m_pRealm = Module_Realm::SERVER;
+	Module_Realm m_eRealm = Module_Realm::SERVER;
 	CreateInterfaceFn m_pAppFactory = nullptr;
 	CreateInterfaceFn m_pGameFactory = nullptr;
 	bool m_bGhostInj = false;

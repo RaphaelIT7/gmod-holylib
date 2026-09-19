@@ -35,6 +35,7 @@ public:
 	void PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "luajit"; };
+	// RaphaelIT7: No windows support yet as we crash out of the blue when loading into a map
 	int Compatibility() override { return LINUX32 | LINUX64; };
 	bool IsEnabledByDefault() override { return false; };
 	void OnConfigLoad(Bootil::Data::Tree& pConfig) override
@@ -43,8 +44,10 @@ public:
 		m_bEnableFFIOverrides = pConfig.EnsureChildVar<bool>("enableFFIOverrides", m_bEnableFFIOverrides);
 		m_bKeepRemovedDebugFunctions = pConfig.EnsureChildVar<bool>("keepRemovedDebugFunctions", m_bKeepRemovedDebugFunctions);
 	};
+#if SYSTEM_LINUX
 	bool CanEnableAtRuntime() override { return false; };
 	bool CanDisableAtRuntime() override { return false; };
+#endif
 
 public:
 	bool m_bAllowFFI = false;
@@ -64,7 +67,63 @@ Detour::Create( \
 	(void*)(hook), m_pID \
 )
 
-#define Override(name) ManualOverride(name, name)
+#define SimpleOverride(name) ManualOverride(name, name)
+
+struct LuaDetourRegistration
+{
+	void (*Install)(SourceSDK::ModuleLoader&, int);
+};
+
+static std::vector<LuaDetourRegistration> g_LuaDetourRegistrations;
+
+template <typename T, T Func>
+struct LuaDetour;
+
+template <typename R, typename... Args, R (*Func)(lua_State*, Args...)>
+struct LuaDetour<R (*)(lua_State*, Args...), Func>
+{
+	static const char* pszName;
+	static Detouring::Hook detour;
+	static R Hook(lua_State* L, Args... args)
+	{
+		// Msg("Called %s\n", pszName);
+		if (Lua::IsHolyState(L))
+			return Func(L, args...);
+
+		return detour.GetTrampoline<R (*)(lua_State*, Args...)>()(L, args...);
+	}
+
+	static void Install(SourceSDK::ModuleLoader& loader, int moduleID, const char* name)
+	{
+		pszName = name;
+		Detour::Create(
+			&detour, name,
+			loader.GetModule(), Symbol::FromName(name),
+			(void*)Hook, moduleID
+		);
+	}
+};
+
+template <typename R, typename... Args, R (*Func)(lua_State*, Args...)>
+Detouring::Hook LuaDetour<R (*)(lua_State*, Args...), Func>::detour;
+
+template <typename R, typename... Args, R (*Func)(lua_State*, Args...)>
+const char* LuaDetour<R (*)(lua_State*, Args...), Func>::pszName;
+
+#define Override(name) \
+	using LuaDetour_##name = LuaDetour<decltype(&name), &name>; \
+	static void InstallLuaDetour_##name(SourceSDK::ModuleLoader& loader, int moduleID) \
+	{ \
+		LuaDetour_##name::Install(loader, moduleID, #name); \
+	} \
+	struct RegisterLuaDetour_##name \
+	{ \
+		RegisterLuaDetour_##name() \
+		{ \
+			g_LuaDetourRegistrations.push_back({ InstallLuaDetour_##name }); \
+		} \
+	}; \
+	static RegisterLuaDetour_##name registerLuaDetour_##name;
 
 /* Check first argument for a C type and returns its ID. */
 static CTypeID ffi_checkctype(lua_State *L, CTState *cts, TValue *param)
@@ -72,27 +131,27 @@ static CTypeID ffi_checkctype(lua_State *L, CTState *cts, TValue *param)
   TValue *o = L->base;
   if (!(o < L->top)) {
   err_argtype:
-    lj_err_argtype(L, 1, "C type");
+	lj_err_argtype(L, 1, "C type");
   }
   if (tvisstr(o)) {  /* Parse an abstract C type declaration. */
-    GCstr *s = strV(o);
-    CPState cp;
-    int errcode;
-    cp.L = L;
-    cp.cts = cts;
-    cp.srcname = strdata(s);
-    cp.p = strdata(s);
-    cp.param = param;
-    cp.mode = CPARSE_MODE_ABSTRACT|CPARSE_MODE_NOIMPLICIT;
-    errcode = lj_cparse(&cp);
-    if (errcode) lj_err_throw(L, errcode);  /* Propagate errors. */
-    return cp.val.id;
+	GCstr *s = strV(o);
+	CPState cp;
+	int errcode;
+	cp.L = L;
+	cp.cts = cts;
+	cp.srcname = strdata(s);
+	cp.p = strdata(s);
+	cp.param = param;
+	cp.mode = CPARSE_MODE_ABSTRACT|CPARSE_MODE_NOIMPLICIT;
+	errcode = lj_cparse(&cp);
+	if (errcode) lj_err_throw(L, errcode);  /* Propagate errors. */
+	return cp.val.id;
   } else {
-    GCcdata *cd;
-    if (!tviscdata(o)) goto err_argtype;
-    if (param && param < L->top) lj_err_arg(L, 1, LJ_ERR_FFI_NUMPARAM);
-    cd = cdataV(o);
-    return cd->ctypeid == CTID_CTYPEID ? *(CTypeID *)cdataptr(cd) : cd->ctypeid;
+	GCcdata *cd;
+	if (!tviscdata(o)) goto err_argtype;
+	if (param && param < L->top) lj_err_arg(L, 1, LJ_ERR_FFI_NUMPARAM);
+	cd = cdataV(o);
+	return cd->ctypeid == CTID_CTYPEID ? *(CTypeID *)cdataptr(cd) : cd->ctypeid;
   }
 }
 
@@ -183,6 +242,9 @@ LUA_FUNCTION_STATIC(getMetaTableByID)
 static bool bOpenLibs = false;
 static void hook_luaL_openlibs(lua_State* L)
 {
+	if (Lua::IsGModState(L))
+		return; // Not ours
+
 	luaL_openlibs(L);
 
 	if (g_pLuaJITModule.m_bAllowFFI)
@@ -324,6 +386,9 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
 		return;
 
+	if (Lua::IsGModState(pLua->GetState()))
+		return;
+
 	if (!bOpenLibs)
 	{
 		Error(PROJECT_NAME ": LuaJIT didn't work for some magical reason!\n");
@@ -380,6 +445,9 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
+		return;
+
+	if (Lua::IsGModState(pLua->GetState()))
 		return;
 
 	lua_State* L = pLua->GetState();
@@ -439,6 +507,193 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	pLua->Pop(1);
 }
 
+Override(luaJIT_setmode);
+// Gmod doesn't use lua_Buffer
+//Override(luaL_addlstring)
+//Override(luaL_addstring);
+//Override(luaL_addvalue);
+//Override(luaL_prepbuffer);
+//Override(luaL_pushresult);
+Override(luaL_argerror);
+Override(luaL_buffinit);
+Override(luaL_callmeta);
+Override(luaL_checkany);
+Override(luaL_checkinteger);
+Override(luaL_checklstring);
+Override(luaL_checknumber);
+Override(luaL_checkoption);
+Override(luaL_checkstack);
+Override(luaL_checktype);
+Override(luaL_checkudata);
+Override(luaL_execresult);
+Override(luaL_fileresult);
+Override(luaL_findtable);
+Override(luaL_getmetafield);
+Override(luaL_gsub);
+Override(luaL_loadbuffer);
+Override(luaL_loadbufferx);
+Override(luaL_loadfile);
+Override(luaL_loadfilex);
+Override(luaL_loadstring);
+Override(luaL_newmetatable);
+Override(luaL_newmetatable_type);
+Override(luaL_openlib);
+Override(luaL_optinteger);
+Override(luaL_optlstring);
+Override(luaL_optnumber);
+Override(luaL_ref);
+Override(luaL_register);
+Override(luaL_traceback);
+Override(luaL_typerror);
+Override(luaL_unref);
+Override(luaL_where);
+Override(lua_atpanic);
+Override(lua_call);
+Override(lua_checkstack);
+Override(lua_close);
+Override(lua_concat);
+Override(lua_cpcall);
+Override(lua_createtable);
+Override(lua_dump);
+Override(lua_equal);
+Override(lua_error);
+Override(lua_gc);
+Override(lua_getallocf);
+Override(lua_getfenv);
+Override(lua_getfield);
+Override(lua_gethook);
+Override(lua_gethookcount);
+Override(lua_gethookmask);
+Override(lua_getinfo);
+Override(lua_getlocal);
+Override(lua_getmetatable);
+Override(lua_getstack);
+Override(lua_gettable);
+Override(lua_gettop);
+Override(lua_getupvalue);
+Override(lua_insert);
+Override(lua_iscfunction);
+Override(lua_isnumber);
+Override(lua_isstring);
+Override(lua_isuserdata);
+Override(lua_lessthan);
+Override(lua_load);
+Override(lua_loadx);
+Override(lua_newthread);
+Override(lua_newuserdata);
+Override(lua_next);
+Override(lua_objlen);
+Override(lua_pcall);
+Override(lua_pushboolean);
+Override(lua_pushcclosure);
+Override(lua_pushinteger);
+Override(lua_pushlightuserdata);
+Override(lua_pushlstring);
+Override(lua_pushnil);
+Override(lua_pushnumber);
+Override(lua_pushstring);
+Override(lua_pushthread);
+Override(lua_pushvalue);
+Override(lua_pushvfstring);
+Override(lua_rawequal);
+Override(lua_rawget);
+Override(lua_rawgeti);
+Override(lua_rawset);
+Override(lua_rawseti);
+Override(lua_remove);
+Override(lua_replace);
+#ifdef ARCHITECTURE_X86
+Override(lua_resume);
+#endif
+Override(lua_setallocf);
+Override(lua_setfenv);
+Override(lua_setfield);
+Override(lua_sethook);
+Override(lua_setlocal);
+Override(lua_setmetatable);
+Override(lua_settable);
+Override(lua_settop);
+Override(lua_setupvalue);
+Override(lua_status);
+Override(lua_toboolean);
+Override(lua_tocfunction);
+Override(lua_tointeger);
+Override(lua_tolstring);
+Override(lua_tonumber);
+Override(lua_topointer);
+Override(lua_tothread);
+Override(lua_touserdata);
+Override(lua_type);
+Override(lua_typename);
+Override(lua_upvalueid);
+Override(lua_upvaluejoin);
+Override(lua_xmove);
+Override(lua_yield);
+Override(luaopen_base);
+Override(luaopen_bit);
+Override(luaopen_debug);
+Override(luaopen_jit);
+Override(luaopen_math);
+Override(luaopen_os);
+Override(luaopen_package);
+Override(luaopen_string);
+Override(luaopen_table);
+
+// Cannot use it on varargs!
+// Override(luaL_error);
+// Override(lua_pushfstring);
+
+using lua_error_t = decltype(&lua_error);
+static lua_error_t func_lua_error = nullptr;
+
+using lua_pushvfstring_t = decltype(&lua_pushvfstring);
+static lua_pushvfstring_t func_lua_pushvfstring = nullptr;
+
+static Detouring::Hook detour_luaL_error;
+static int hook_luaL_error(lua_State* L, const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	
+	if (Lua::IsHolyState(L))
+	{
+		lua_pushvfstring(L, fmt, args);
+		va_end(args);
+		return lua_error(L);
+	}
+
+	if (!func_lua_pushvfstring)
+		Error("Missing lua_pushvfstring!\n");
+
+	if (!func_lua_error)
+		Error("Missing lua_erro!\n");
+
+	func_lua_pushvfstring(L, fmt, args);
+	va_end(args);
+	return func_lua_error(L);
+}
+
+static Detouring::Hook detour_lua_pushfstring;
+static const char* hook_lua_pushfstring(lua_State* L, const char* fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	
+	if (Lua::IsHolyState(L))
+	{
+		const char* ret = lua_pushvfstring(L, fmt, args);
+		va_end(args);
+		return ret;
+	}
+
+	if (!func_lua_pushvfstring)
+		Error("Missing lua_pushvfstring!\n");
+
+	const char* ret = func_lua_pushvfstring(L, fmt, args);
+	va_end(args);
+	return ret;
+}
+
 void CLuaJITModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -446,144 +701,25 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 
 	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
 	//Override(luaJIT_version_2_0_4);
-	Override(luaJIT_setmode);
-	Override(luaL_addlstring);
-	Override(luaL_addstring);
-	Override(luaL_addvalue);
-	Override(luaL_argerror);
-	Override(luaL_buffinit);
-	Override(luaL_callmeta);
-	Override(luaL_checkany);
-	Override(luaL_checkinteger);
-	Override(luaL_checklstring);
-	Override(luaL_checknumber);
-	Override(luaL_checkoption);
-	Override(luaL_checkstack);
-	Override(luaL_checktype);
-	Override(luaL_checkudata);
-	Override(luaL_error);
-	Override(luaL_execresult);
-	Override(luaL_fileresult);
-	Override(luaL_findtable);
-	Override(luaL_getmetafield);
-	Override(luaL_gsub);
-	Override(luaL_loadbuffer);
-	Override(luaL_loadbufferx);
-	Override(luaL_loadfile);
-	Override(luaL_loadfilex);
-	Override(luaL_loadstring);
-	Override(luaL_newmetatable);
-	Override(luaL_newmetatable_type);
-	Override(luaL_newstate);
-	Override(luaL_openlib);
-	ManualOverride(luaL_openlibs, hook_luaL_openlibs); // Gmod calls luaL_openlibs
-	Override(luaL_optinteger);
-	Override(luaL_optlstring);
-	Override(luaL_optnumber);
-	Override(luaL_prepbuffer);
-	Override(luaL_pushresult);
-	Override(luaL_ref);
-	Override(luaL_register);
-	Override(luaL_traceback);
-	Override(luaL_typerror);
-	Override(luaL_unref);
-	Override(luaL_where);
-	Override(lua_atpanic);
-	Override(lua_call);
-	Override(lua_checkstack);
-	Override(lua_close);
-	Override(lua_concat);
-	Override(lua_cpcall);
-	Override(lua_createtable);
-	Override(lua_dump);
-	Override(lua_equal);
-	Override(lua_error);
-	Override(lua_gc);
-	Override(lua_getallocf);
-	Override(lua_getfenv);
-	Override(lua_getfield);
-	Override(lua_gethook);
-	Override(lua_gethookcount);
-	Override(lua_gethookmask);
-	Override(lua_getinfo);
-	Override(lua_getlocal);
-	Override(lua_getmetatable);
-	Override(lua_getstack);
-	Override(lua_gettable);
-	Override(lua_gettop);
-	Override(lua_getupvalue);
-	Override(lua_insert);
-	Override(lua_iscfunction);
-	Override(lua_isnumber);
-	Override(lua_isstring);
-	Override(lua_isuserdata);
-	Override(lua_lessthan);
-	Override(lua_load);
-	Override(lua_loadx);
-	Override(lua_newstate);
-	Override(lua_newthread);
-	Override(lua_newuserdata);
-	Override(lua_next);
-	Override(lua_objlen);
-	Override(lua_pcall);
-	Override(lua_pushboolean);
-	Override(lua_pushcclosure);
-	Override(lua_pushfstring);
-	Override(lua_pushinteger);
-	Override(lua_pushlightuserdata);
-	Override(lua_pushlstring);
-	Override(lua_pushnil);
-	Override(lua_pushnumber);
-	Override(lua_pushstring);
-	Override(lua_pushthread);
-	Override(lua_pushvalue);
-	Override(lua_pushvfstring);
-	Override(lua_rawequal);
-	Override(lua_rawget);
-	Override(lua_rawgeti);
-	Override(lua_rawset);
-	Override(lua_rawseti);
-	Override(lua_remove);
-	Override(lua_replace);
-#ifdef ARCHITECTURE_X86
-	Override(lua_resume);
-#endif
-	Override(lua_setallocf);
-	Override(lua_setfenv);
-	Override(lua_setfield);
-	Override(lua_sethook);
-	Override(lua_setlocal);
-	Override(lua_setmetatable);
-	Override(lua_settable);
-	Override(lua_settop);
-	Override(lua_setupvalue);
-	Override(lua_status);
-	Override(lua_toboolean);
-	Override(lua_tocfunction);
-	Override(lua_tointeger);
-	Override(lua_tolstring);
-	Override(lua_tonumber);
-	Override(lua_topointer);
-	Override(lua_tothread);
-	Override(lua_touserdata);
-	Override(lua_type);
-	Override(lua_typename);
-	Override(lua_upvalueid);
-	Override(lua_upvaluejoin);
-	Override(lua_xmove);
-	Override(lua_yield);
-	Override(luaopen_base);
-	Override(luaopen_bit);
-	Override(luaopen_debug);
-	Override(luaopen_jit);
-	Override(luaopen_math);
-	Override(luaopen_os);
-	Override(luaopen_package);
-	Override(luaopen_string);
-	Override(luaopen_table);
+	
+	for (const auto& registration : g_LuaDetourRegistrations)
+		registration.Install(lua_shared_loader, m_pID);
 
-	Util::func_lua_rawgeti = &lua_rawgeti;
-	Util::func_lua_rawseti = &lua_rawseti;
+	ManualOverride(luaL_openlibs, hook_luaL_openlibs); // Gmod calls luaL_openlibs
+	ManualOverride(luaL_error, hook_luaL_error);
+	ManualOverride(lua_pushfstring, hook_lua_pushfstring);
+	SimpleOverride(lua_newstate);
+
+	func_lua_pushvfstring = (lua_pushvfstring_t)Detour::GetFunction(lua_shared_loader.GetModule(), Symbol::FromName("lua_pushvfstring"));
+	Detour::CheckFunction((void*)func_lua_pushvfstring, "lua_pushvfstring");
+
+	func_lua_error = (lua_error_t)Detour::GetFunction(lua_shared_loader.GetModule(), Symbol::FromName("lua_error"));
+	Detour::CheckFunction((void*)func_lua_error, "lua_error");
+
+	// RaphaelIT7 (ToDo): I want all of these below to not be overwritten, we should always properly check Lua::IsHolyState(L)
+	// Util::func_lua_rawgeti = &lua_rawgeti;
+	// Util::func_lua_rawseti = &lua_rawseti;
+
 	Util::func_lj_tab_new = &lj_tab_new;
 	Util::func_lua_setfenv = &lua_setfenv;
 	Util::func_lua_touserdata = &lua_touserdata;

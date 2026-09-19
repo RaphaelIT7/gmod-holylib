@@ -301,7 +301,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 		}
 	}
 
-	if (g_pModuleManager.GetModuleRealm() == Module_Realm::MENU)
+	if (g_pModuleManager.GetLoadRealm() == Module_Realm::MENU)
 	{
 		DevMsg(PROJECT_NAME ": Lua::PushHook was blocked due to us being loaded by the Menu state, not server.\n");
 		return false;
@@ -349,6 +349,51 @@ static inline void PushHolyLibEnums(GarrysMod::Lua::ILuaInterface* LUA)
 	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_VERSION");
 }
 
+class HolyLib_PluginThink : public GarrysMod::Lua::ILuaThreadedCall
+{
+public:
+	void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+	}
+
+	bool IsDone()
+	{
+		if (m_pLua)
+		{
+			g_pModuleManager.Think(true);
+			g_pModuleManager.LuaThink(m_pLua);
+			Lua::ThinkMainInterface();
+		}
+
+		return m_bDone;
+	}
+
+	void Done(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		// We don't call delete since we create it as a static var.
+		// delete this;
+	}
+
+	void OnShutdown()
+	{
+		// delete this; // We are defined static! No delete this else we'd have a heart attack.
+	}
+
+	// We call this on Module shutdown
+	void MarkAsDone()
+	{
+		m_pLua = nullptr;
+		m_bDone = true;
+	}
+
+private:
+	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+	bool m_bDone = false;
+};
+
+static HolyLib_PluginThink pPluginThink;
+
 extern void SetupUnHolyVTableForThisShit(GarrysMod::Lua::ILuaInterface* pLua);
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
@@ -364,6 +409,14 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	{
 		Warning(PROJECT_NAME ": g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
 		return;
+	}
+
+	if (g_pModuleManager.IsMarkedAsBinaryModule())
+	{
+		pPluginThink.SetLua(LUA);
+
+		// Add our Think hook as were not loaded as a plugin
+		LUA->AddThreadedCall(&pPluginThink);
 	}
 
 	g_Lua = LUA;
@@ -408,6 +461,13 @@ void Lua::ServerInit()
 
 void Lua::Shutdown()
 {
+	if (g_pModuleManager.IsMarkedAsBinaryModule())
+	{
+		pPluginThink.MarkAsDone();
+		if (g_Lua)
+			g_Lua->Cycle(); // Just to get our ThreadedCall unloaded since when we are unloaded we expect to not leave any memory.
+	}
+
 	g_pModuleManager.LuaShutdown(g_Lua);
 
 	g_Lua->PushNil();
@@ -440,7 +500,6 @@ void Lua::ManualShutdown()
 	Lua::FinalShutdown();
 }
 
-static bool bManualShutdown = false;
 static Detouring::Hook detour_InitLuaClasses;
 static void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA) // ToDo: Add a hook to Lua::Startup or whatever it's name was and use that for the ServerInit.
 {
@@ -477,34 +536,25 @@ static int hook_GMOD_LoadBinaryModule(lua_State* L, const char* pFileName)
 
 void Lua::AddDetour() // Our Lua Loader.
 {
-	if (!bManualShutdown)
-	{
-		SourceSDK::ModuleLoader server_loader("server");
-		Detour::Create(
-			&detour_InitLuaClasses, "InitLuaClasses",
-			server_loader.GetModule(), Symbols::InitLuaClassesSym,
-			(void*)hook_InitLuaClasses, 0
-		);
-
-		SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
-		Detour::Create(
-			&detour_CLuaInterface_Shutdown, "CLuaInterface::Shutdown",
-			lua_shared_loader.GetModule(), Symbols::CLuaInterface_ShutdownSym,
-			(void*)hook_CLuaInterface_Shutdown, 0
-		);
-	}
+	SourceSDK::ModuleLoader server_loader("server");
+	Detour::Create(
+		&detour_InitLuaClasses, "InitLuaClasses",
+		server_loader.GetModule(), Symbols::InitLuaClassesSym,
+		(void*)hook_InitLuaClasses, 0
+	);
 
 	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
+	Detour::Create(
+		&detour_CLuaInterface_Shutdown, "CLuaInterface::Shutdown",
+		lua_shared_loader.GetModule(), Symbols::CLuaInterface_ShutdownSym,
+		(void*)hook_CLuaInterface_Shutdown, 0
+	);
+
 	Detour::Create(
 		&detour_GMOD_LoadBinaryModule, "GMOD_LoadBinaryModule",
 		lua_shared_loader.GetModule(), Symbols::GMOD_LoadBinaryModuleSym,
 		(void*)hook_GMOD_LoadBinaryModule, 0
 	);
-}
-
-void Lua::SetManualShutdown()
-{
-	bManualShutdown = true;
 }
 
 GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm)

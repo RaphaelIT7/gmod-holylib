@@ -215,6 +215,8 @@ public:
 
 enum class Module_Realm : unsigned char
 {
+	// CLIENT is not supported as we expect to be loaded on Server or Menu
+	// If we do are loaded on client? We check for a server state- if none we got no lua!
 	CLIENT = 0,
 	SERVER,
 	MENU
@@ -245,10 +247,10 @@ public:
 	virtual bool IsUsingGhostInj() = 0;
 
 	// Sets the the lua realm were running in.
-	virtual void SetModuleRealm(Module_Realm realm) = 0;
+	virtual void SetLoadRealm(Module_Realm realm) = 0;
 
 	// Returns the realm were running in.
-	virtual Module_Realm GetModuleRealm() = 0;
+	virtual Module_Realm GetLoadRealm() = 0;
 
 	// Marks us to be loaded as a binary module
 	// I need to find a better name for this later.

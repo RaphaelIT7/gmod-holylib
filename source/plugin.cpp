@@ -149,7 +149,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
 
-	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm((unsigned char)g_pModuleManager.GetModuleRealm());
+	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(GarrysMod::Lua::State::SERVER); // We always use the server state!
 	if (LUA) // If we got loaded by plugin_load we need to manually call Lua::Init
 		Lua::Init(LUA);
 
@@ -243,9 +243,9 @@ void CServerPlugin::LevelInit(char const *pMapName)
 bool CServerPlugin::LuaInit()
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::LuaInit", VPROF_BUDGETGROUP_HOLYLIB);
-	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm((unsigned char)g_pModuleManager.GetModuleRealm());
+	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm((unsigned char)g_pModuleManager.GetLoadRealm());
 	if (LUA == nullptr) {
-		Warning(PROJECT_NAME ": Failed to get ILuaInterface! (Realm: %i)\n", (int)g_pModuleManager.GetModuleRealm());
+		Warning(PROJECT_NAME ": Failed to get ILuaInterface! (Realm: %i)\n", (int)g_pModuleManager.GetLoadRealm());
 		return false;
 	}
 
@@ -387,74 +387,19 @@ void CServerPlugin::OnEdictFreed(const edict_t *edict)
 	g_pModuleManager.OnEdictFreed(edict);
 }
 
-class HolyLib_PluginThink : public GarrysMod::Lua::ILuaThreadedCall
-{
-public:
-	void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
-	{
-		m_pLua = pLua;
-	}
-
-	bool IsDone()
-	{
-		if (m_pLua)
-		{
-			g_pModuleManager.Think(true);
-			g_pModuleManager.LuaThink(m_pLua);
-			Lua::ThinkMainInterface();
-		}
-
-		return m_bDone;
-	}
-
-	void Done(GarrysMod::Lua::ILuaInterface* LUA)
-	{
-		// We don't call delete since we create it as a static var.
-		// delete this;
-	}
-
-	void OnShutdown()
-	{
-		// delete this; // We are defined static! No delete this else we'd have a heart attack.
-	}
-
-	// We call this on Module shutdown
-	void MarkAsDone()
-	{
-		m_pLua = nullptr;
-		m_bDone = true;
-	}
-
-private:
-	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
-	bool m_bDone = false;
-};
-
-static HolyLib_PluginThink pPluginThink;
 GMOD_MODULE_OPEN()
 {
-	LUA->GetField(LUA_GLOBALSINDEX, "CLIENT");
-	bool bClient = LUA->GetBool(-1);
-	LUA->Pop(1);
-
-	LUA->GetField(LUA_GLOBALSINDEX, "SERVER");
-	bool bServer = LUA->GetBool(-1);
-	LUA->Pop(1);
-
-	LUA->GetField(LUA_GLOBALSINDEX, "MENU_DLL");
-	bool bMenu = LUA->GetBool(-1);
-	LUA->Pop(1);
-
-	if (bMenu) // Checked first since CLIENT is also true in the menu state
-		g_pModuleManager.SetModuleRealm(Module_Realm::MENU);
-	else if (bClient)
-		g_pModuleManager.SetModuleRealm(Module_Realm::CLIENT);
-	else if (bServer)
-		g_pModuleManager.SetModuleRealm(Module_Realm::SERVER);
-		
+	bool bIsServer = Lua::GetRealm(GarrysMod::Lua::State::SERVER) == LUA;
+	if (bIsServer)
+		g_pModuleManager.SetLoadRealm(Module_Realm::SERVER);
+	else {
+		if (Lua::GetRealm(GarrysMod::Lua::State::MENU) == LUA)
+			g_pModuleManager.SetLoadRealm(Module_Realm::MENU);
+		else
+			g_pModuleManager.SetLoadRealm(Module_Realm::CLIENT);
+	}
 
 	g_pModuleManager.MarkAsBinaryModule();
-	Lua::SetManualShutdown();
 	if (!g_HolyLibServerPlugin.Load(nullptr, nullptr)) // Yes. I don't like it but I can't get those fancy interfaces.
 	{
 		LUA->ThrowError("Failed to load HolyLib!");
@@ -465,25 +410,14 @@ GMOD_MODULE_OPEN()
 	{
 		edict_t* pEdict = Util::engineserver->PEntityOfEntIndex(0);
 		if (Util::GetCBaseEntityFromEdict(pEdict))
-		{
 			g_pModuleManager.ServerActivate(pEdict, Util::engineserver->GetEntityCount(), gpGlobals->maxClients);
-		}
 	}
-
-	pPluginThink.SetLua(LUA);
-
-	// Add our Think hook.
-	LUA->AddThreadedCall(&pPluginThink);
 
 	return 0;
 }
 
 GMOD_MODULE_CLOSE()
 {
-	pPluginThink.MarkAsDone();
-	if (g_Lua)
-		g_Lua->Cycle(); // Just to get our ThreadedCall unloaded since when we are unloaded we expect to not leave any memory.
 	g_HolyLibServerPlugin.Unload();
-
 	return 0;
 }
