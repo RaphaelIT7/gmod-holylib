@@ -126,9 +126,9 @@ public:	// INetChannelInfo interface
 	
 	const char  *GetName( void ) const;
 	const char  *GetAddress( void ) const;
-	float		GetTime( void ) const;
-	float		GetTimeConnected( void ) const;
-	float		GetTimeSinceLastReceived( void ) const;
+	double		GetTime( void ) const;
+	double		GetTimeConnected( void ) const;
+	double		GetTimeSinceLastReceived( void ) const;
 	int			GetDataRate( void ) const;
 	int			GetBufferSize( void ) const;
 		
@@ -303,7 +303,7 @@ public:
 	netadr_t	remote_address;  
 	
 	// For timeouts.  Time last message was received.
-	float		last_received;		
+	double		last_received;		
 	// Time when channel was connected.
 	double	  connect_time;	   
 
