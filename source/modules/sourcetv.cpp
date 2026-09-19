@@ -313,7 +313,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetAll)
 				continue;
 
 			Push_CHLTVClient(LUA, pClient);
-			Util::RawSetI(LUA, -2, ++iTableIndex);
+			Lua::RawSetI(LUA, -2, ++iTableIndex);
 		}
 
 	return 1;
@@ -472,7 +472,7 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* pClient, const ch
 			for (int i=1; i< pCommandArgs.ArgC(); ++i) // skip cmd -> 0
 			{
 				g_Lua->PushString(pCommandArgs.Arg(i));
-				Util::RawSetI(g_Lua, -2, i);
+				Lua::RawSetI(g_Lua, -2, i);
 			}
 		g_Lua->PushString(pCommandArgs.ArgS());
 		if (g_Lua->CallFunctionProtected(5, 1, true))

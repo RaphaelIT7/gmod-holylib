@@ -148,11 +148,12 @@ public:
 
 public:	// INetChannelInfo interface
 	
+	
 	const char  *GetName( void ) const;
 	const char  *GetAddress( void ) const;
-	float		GetTime( void ) const;
-	float		GetTimeConnected( void ) const;
-	float		GetTimeSinceLastReceived( void ) const;
+	double		GetTime( void ) const;
+	double		GetTimeConnected( void ) const;
+	double		GetTimeSinceLastReceived( void ) const;
 	int			GetDataRate( void ) const;
 	int			GetBufferSize( void ) const;
 		

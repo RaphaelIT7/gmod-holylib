@@ -493,7 +493,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetAllStrings)
 			continue;
 
 		LUA->PushString(pStr);
-		Util::RawSetI(LUA, -2, ++idx);
+		Lua::RawSetI(LUA, -2, ++idx);
 	}
 
 	return 1;
@@ -688,7 +688,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 	size_t iLength;
-	const char* pUserData = Util::CheckLString(LUA, 3, &iLength);
+	const char* pUserData = Lua::CheckLString(LUA, 3, &iLength);
 	int nLength = (int)LUA->CheckNumberOpt(4, 0);
 	if (nLength != 0)
 		iLength = nLength;

@@ -320,7 +320,7 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 		{
 			LUA->PushNil();
 			setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
-			Util::RawSetI(LUA, -2, ++nCount);
+			Lua::RawSetI(LUA, -2, ++nCount);
 		}
 
 		pObj = gcref(pObj->gch.nextgc);
@@ -520,7 +520,7 @@ LUA_FUNCTION_STATIC(luagc_GetContainingReferences)
 	{
 		LUA->PushNil();
 		setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
-		Util::RawSetI(LUA, -2, ++nCount);
+		Lua::RawSetI(LUA, -2, ++nCount);
 	}
 
 	return 1;
@@ -548,7 +548,7 @@ LUA_FUNCTION_STATIC(luagc_GetAllGCObjects)
 	{
 		LUA->PushNil();
 		setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
-		Util::RawSetI(LUA, -2, ++nCount);
+		Lua::RawSetI(LUA, -2, ++nCount);
 
 		pObj = gcref(pObj->gch.nextgc);
 	}
@@ -662,7 +662,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 					if (tvisgcv(pTV))
 					{
 						PushGCObject(LUA, gcV(pTV));
-						Util::RawSetI(LUA, -2, ++nCount);
+						Lua::RawSetI(LUA, -2, ++nCount);
 					}
 				}
 				LUA->RawSet(-3);
@@ -696,7 +696,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 							LUA->RawSet(-3);
 						}
 
-						Util::RawSetI(LUA, -2, ++nCount);
+						Lua::RawSetI(LUA, -2, ++nCount);
 					}
 				}
 				LUA->RawSet(-3);
@@ -724,7 +724,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 				for (uint32_t i = 0; i < pVal->l.nupvalues; i++)
 				{
 					PushGCObject(LUA, obj2gco(&gcref(pVal->l.uvptr[i])->uv));
-					Util::RawSetI(LUA, -2, ++nCount);
+					Lua::RawSetI(LUA, -2, ++nCount);
 				}
 				LUA->RawSet(-3);
 			} else {
@@ -737,7 +737,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 					if (tvisgcv(pTV))
 					{
 						PushGCObject(LUA, gcV(pTV));
-						Util::RawSetI(LUA, -2, ++nCount);
+						Lua::RawSetI(LUA, -2, ++nCount);
 					}
 				}
 				LUA->RawSet(-3);
@@ -759,7 +759,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 			for (ptrdiff_t i = -(ptrdiff_t)pVal->sizekgc; i < 0; i++)
 			{
 				PushGCObject(LUA, proto_kgc(pVal, i));
-				Util::RawSetI(LUA, -2, ++nCount);
+				Lua::RawSetI(LUA, -2, ++nCount);
 			}
 			LUA->RawSet(-3);
 
@@ -793,7 +793,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 				if (ir->o == IR_KGC)
 				{
 					PushGCObject(LUA, ir_kgc(ir));
-					Util::RawSetI(LUA, -2, ++nCount);
+					Lua::RawSetI(LUA, -2, ++nCount);
 				}
 
 				if (irt_is64(ir->t) && ir->o != IR_KNULL)
@@ -843,7 +843,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 				if (pUpValTV && tvisgcv(pUpValTV))
 				{
 					PushGCObject(LUA, obj2gco(gcV(pUpValTV)));
-					Util::RawSetI(LUA, -2, ++nCount);
+					Lua::RawSetI(LUA, -2, ++nCount);
 				}
 
 				pUpVal = uvnext(pUpVal);
@@ -860,7 +860,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 				if (tvisgcv(pBase))
 				{
 					PushGCObject(LUA, gcval(pBase));
-					Util::RawSetI(LUA, -2, ++nCount);
+					Lua::RawSetI(LUA, -2, ++nCount);
 				}
 
 				pBase++;

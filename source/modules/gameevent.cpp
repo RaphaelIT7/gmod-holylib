@@ -121,7 +121,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 				if (listener == pClient)
 				{
 					LUA->PushString(descriptor.name, 32);
-					Util::RawSetI(LUA, -2, ++idx);
+					Lua::RawSetI(LUA, -2, ++idx);
 					break;
 				}
 			}
@@ -153,7 +153,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					if (listener == pClient)
 					{
 						LUA->PushString(descriptor.name);
-						Util::RawSetI(LUA, -2, ++idx);
+						Lua::RawSetI(LUA, -2, ++idx);
 						break;
 					}
 				}
@@ -265,7 +265,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 				if (descriptor)
 				{
 					g_Lua->PushString(descriptor->name);
-					Util::RawSetI(g_Lua, -2, ++idx);
+					Lua::RawSetI(g_Lua, -2, ++idx);
 				}
 			}
 		}
@@ -277,7 +277,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	if (Lua::PushHook("HolyLib:PreProcessGameEvent"))
 	{
 		Util::Push_Entity(g_Lua, (CBaseEntity*)pPlayer);
-		Util::ReferencePush(g_Lua, iReference);
+		Lua::ReferencePush(g_Lua, iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
 		if (g_Lua->CallFunctionProtected(4, 1, false))
 		{
@@ -296,7 +296,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	if (Lua::PushHook("HolyLib:PostProcessGameEvent"))
 	{
 		Util::Push_Entity(g_Lua, (CBaseEntity*)pPlayer);
-		Util::ReferencePush(g_Lua, iReference);
+		Lua::ReferencePush(g_Lua, iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
 		g_Lua->CallFunctionProtected(4, 0, false);
 	}

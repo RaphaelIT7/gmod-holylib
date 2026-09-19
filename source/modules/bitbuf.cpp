@@ -669,7 +669,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBytes)
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
 	size_t iLength;
-	const char* pData = Util::CheckLString(LUA, 2, &iLength);
+	const char* pData = Lua::CheckLString(LUA, 2, &iLength);
 	pBF->WriteBytes(pData, iLength);
 	return 0;
 }
@@ -897,7 +897,7 @@ LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 {
 	size_t iLength;
-	const char* pData = Util::CheckLString(LUA, 1, &iLength);
+	const char* pData = Lua::CheckLString(LUA, 1, &iLength);
 	int iNewLength = CLAMP_BF(iLength);
 
 	LuaUserData* pUserData = PushInlined_bf_read(LUA, iNewLength);
@@ -916,7 +916,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
 {
 	size_t iLength;
-	const char* pData = Util::CheckLString(LUA, 1, &iLength);
+	const char* pData = Lua::CheckLString(LUA, 1, &iLength);
 	int iNewLength = CLAMP_BF(iLength);
 	bool bSimpleCall = LUA->GetBool(3);
 
@@ -954,7 +954,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	{
 		iBufferLength = CLAMP_BF((int)LUA->GetNumber(1));
 	} else {
-		pData = (void*)Util::CheckLString(LUA, 1, &iDataLength);
+		pData = (void*)Lua::CheckLString(LUA, 1, &iDataLength);
 		iBufferLength = CLAMP_BF(iDataLength);
 	}
 
@@ -987,7 +987,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
 		cData = (unsigned char*)_alloca(nSize);
 	} else {
 		size_t iLength;
-		const char* pData = Util::CheckLString(LUA, 1, &iLength);
+		const char* pData = Lua::CheckLString(LUA, 1, &iLength);
 		nSize = CLAMP_BF(iLength);
 
 		if (!holylib_canstackalloc(nSize))

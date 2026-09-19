@@ -1170,7 +1170,7 @@ struct VoiceStream {
 			for (auto& [tickCount, voiceData] : pVoiceData)
 			{
 				Push_VoiceData(pLua, bDirect ? voiceData : voiceData->CreateCopy());
-				Util::RawSetI(pLua, -2, tickCount);
+				Lua::RawSetI(pLua, -2, tickCount);
 			}
 	}
 
@@ -1934,7 +1934,7 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStreamFromWaveString)
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
 	size_t pWaveDataLength;
-	const char* pWaveData = Util::CheckLString(LUA, 1, &pWaveDataLength);
+	const char* pWaveData = Lua::CheckLString(LUA, 1, &pWaveDataLength);
 	bool bAsync = LUA->IsType(2, GarrysMod::Lua::Type::Function);
 	bool bPromiseToNeverModify = LUA->GetBool(3);
 

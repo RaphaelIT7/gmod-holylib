@@ -153,7 +153,7 @@ LUA_FUNCTION_STATIC(EntityList_GetEntities)
 		for (auto& [pEnt, iReference] : pData->GetReferences())
 		{
 			pData->PushReference(pEnt, iReference);
-			Util::RawSetI(LUA, -2, ++idx);
+			Lua::RawSetI(LUA, -2, ++idx);
 		}
 	return 1;
 }
@@ -300,7 +300,7 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 		for (auto& [pEnt, iReference] : pGlobalEntityList.GetReferences())
 		{
 			pGlobalEntityList.PushReference(pEnt, iReference);
-			Util::RawSetI(LUA, -2, ++idx);
+			Lua::RawSetI(LUA, -2, ++idx);
 		}
 
 	return 1;

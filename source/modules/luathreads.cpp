@@ -355,7 +355,7 @@ LUA_FUNCTION_STATIC(luathreads_GetInterfaces)
 	for (LuaInterface* pInterface : g_pLuaInterfaces)
 	{
 		Push_LuaInterface(LUA, pInterface);
-		Util::RawSetI(LUA, -2, ++idx);
+		Lua::RawSetI(LUA, -2, ++idx);
 	}
 
 	return 1;

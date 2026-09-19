@@ -84,7 +84,7 @@ LUA_FUNCTION_STATIC(soundscape_GetActivePositions)
 				continue;
 			
 			Push_CopyVector(LUA, new Vector(pParams->localSound[nIndex]));
-			Util::RawSetI(LUA, -2, ++nTableIndex);
+			Lua::RawSetI(LUA, -2, ++nTableIndex);
 		}
 
 	return 1;
@@ -208,7 +208,7 @@ LUA_FUNCTION_STATIC(soundscape_GetAllEntities)
 	for(int entityIndex = 0; entityIndex < nCount; ++entityIndex)
 	{
 		Util::Push_Entity(LUA, g_pSoundscapeSystem->m_soundscapeEntities[entityIndex]);
-		Util::RawSetI(LUA, -2, ++nLuaIndex);
+		Lua::RawSetI(LUA, -2, ++nLuaIndex);
 	}
 
 	return 1;

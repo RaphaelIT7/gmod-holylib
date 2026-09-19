@@ -1623,7 +1623,7 @@ void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	for(IAsyncFile* file : asyncCallback)
 	{
-		Util::ReferencePush(pLua, file->callback);
+		Lua::ReferencePush(pLua, file->callback);
 		pLua->PushString(file->req->pszFilename);
 		pLua->PushString(file->req->pszPathID);
 		pLua->PushNumber(file->status);
@@ -1732,7 +1732,7 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 		for (std::string file : files)
 		{
 			LUA->PushString(file.c_str());
-			Util::RawSetI(LUA, -2, ++i);
+			Lua::RawSetI(LUA, -2, ++i);
 		}
 	}
 
@@ -1742,7 +1742,7 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 		for (std::string folder : folders)
 		{
 			LUA->PushString(folder.c_str());
-			Util::RawSetI(LUA, -2, ++i);
+			Lua::RawSetI(LUA, -2, ++i);
 		}
 	}
 
@@ -1978,7 +1978,7 @@ LUA_FUNCTION_STATIC(addonsystem_MountFile)
 		for (const std::string& strFile : files)
 		{
 			LUA->PushString(strFile.c_str());
-			Util::RawSetI(LUA, -2, ++idx);
+			Lua::RawSetI(LUA, -2, ++idx);
 		}
 
 	return 2;

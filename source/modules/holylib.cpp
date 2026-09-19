@@ -195,7 +195,7 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 
 		g_Lua->CallFunctionProtected(3, 0, true);
 
-		Util::ReferencePush(iReference);
+		Lua::ReferencePush(iReference);
 		Util::ReferenceFree(iReference);
 		g_Lua->SetUserType(-1, nullptr);
 		g_Lua->Pop(1)*/

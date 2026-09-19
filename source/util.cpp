@@ -160,7 +160,7 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 						return;
 					}
 
-					Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
+					Lua::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
 				}
 
 				g_pEntityReferences[nEntryIndex] = udataV(L->top-1); // Should be fine since the GCudata is never moved/nuked.
@@ -191,7 +191,7 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 			return;
 		}
 
-		Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
+		Lua::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
 	} else {
 		Warning("holylib: tried to push a entity, but this wasn't implemented for other lua states yet!\n");
 		LUA->PushNil();
@@ -762,8 +762,8 @@ static uint64_t g_pGModVersion = 0;
 
 IGet* Util::get = nullptr;
 CBaseEntityList* g_pEntityList = nullptr;
-Symbols::lua_rawseti Util::func_lua_rawseti = nullptr;
-Symbols::lua_rawgeti Util::func_lua_rawgeti = nullptr;
+Symbols::lua_rawseti Lua::func_lua_rawseti = nullptr;
+Symbols::lua_rawgeti Lua::func_lua_rawgeti = nullptr;
 IGameEventManager2* Util::gameeventmanager = nullptr;
 IServerGameDLL* Util::servergamedll = nullptr;
 Symbols::lj_tab_new Util::func_lj_tab_new = nullptr;
@@ -775,7 +775,7 @@ Symbols::lua_type Util::func_lua_type = nullptr;
 Symbols::lua_gc Util::func_lua_gc = nullptr;
 Symbols::lua_setallocf Util::func_lua_setallocf = nullptr;
 Symbols::lua_newuserdata Util::func_lua_newuserdata = nullptr;
-Symbols::luaL_checklstring Util::func_luaL_checklstring = nullptr;
+Symbols::luaL_checklstring Lua::func_luaL_checklstring = nullptr;
 Symbols::lua_call Util::func_lua_call = nullptr;
 Symbols::lua_pcall Util::func_lua_pcall = nullptr;
 Symbols::lua_cpcall Util::func_lua_cpcall = nullptr;
@@ -888,11 +888,11 @@ void Util::AddDetour()
 	Detour::CheckFunction((void*)func_CM_Vis, "CM_Vis");
 
 	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
-	func_lua_rawseti = (Symbols::lua_rawseti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawsetiSym);
-	Detour::CheckFunction((void*)func_lua_rawseti, "lua_rawseti");
+	Lua::func_lua_rawseti = (Symbols::lua_rawseti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawsetiSym);
+	Detour::CheckFunction((void*)Lua::func_lua_rawseti, "lua_rawseti");
 
-	func_lua_rawgeti = (Symbols::lua_rawgeti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawgetiSym);
-	Detour::CheckFunction((void*)func_lua_rawgeti, "lua_rawgeti");
+	Lua::func_lua_rawgeti = (Symbols::lua_rawgeti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawgetiSym);
+	Detour::CheckFunction((void*)Lua::func_lua_rawgeti, "lua_rawgeti");
 
 	func_lj_tab_new = (Symbols::lj_tab_new)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_tab_newSym);
 	Detour::CheckFunction((void*)func_lj_tab_new, "lj_tab_new");
@@ -912,8 +912,8 @@ void Util::AddDetour()
 	func_lua_setfenv = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_setfenvSym);
 	Detour::CheckFunction((void*)func_lua_setfenv, "lua_setfenv");
 
-	func_luaL_checklstring = (Symbols::luaL_checklstring)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::luaL_checklstringSym);
-	Detour::CheckFunction((void*)func_luaL_checklstring, "luaL_checklstring");
+	Lua::func_luaL_checklstring = (Symbols::luaL_checklstring)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::luaL_checklstringSym);
+	Detour::CheckFunction((void*)Lua::func_luaL_checklstring, "luaL_checklstring");
 
 	func_lua_call = (Symbols::lua_call)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_callSym);
 	Detour::CheckFunction((void*)func_lua_call, "lua_call");
@@ -940,7 +940,7 @@ void Util::AddDetour()
 	Detour::CheckFunction((void*)func_lua_newuserdata, "lua_newuserdata");
 
 	if (
-		!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !func_luaL_checklstring || !func_lua_call ||
+		!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !Lua::func_luaL_checklstring || !func_lua_call ||
 		!func_lua_pcall || !func_lua_cpcall || !func_lua_insert || !func_lua_toboolean || !func_lua_newuserdata
 		)
 	{

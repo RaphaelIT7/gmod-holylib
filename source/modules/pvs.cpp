@@ -836,7 +836,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), pVisCluster->cluster, sizeof(pVisCluster->cluster)))
 			{
 				pGlobalEntityList.PushReference(pEnt, iReference);
-				Util::RawSetI(LUA, -2, ++idx);
+				Lua::RawSetI(LUA, -2, ++idx);
 			}
 		}
 
@@ -850,7 +850,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), pVisCluster->cluster, sizeof(pVisCluster->cluster)))
 		{
 			Util::Push_Entity(LUA, pEnt);
-			Util::RawSetI(LUA, -2, ++idx);
+			Lua::RawSetI(LUA, -2, ++idx);
 		}
 
 		pEnt = Util::NextEnt(pEnt);
@@ -925,7 +925,7 @@ LUA_FUNCTION_STATIC(pvs_GetEntitiesFromTransmit)
 			continue;
 
 		Util::Push_Entity(LUA, Util::servergameents->EdictToBaseEntity(pEdict));
-		Util::RawSetI(LUA, -2, ++idx);
+		Lua::RawSetI(LUA, -2, ++idx);
 	}
 
 	return 1;

@@ -379,7 +379,7 @@ void CSysTimerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 			else
 				timer->repetitions--;
 
-			Util::ReferencePush(pLua, timer->function);
+			Lua::ReferencePush(pLua, timer->function);
 			pLua->CallFunctionProtected(0, 0, true); // We should add a custom error handler to not have errors with no stack (Which somehow can happen but only observed in gmod clients)
 		}
 	}

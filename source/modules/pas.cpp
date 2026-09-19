@@ -110,7 +110,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 			{
 				// Since it should be a bit more rare that ALL entities are pushed we don't directly loop thru the map itself to benefit from the vector's performance.
 				pGlobalEntityList.PushReference(pEnt, iReference);
-				Util::RawSetI(LUA, -2, ++idx);
+				Lua::RawSetI(LUA, -2, ++idx);
 			}
 		}
 
@@ -124,7 +124,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), pVisCluster->cluster, sizeof(pVisCluster->cluster)))
 		{
 			Util::Push_Entity(LUA, pEnt);
-			Util::RawSetI(LUA, -2, ++idx);
+			Lua::RawSetI(LUA, -2, ++idx);
 		}
 
 		pEnt = Util::NextEnt(pEnt);

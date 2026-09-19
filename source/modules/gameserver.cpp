@@ -335,7 +335,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	msg.m_iLength = bf->GetNumBitsWritten();
 #else
 	size_t nLength;
-	const char* pData = Util::CheckLString(LUA, 4, &nLength);
+	const char* pData = Lua::CheckLString(LUA, 4, &nLength);
 
 	msg.m_DataOut.StartWriting((void*)pData, nLength);
 	msg.m_iLength = nLength * 8;
@@ -944,7 +944,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SetMaxBufferSize)
 		{
 			INetMessage* msg = pNetChannel->m_NetMessages[ i ];
 			LUA->PushString(msg->GetName());
-			Util::RawSetI(LUA, -2, msg->GetType());
+			Lua::RawSetI(LUA, -2, msg->GetType());
 		}
 
 	return 1;
@@ -1858,7 +1858,7 @@ LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 	msg.m_iLength = bf->GetNumBitsWritten();
 #else
 	size_t nLength;
-	const char* pData = Util::CheckLString(LUA, 2, &nLength);
+	const char* pData = Lua::CheckLString(LUA, 2, &nLength);
 
 	msg.m_DataOut.StartWriting((void*)pData, nLength);
 	msg.m_iLength = nLength * 8;
@@ -1913,7 +1913,7 @@ LUA_FUNCTION_STATIC(CNetChan_Get##name) \
 \
 	if (pHandler && pHandler->m_i##name##Function != -1) \
 	{ \
-		Util::ReferencePush(LUA, pHandler->m_i##name##Function); \
+		Lua::ReferencePush(LUA, pHandler->m_i##name##Function); \
 	} else { \
 		LUA->PushNil(); \
 	} \
@@ -2103,7 +2103,7 @@ LUA_FUNCTION_STATIC(gameserver_GetAll)
 				continue;
 
 			Push_CBaseClient(LUA, pClient);
-			Util::RawSetI(LUA, -2, ++iTableIndex);
+			Lua::RawSetI(LUA, -2, ++iTableIndex);
 		}
 
 		{
@@ -2114,7 +2114,7 @@ LUA_FUNCTION_STATIC(gameserver_GetAll)
 					continue;
 
 				Push_CBaseClient(LUA, pClient);
-				Util::RawSetI(LUA, -2, ++iTableIndex);
+				Lua::RawSetI(LUA, -2, ++iTableIndex);
 			}
 		}
 
@@ -2322,7 +2322,7 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	msg.m_iLength = bf->GetNumBitsWritten();
 #else
 	size_t nLength;
-	const char* pData = Util::CheckLString(LUA, 3, &nLength);
+	const char* pData = Lua::CheckLString(LUA, 3, &nLength);
 
 	msg.m_DataOut.StartWriting((void*)pData, nLength);
 	msg.m_iLength = nLength * 8;
@@ -2339,7 +2339,7 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 	bf_write* msg = Get_bf_write(LUA, 1, true);
 #else
 	size_t nLength;
-	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+	const char* pData = Lua::CheckLString(LUA, 1, &nLength);
 #endif
 
 	netadrnew_t adr;
@@ -2441,7 +2441,7 @@ LUA_FUNCTION_STATIC(gameserver_GetCreatedNetChannels)
 		for (auto& handler : g_pNetMessageHandlers)
 		{
 			Push_CNetChan(LUA, handler->m_pChan);
-			Util::RawSetI(LUA, -2, ++idx);
+			Lua::RawSetI(LUA, -2, ++idx);
 		}
 
 	return 1;

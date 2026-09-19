@@ -671,7 +671,7 @@ LUA_FUNCTION_STATIC(HttpRequest_SetStatusCode)
 
 void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpRequest* request, HttpResponse* response)
 {
-	Util::ReferencePush(pLua, callbackFunction);
+	Lua::ReferencePush(pLua, callbackFunction);
 
 	if (g_pHttpServerModule.InDebug())
 		Msg(PROJECT_NAME " - httpserver: pushed handler function %i with type %i\n", callbackFunction, pLua->GetType(-1));
@@ -787,7 +787,7 @@ void HttpServer::Think()
 	std::lock_guard<std::shared_mutex> lock(m_pRequestMutex);
 	if (m_pRequests.size() > 0 && pData)
 	{
-		Util::ReferencePush(m_pLua, pData->nProtectedCallRef);
+		Lua::ReferencePush(m_pLua, pData->nProtectedCallRef);
 		Push_HttpServer(m_pLua, this);
 		if (!m_pLua->CallFunctionProtected(1, 0, true) && m_pLastHandledRequest)
 		{
@@ -1224,7 +1224,7 @@ LUA_FUNCTION_STATIC(httpserver_GetAll)
 		for (auto& server : pLuaData->pServers)
 		{
 			Push_HttpServer(LUA, server);
-			Util::RawSetI(LUA, -2, ++idx);
+			Lua::RawSetI(LUA, -2, ++idx);
 		}
 
 	return 1;

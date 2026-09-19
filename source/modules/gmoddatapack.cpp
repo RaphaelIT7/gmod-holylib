@@ -699,7 +699,7 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 		LUA->PushString(tok.content.c_str(), tok.content.length());
 		LUA->RawSet(-3);
 
-		Util::RawSetI(LUA, -2, ++idx);
+		Lua::RawSetI(LUA, -2, ++idx);
 	}
 
 	LUA->PushNumber(fileID);
@@ -1213,7 +1213,7 @@ static void hook_GModDataPack_SendFileToClient(GModDataPack* pDataPack, int clie
 LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 {
 	size_t nLength;
-	const char* pContent = Util::CheckLString(LUA, 1, &nLength);
+	const char* pContent = Lua::CheckLString(LUA, 1, &nLength);
 	bool bRemoveServerCode = Util::CheckBoolOpt(LUA, 2, gmoddatapack_removeserverif.GetBool());
 	bool bRemoveComments = Util::CheckBoolOpt(LUA, 3, gmoddatapack_removecomments.GetBool());
 

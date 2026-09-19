@@ -106,7 +106,7 @@ public:
 			Error(PROJECT_NAME " - util: Somehow called OnThink for the wrong Lua Interface?!?\n");
 		}
 
-		Util::ReferencePush(pLua, iCallback);
+		Lua::ReferencePush(pLua, iCallback);
 		if (iStatus == -1)
 		{
 			pLua->PushNil();
@@ -178,7 +178,7 @@ inline void StartThread()
 LUA_FUNCTION_STATIC(util_AsyncCompress)
 {
 	size_t iLength;
-	const char* pData = Util::CheckLString(LUA, 1, &iLength);
+	const char* pData = Lua::CheckLString(LUA, 1, &iLength);
 	int iLevel = 5;
 	int iDictSize = 65536;
 	int iCallback = -1;
@@ -216,7 +216,7 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 LUA_FUNCTION_STATIC(util_AsyncDecompress)
 {
 	size_t iLength;
-	const char* pData = Util::CheckLString(LUA, 1, &iLength);
+	const char* pData = Lua::CheckLString(LUA, 1, &iLength);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->Push(2);
 	int iCallback = Util::ReferenceCreate(LUA, "util.AsyncDecompress - Callback");
@@ -259,7 +259,7 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 	bool bEqual = false;
 	for (int iReference : pData->pRecursiveTableScope)
 	{
-		Util::ReferencePush(pLua, iReference);
+		Lua::ReferencePush(pLua, iReference);
 		if (pLua->Equal(-1, -3))
 		{
 			bEqual = true;
@@ -519,7 +519,7 @@ void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::
 		for (rapidjson::SizeType i = 0; i < jsonValue.Size(); ++i)
 		{
 			JSONToTableRecursive(pLua, jsonValue[i], true, nIgnoreConversions);
-			Util::RawSetI(pLua, -2, ++idx);
+			Lua::RawSetI(pLua, -2, ++idx);
 		}
 	} else if (nOutsideSet) { // We got called by above jsonValue.IsArray(), so we expect ONLY ONE value to be pushed.
 		PushJSONValue(pLua, jsonValue, nIgnoreConversions);
@@ -547,7 +547,7 @@ LUA_FUNCTION_STATIC(util_JSONToTable)
 LUA_FUNCTION_STATIC(util_CompressLZ4)
 {
 	size_t iLength;
-	const char* pData = Util::CheckLString(LUA, 1, &iLength);
+	const char* pData = Lua::CheckLString(LUA, 1, &iLength);
 	int accelerationLevel = (int)LUA->CheckNumberOpt(2, 1);
 
 	void* pDest = nullptr;
@@ -568,7 +568,7 @@ LUA_FUNCTION_STATIC(util_CompressLZ4)
 LUA_FUNCTION_STATIC(util_DecompressLZ4)
 {
 	size_t iLength;
-	const char* pData = Util::CheckLString(LUA, 1, &iLength);
+	const char* pData = Lua::CheckLString(LUA, 1, &iLength);
 
 	void* pDest = nullptr;
 	unsigned int pDestLen = 0;
@@ -619,7 +619,7 @@ public:
 			Error(PROJECT_NAME " - util: Somehow called OnThink for the wrong Lua Interface?!?\n");
 		}
 
-		Util::ReferencePush(pLua, m_iCallback);
+		Lua::ReferencePush(pLua, m_iCallback);
 		pLua->PushString(m_strOut.GetString(), m_strOut.GetLength());
 		pLua->CallFunctionProtected(1, 0, true);
 
@@ -727,7 +727,7 @@ LUA_FUNCTION_STATIC(util_AsyncTableToJSON)
 /*LUA_FUNCTION_STATIC(util_AsyncDecompress)
 {
 	size_t iLength;
-	const char* pData = Util::CheckLString(LUA, 1, &iLength);
+	const char* pData = Lua::CheckLString(LUA, 1, &iLength);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->Push(2);
 	int iCallback = Util::ReferenceCreate(LUA, "util.AsyncDecompress - Callback");

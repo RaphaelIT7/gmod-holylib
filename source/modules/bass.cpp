@@ -275,7 +275,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_FFT)
 		for (int idx = 0; idx < size; ++idx)
 		{
 			LUA->PushNumber(fft2[idx]);
-			Util::RawSetI(LUA, -2, idx+1);
+			Lua::RawSetI(LUA, -2, idx+1);
 		}
 	LUA->Pop(1);
 
@@ -356,7 +356,7 @@ public:
 		if (m_nCallbackReference == -1)
 			return;
 
-		Util::ReferencePush(m_pLua, m_nCallbackReference);
+		Lua::ReferencePush(m_pLua, m_nCallbackReference);
 		if (nStatus == GModEncoderStatus::FINISHED) {
 			m_pLua->PushBool(true);
 			m_pLua->PushNil();
@@ -775,7 +775,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_FeedData)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	size_t nLength = (size_t)-1;
-	const char* pData = Util::CheckLString(LUA, 2, &nLength);
+	const char* pData = Lua::CheckLString(LUA, 2, &nLength);
 
 	if (!channel->IsPush())
 		LUA->ThrowError("Tried to insert data into a non-push channel!");
@@ -1184,7 +1184,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_FeedData)
 {
 	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
 	size_t nLength = (size_t)-1;
-	const char* pData = Util::CheckLString(LUA, 2, &nLength);
+	const char* pData = Lua::CheckLString(LUA, 2, &nLength);
 
 	encoder->WriteData(pData, nLength);
 
