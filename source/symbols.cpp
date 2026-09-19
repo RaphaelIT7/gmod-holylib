@@ -834,8 +834,13 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x20\x56\x57\x41\x56\x48******\x8B\xF2\x4C\x8B\xF1"), // 48 89 5C 24 20 56 57 41 56 48 ?? ?? ?? ?? ?? ?? 8B F2 4C 8B F1
 	};
 
-	const std::vector<Symbol> CVoiceGameMgrHelper_CanPlayerHearPlayerSym = { // Good luck.
+	// Search for "CGameRules" to end up in CGameRules::CGameRules, then find the mov eax, dword_ and one of them will be g_pVoiceGameMgrHelper
+	// and then click around wildly until you end up at a function that looks like its right (I got no idea what I clicked, just spammed)
+	// The right functions does lots of return 1 in failure causes and between two ifs got two calls (the Push_Entity calls) at one point
+	const std::vector<Symbol> CVoiceGameMgrHelper_CanPlayerHearPlayerSym = {
 		Symbol::FromName("_ZN19CVoiceGameMgrHelper19CanPlayerHearPlayerEP11CBasePlayerS1_Rb"),
+		NULL_SIGNATURE,
+		Symbol::FromName("\x55\x8B\xEC\x8B*****\x85\xC9**\x6A*\xE8****\x84\xC0**\xFF**\xE8****\xFF**\xE8****\x8B*****\x83\xC4\x08\x6A\x02\x6A\x02"), // 55 8B EC 8B ?? ?? ?? ?? ?? 85 C9 ?? ?? 6A ?? E8 ?? ?? ?? ?? 84 C0 ?? ?? FF ?? ?? E8 ?? ?? ?? ?? FF ?? ?? E8 ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 83 C4 08 6A 02 6A 02
 		// Needs all other platforms.
 	};
 

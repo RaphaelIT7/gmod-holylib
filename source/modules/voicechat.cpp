@@ -2311,6 +2311,12 @@ void CVoiceChatModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Detour::CheckValue("get interface", "g_pVoiceServer", g_pVoiceServer != nullptr);
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDRETFUNC3( hook_CVoiceGameMgrHelper_CanPlayerHearPlayer, bool, CanPlayerHearPlayer, void*, CBasePlayer*, CBasePlayer*, bool& );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CVoiceChatModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -2323,11 +2329,12 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 		(void*)hook_SV_BroadcastVoiceData, m_pID
 	);
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CVoiceGameMgrHelper_CanPlayerHearPlayer, "CVoiceGameMgrHelper::CanPlayerHearPlayer",
 		server_loader.GetModule(), Symbols::CVoiceGameMgrHelper_CanPlayerHearPlayerSym,
-		(void*)hook_CVoiceGameMgrHelper_CanPlayerHearPlayer, m_pID
+		(void*)DETOUR_THISCALL(hook_CVoiceGameMgrHelper_CanPlayerHearPlayer, CanPlayerHearPlayer), m_pID
 	);
 }
 

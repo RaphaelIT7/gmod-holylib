@@ -198,17 +198,20 @@ namespace Util
 		LUA->ReferenceFree(iReference);
 	}
 
-	inline void StartTable(GarrysMod::Lua::ILuaInterface* LUA) {
+	inline void StartTable(GarrysMod::Lua::ILuaInterface* LUA)
+	{
 		LUA->CreateTable();
 	}
 
-	inline void AddFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name) {
+	inline void AddFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name)
+	{
 		LUA->PushString(Name);
 		LUA->PushCFunction(Func);
 		LUA->RawSet(-3);
 	}
 
-	inline void AddValue(GarrysMod::Lua::ILuaInterface* LUA, double value, const char* Name) {
+	inline void AddValue(GarrysMod::Lua::ILuaInterface* LUA, double value, const char* Name)
+	{
 		LUA->PushString(Name);
 		LUA->PushNumber(value);
 		LUA->RawSet(-3);
