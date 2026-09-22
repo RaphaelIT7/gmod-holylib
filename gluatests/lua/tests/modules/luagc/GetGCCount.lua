@@ -27,8 +27,10 @@ return {
             when = HolyLib_IsModuleEnabled("luagc"),
             func = function()
                 collectgarbage("stop")
+                jit.off()
                 local head = luagc.GetCurrentGCHeadObject()
                 local count = luagc.GetGCCount( head )
+                jit.on()
                 collectgarbage("restart")
 
                 expect( count ).to.equal( 0 )
@@ -39,9 +41,11 @@ return {
             when = HolyLib_IsModuleEnabled("luagc"),
             func = function()
                 collectgarbage("stop")
+                jit.off()
                 local head = luagc.GetCurrentGCHeadObject()
                 local marker = {}
                 local count = luagc.GetGCCount( head )
+                jit.on()
                 collectgarbage("restart")
 
                 expect( count ).to.equal( 1 )
