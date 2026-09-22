@@ -35,9 +35,7 @@ IModule* pHolyLibModule = &g_pHolyLibModule;
 
 LUA_FUNCTION_STATIC(Reconnect)
 {
-	CBasePlayer* ent = Util::Get_Player(LUA, 1, true);
-
-	CBaseClient* client = Util::GetClientByIndex(ent->GetClientIndex());
+	CBaseClient* client = Util::Get_Client(LUA, 1, true);
 	if (client->GetNetChannel()) {
 		client->Reconnect();
 		LUA->PushBool(true);

@@ -311,9 +311,11 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 	if (!tvisgcv(pVal))
 		return 1;
 
+	GCobj* pTargetObject = gcV(pVal);
+
 	// We do it here as else we mess with index2adr causing funky stuff
 	LUA->PreCreateTable(0, 0);
-	GCobj* pTargetObject = gcV(pVal);
+
 	int nCount = 0;
 	GCobj* pObj = gcref(pGState->gc.root);
 	while (pObj)
