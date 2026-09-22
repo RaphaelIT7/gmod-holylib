@@ -71,21 +71,17 @@ return {
 
                 systimer.Create( name, 0.05, 2, function()
                     fireCount = fireCount + 1
-                end )
-                expect( systimer.RepsLeft( name ) ).to.equal( 2 )
 
-                timer.Simple( 0.25, function()
-                    expect( fireCount ).to.equal( 1 )
-                    expect( systimer.RepsLeft( name ) ).to.equal( 1 )
-
-                    timer.Simple( 0.25, function()
-                        expect( fireCount ).to.equal( 2 )
+                    if fireCount == 1 then
+                        expect( systimer.RepsLeft( name ) ).to.equal( 1 )
+                    elseif fireCount == 2 then
                         expect( systimer.Exists( name ) ).to.beFalse()
                         expect( systimer.RepsLeft( name ) ).to.equal( 0 )
-
                         done()
-                    end )
+                    end
                 end )
+
+                expect( systimer.RepsLeft( name ) ).to.equal( 2 )
             end
         },
     }

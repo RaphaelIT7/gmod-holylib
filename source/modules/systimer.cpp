@@ -103,6 +103,7 @@ LUA_FUNCTION_STATIC(timer_Adjust)
 	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		timer->delay = (float)delay;
+		timer->nextRunTime = GetTime() + delay; // Resets the next run time just like GMod does
 		if (LUA->IsType(3, GarrysMod::Lua::Type::Number))
 			timer->repetitions = (int)LUA->GetNumber(3);
 

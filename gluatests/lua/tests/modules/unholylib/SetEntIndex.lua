@@ -54,7 +54,8 @@ return {
 
                 unholylib.SetEntIndex( ent, -1 )
 
-                expect( ent:EntIndex() ).to.equal( -1 )
+                -- GMod does not show -1 but rather 0 (There is no good way to tell if something is server only / has no edict)
+                expect( ent:EntIndex() ).to.equal( 0 )
                 expect( IsValid( ent ) ).to.beTrue()
 
                 SafeRemoveEntity( ent )
