@@ -28,7 +28,7 @@ return {
             func = function()
                 local ent = MakeTestEntity()
 
-                expect( HolyLib.Reconnect, ent ).to.errWith( "bad argument #1 to '?' (Player entity is NULL or not a player (!?))" )
+                expect( HolyLib.Reconnect, ent ).to.errWith( "bad argument #1 to '?' (Failed to get a valid CBaseClient!)" )
 
                 SafeRemoveEntity( ent )
             end
