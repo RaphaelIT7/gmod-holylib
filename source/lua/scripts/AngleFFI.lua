@@ -31,8 +31,8 @@ local function Angle(x, y, z)
     if isstring(ang) then
         local vals = ang:Split(" ")
         x = vals[1] or 0
-        y = vals[2] or 0
-        z = vals[3] or 0
+        y = vals[2] or y or 0
+        z = vals[3] or z or 0
     end
 
     return CreateAngle(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
@@ -45,32 +45,33 @@ _G.Angle = Angle
 ---@param arg_num number
 ---@param is_optional boolean|nil
 ---@return any
-local function expect(value, expected_type, arg_num, is_optional)
+local function expect(value, expected_type, arg_num, is_optional, additionalLevel)
     -- If marked as optional and value is nil, return nil
     if is_optional and value == nil then
         return nil
     end
     local actual_type = type(value)
     if actual_type ~= expected_type then
-        local caller = debug.getinfo(2, "n").name or "unknown"
-        local type_str = is_optional and (expected_type .. " or nil") or expected_type
+    	additionalLevel = additionalLevel or 0
+        local caller = debug.getinfo(2 + additionalLevel, "n").name or "unknown"
+        local type_str = expected_type -- is_optional and (expected_type .. " or nil") or
         return error(string.format("bad argument #%d to '%s' (%s expected, got %s)",
             arg_num,
             caller,
             type_str,
-            actual_type), 2)
+            actual_type), 2 + additionalLevel)
     end
     return value
 end
 
 -- RaphaelIT7: GMod also accepts string input for __newindex!
-local function check_num(value, arg_num, is_optional)
+local function check_num(value, arg_num, is_optional, additionalLevel)
     if value == nil then
         if is_optional then
             return nil
         end
 
-        local caller = debug.getinfo(2, "n").name or "unknown"
+        local caller = debug.getinfo(2 + (additionalLevel or 0), "n").name or "unknown"
         return error(string.format(
             "bad argument #%d to '%s' (number expected, got no value)",
             arg_num,
@@ -89,7 +90,7 @@ local function check_num(value, arg_num, is_optional)
         end
     end
 
-    return expect(value, "number", arg_num, is_optional)
+    return expect(value, "number", arg_num, is_optional, additionalLevel)
 end
 
 local function check_ang(value, arg_num, is_optional)
@@ -101,7 +102,7 @@ local function check_ang_or_num(value, arg_num, is_optional)
         return value:Unpack()
     end
 
-    local num = check_num(value, arg_num, is_optional)
+    local num = check_num(value, arg_num, is_optional, 1)
     return num, num, num
 end
 

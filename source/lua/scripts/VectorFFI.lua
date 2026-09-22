@@ -31,8 +31,8 @@ local function Vector(x, y, z)
     if isstring(vec) then
         local vals = vec:Split(" ")
         x = vals[1] or 0
-        y = vals[2] or 0
-        z = vals[3] or 0
+        y = vals[2] or y or 0
+        z = vals[3] or z or 0
     end
 
     return CreateVector(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
