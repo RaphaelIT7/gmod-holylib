@@ -267,17 +267,14 @@ static bool LuaGC_ReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L)
 			if (gcref(pVal->env) == pTargetObj)
 				return true;
 
-			GCupval* pUpVal = gcref(pVal->openupval) ? gco2uv(gcref(pVal->openupval)) : NULL;
-			while (pUpVal)
+			for (GCobj* up = gcref(pVal->openupval); up != NULL; up = gcnext(up))
 			{
-				TValue* pUpValTV = uvval(pUpVal);
+				TValue* pUpValTV = uvval(gco2uv(up));
 				if (pUpValTV && tvisgcv(pUpValTV))
 				{
 					if (obj2gco(gcV(pUpValTV)) == pTargetObj)
 						return true;
 				}
-
-				pUpVal = uvnext(pUpVal);
 			}
 
 			TValue* pBase = Lua::LuaBase(pVal);
@@ -451,14 +448,11 @@ static void LuaGC_References(GCobj* pObj, TraverseInfo& info, lua_State* L, Garr
 			lua_State* pVal = gco2th(pObj);
 			info.AddNext(gcref(pVal->env));
 
-			GCupval* pUpVal = gcref(pVal->openupval) ? gco2uv(gcref(pVal->openupval)) : NULL;
-			while (pUpVal)
+			for (GCobj* up = gcref(pVal->openupval); up != NULL; up = gcnext(up))
 			{
-				TValue* pUpValTV = uvval(pUpVal);
+				TValue* pUpValTV = uvval(gco2uv(up));
 				if (pUpValTV && tvisgcv(pUpValTV))
 					info.AddNext(obj2gco(gcV(pUpValTV)));
-
-				pUpVal = uvnext(pUpVal);
 			}
 
 			TValue* pBase = Lua::LuaBase(pVal);
@@ -836,17 +830,14 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 			LUA->PushString("upvalues");
 			LUA->PreCreateTable(0, 0);
 			int nCount = 0;
-			GCupval* pUpVal = gcref(pVal->openupval) ? gco2uv(gcref(pVal->openupval)) : NULL;
-			while (pUpVal)
+			for (GCobj* up = gcref(pVal->openupval); up != NULL; up = gcnext(up))
 			{
-				TValue* pUpValTV = uvval(pUpVal);
+				TValue* pUpValTV = uvval(gco2uv(up));
 				if (pUpValTV && tvisgcv(pUpValTV))
 				{
 					PushGCObject(LUA, obj2gco(gcV(pUpValTV)));
 					Lua::RawSetI(LUA, -2, ++nCount);
 				}
-
-				pUpVal = uvnext(pUpVal);
 			}
 			LUA->RawSet(-3);
 			
@@ -1042,10 +1033,9 @@ static size_t LuaGC_Size(GCobj* pObj, TraverseInfo& info, lua_State* L)
 
 			info.AddNext(gcref(pVal->env));
 
-			GCupval* pUpVal = gcref(pVal->openupval) ? gco2uv(gcref(pVal->openupval)) : NULL;
-			while (pUpVal)
+			for (GCobj* up = gcref(pVal->openupval); up != NULL; up = gcnext(up))
 			{
-				TValue* pUpValTV = uvval(pUpVal);
+				TValue* pUpValTV = uvval(gco2uv(up));
 				if (pUpValTV)
 				{
 					if (tvisgcv(pUpValTV))
@@ -1053,8 +1043,6 @@ static size_t LuaGC_Size(GCobj* pObj, TraverseInfo& info, lua_State* L)
 					else
 						nSize += sizeof(TValue);
 				}
-
-				pUpVal = uvnext(pUpVal);
 			}
 
 			TValue* pBase = Lua::LuaBase(pVal);
