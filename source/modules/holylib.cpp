@@ -113,6 +113,14 @@ LUA_FUNCTION_STATIC(_UserMessageBegin)
 	IRecipientFilter* pFilter = Get_IRecipientFilter(LUA, 1, true);
 	const char* pName = LUA->CheckString(2);
 
+#if GMOD_X86_64
+	// On x86-64 currently our CUserMessages class is wrong
+	// See: https://github.com/perilouswithadollarsign/cstrike15_src/blob/master/game/shared/usermessages.h
+	// But I really don't want to deal with it right now
+	// I don't even think anyone is using this anyways (Move to dev 64x which will work)
+	LUA->ThrowError("This GMod branch is not supported currently");
+#endif
+
 #if MODULE_EXISTS_BITBUF
 	int msg_type = Util::pUserMessages->LookupUserMessage(pName);
 	if (msg_type == -1)

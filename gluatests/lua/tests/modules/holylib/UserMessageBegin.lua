@@ -17,7 +17,7 @@ return {
         },
         {
             name = "Errors when called without a message name",
-            when = HolyLib_IsModuleEnabled("HolyLib"),
+            when = HolyLib_IsModuleEnabled("HolyLib") and IS_BASE_BRANCH,
             func = function()
                 local filter = RecipientFilter()
 
@@ -25,8 +25,17 @@ return {
             end
         },
         {
+            name = "Disabled on x86-64",
+            when = HolyLib_IsModuleEnabled("HolyLib") and IS_64BIT_BRANCH,
+            func = function()
+                local filter = RecipientFilter()
+
+                expect( HolyLib.UserMessageBegin, filter, "GameTitle" ).to.errWith( "This GMod branch is not supported currently" )
+            end
+        },
+        {
             name = "Returns a bf_write buffer that can be written to and finished",
-            when = HolyLib_IsModuleEnabled("HolyLib") and HolyLib_IsModuleEnabled("bitbuf"),
+            when = HolyLib_IsModuleEnabled("HolyLib") and HolyLib_IsModuleEnabled("bitbuf") and IS_BASE_BRANCH,
             func = function()
                 local filter = RecipientFilter()
 
