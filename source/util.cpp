@@ -37,10 +37,16 @@ ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
 // We require this here since we depend on the Lua namespace
 void ReferencedLuaUserData::ForceGlobalRelease(void* pData)
 {
+	Lua::ScopedThreadAccess threadAccess; // So that GetAllLuaData may not be modified by others!
+
 	bool bFound = false;
 	const auto& pStateData = Lua::GetAllLuaData();
-	for (Lua::StateData* pState : pStateData)
+	for (auto& [lua, pState] : pStateData)
 	{
+		Lua::StateAccess luaAccess(lua);
+		if (!luaAccess.IsValid())
+			continue;
+
 		const auto& owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
 		auto it2 = owningData.find(pData);
 		if (it2 == owningData.end())
@@ -50,9 +56,7 @@ void ReferencedLuaUserData::ForceGlobalRelease(void* pData)
 		for (auto& [_, userData] : owningData)
 		{
 			if (userData->GetData())
-			{
 				userData->SetData(nullptr); // Remove any references any LuaUserData holds to us.
-			}
 		}
 	}
 
@@ -63,8 +67,12 @@ void ReferencedLuaUserData::ForceGlobalRelease(void* pData)
 		We need to pull it again since the it->second might have now been deleted.
 		This is because SetData internally releases the UserData it holds and the UserData will delete itself if all references were freed
 	*/
-	for (Lua::StateData* pState : pStateData)
+	for (auto& [lua, pState] : pStateData)
 	{
+		Lua::StateAccess luaAccess(lua);
+		if (!luaAccess.IsValid())
+			continue;
+
 		auto& owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
 		auto it2 = owningData.find(pData);
 		if (it2 == owningData.end())

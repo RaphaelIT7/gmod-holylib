@@ -945,7 +945,7 @@ public:
 	}
 };
 
-static unordered_set<Lua::StateData*> g_pLuaStates;
+static unordered_map<GarrysMod::Lua::ILuaInterface*, Lua::StateData*> g_pLuaStates;
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 {
 	Lua::CriticalThreadAccess pThreadScope;
@@ -981,7 +981,7 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 	}
 
 	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
-	g_pLuaStates.insert(data);
+	g_pLuaStates[LUA] = data;
 	Msg("holylib - Created thread data %p (%s)\n", data, pathID);
 }
 
@@ -992,16 +992,22 @@ void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 	if (!data)
 		return;
 
-	g_pLuaStates.erase(data);
+	g_pLuaStates.erase(LUA);
 	Msg("holylib - Removed thread data %p\n", data);
 
 	delete data;
 	*reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24) = nullptr;
 }
 
-const unordered_set<Lua::StateData*>& Lua::GetAllLuaData()
+const unordered_map<GarrysMod::Lua::ILuaInterface*, Lua::StateData*>& Lua::GetAllLuaData()
 {
 	return g_pLuaStates;
+}
+
+// The caller should always hold a Lua::ScopedThreadAccess
+bool Lua::IsValidLuaState(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	return g_pLuaStates.find(LUA) != g_pLuaStates.end();
 }
 
 Lua::StateData::~StateData()

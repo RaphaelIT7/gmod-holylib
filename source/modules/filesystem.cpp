@@ -1565,9 +1565,18 @@ struct IAsyncFile
 	const char* content = nullptr;
 	std::string strFileName;
 	std::string strPathID;
+	GarrysMod::Lua::ILuaInterface* luaState;
 };
 
-std::vector<IAsyncFile*> asyncCallback;
+class LuaFileSystemModuleData : public Lua::ModuleData
+{
+public:
+	std::mutex callbacksMutex;
+	std::queue<IAsyncFile*> callbacks;
+};
+
+LUA_GetModuleData(LuaFileSystemModuleData, g_pFileSystemModule, Filesystem);
+
 void AsyncCallback(const FileAsyncRequest_t &request, int nBytesRead, FSAsyncStatus_t err)
 {
 	IAsyncFile* async = (IAsyncFile*)request.pContext;
@@ -1581,10 +1590,19 @@ void AsyncCallback(const FileAsyncRequest_t &request, int nBytesRead, FSAsyncSta
 			std::memcpy(static_cast<void*>(content), request.pData, nContentLength);
 		content[nContentLength] = '\0';
 		async->content = content;
-		asyncCallback.push_back(async);
-	} else {
+
+		if (!Lua::IsValidLuaState(async->luaState))
+			return; // Just to be sure as I don't trust the filesystem
+
+		Lua::ScopedThreadAccess threadAccess;
+		auto pData = GetFilesystemLuaData(async->luaState);
+		if (!pData)
+			return;
+
+		std::lock_guard<std::mutex> lock(pData->callbacksMutex);
+		pData->callbacks.push(async);
+	} else
 		Msg(PROJECT_NAME " - filesystem: file.AsyncRead Invalid request? (%s, %s)\n", request.pszFilename, request.pszPathID);
-	}
 }
 
 LUA_FUNCTION_STATIC(filesystem_AsyncRead)
@@ -1609,20 +1627,36 @@ LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 	file->req = request;
 	file->strFileName = fileName;
 	file->strPathID = gamePath;
+	file->luaState = LUA;
 
 	request->pszFilename = file->strFileName.c_str();
 	request->pszPathID = file->strPathID.c_str();
 	request->pContext = file;
 
 	LUA->PushNumber(g_pFullFileSystem->AsyncReadMultiple(request, 1));
-
 	return 1;
 }
 
 void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	for(IAsyncFile* file : asyncCallback)
+	VPROF_BUDGET("HolyLib - FileAsyncReadThink", VPROF_BUDGETGROUP_HOLYLIB);
+
+	auto pData = GetFilesystemLuaData(pLua);
+	if (!pData)
+		return;
+	
+	while (true)
 	{
+		IAsyncFile* file = nullptr;
+		{
+			std::lock_guard<std::mutex> lock(pData->callbacksMutex);
+			if (pData->callbacks.empty())
+				break;
+
+			file = pData->callbacks.front();
+			pData->callbacks.pop();
+		}
+
 		Lua::ReferencePush(pLua, file->callback);
 		pLua->PushString(file->req->pszFilename);
 		pLua->PushString(file->req->pszPathID);
@@ -1634,8 +1668,6 @@ void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 		delete file->req;
 		delete file;
 	}
-
-	asyncCallback.clear();
 }
 
 LUA_FUNCTION_STATIC(filesystem_CreateDir)
@@ -2047,6 +2079,8 @@ void CFileSystemModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	if (bServerInit)
 		return;
 
+	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaFileSystemModuleData);
+
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, filesystem_AsyncRead, "AsyncRead");
 		Util::AddFunc(pLua, filesystem_CreateDir, "CreateDir");
@@ -2088,5 +2122,8 @@ void CFileSystemModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 
 void CFileSystemModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
+	g_pFullFileSystem->AsyncFinishAll(); // So that we can finish all Read Think calls
+	FileAsyncReadThink(pLua);
+
 	Util::NukeTable(pLua, "filesystem");
 }

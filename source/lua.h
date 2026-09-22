@@ -525,7 +525,8 @@ namespace Lua
 	}
 	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut = false);
 	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
-	extern const unordered_set<Lua::StateData*>& GetAllLuaData();
+	extern const unordered_map<GarrysMod::Lua::ILuaInterface*, Lua::StateData*>& GetAllLuaData();
+	extern bool IsValidLuaState(GarrysMod::Lua::ILuaInterface* LUA);
 
 	// In a single call checks the type and returns the userdata saving some work.
 	extern bool CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, LuaUserData** pUserData);
