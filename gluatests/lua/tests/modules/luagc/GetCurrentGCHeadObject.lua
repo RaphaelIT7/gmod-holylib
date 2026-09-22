@@ -27,8 +27,10 @@ return {
             when = HolyLib_IsModuleEnabled("luagc"),
             func = function()
                 collectgarbage("stop")
+                jit.off() -- Soo JIT added a trace into the head causing the marker to not actually be at the top
                 local marker = {}
                 local head = luagc.GetCurrentGCHeadObject()
+                jit.on()
                 collectgarbage("restart")
 
                 expect( head ).to.equal( marker )
