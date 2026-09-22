@@ -570,14 +570,14 @@ namespace Symbols
 	};
 
 	const std::vector<Symbol> CScriptedEntity_CallFunctionStrSym = { // const char* version - SetupDataTables
-		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEPKc"),
+		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEPKcb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x38\x0F\xB6\x47\x08\x84\xC0"), // 55 48 89 E5 41 55 41 54 53 48 89 FB 48 83 EC 38 0F B6 47 08 84 C0
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x14\x56\x8B\xF1\x80\x7E\x04\x00**\x32\xC0\x5E\x8B\xE5\x5D\xC2\x04\x00"), // 55 8B EC 83 EC 14 56 8B F1 80 7E 04 00 ?? ?? 32 C0 5E 8B E5 5D C2 04 00
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x40\x80\x79\x08\x00"), // 48 89 5C 24 08 57 48 83 EC 40 80 79 08 00
 	};
 
 	const std::vector<Symbol> CScriptedEntity_CallFunctionSym = { // int version. - AutomaticFrameAdvance
-		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEi"),
+		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEib"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x10\x80\x7F\x08\x00"), //  55 48 89 E5 41 54 53 48 89 FB 48 83 EC 10 80 7F 08 00
 		Symbol::FromSignature("\x55\x8B\xEC\x56\x8B\xF1\x80\x7E\x04\x00\x74\x2A"), // 55 8B EC 56 8B F1 80 7E 04 00 74 ?
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x80\x79\x08\x00\x8B\xFA") // 48 89 5C 24 08 57 48 83 EC 20 80 79 08 00 8B FA

@@ -324,10 +324,10 @@ static void* hook_CScriptedEntity_Call(void* funky_srv, int iArgs, int iRets)
 
 static unordered_map<std::string_view, std::string> CScriptedEntity_CallFunctionStr_strs;
 static Detouring::Hook detour_CScriptedEntity_CallFunctionStr;
-static void* hook_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* str)
+static void* hook_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* str, bool _bool)
 {
 	if (!g_Lua)
-		return detour_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
+		return detour_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str, _bool);
 
 	const char* pStr = nullptr;
 	auto it = CScriptedEntity_CallFunctionStr_strs.find(str);
@@ -341,15 +341,15 @@ static void* hook_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* s
 
 	VPROF_BUDGET(pStr, "GMOD");
 
-	return detour_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
+	return detour_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str, _bool);
 }
 
 static unordered_map<int, std::string> CScriptedEntity_CallFunction_strs;
 static Detouring::Hook detour_CScriptedEntity_CallFunction;
-static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool)
+static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool, bool _bool)
 {
 	if (!g_Lua)
-		return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
+		return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool, _bool);
 
 	const char* pStr = nullptr;
 	auto it = CScriptedEntity_CallFunction_strs.find(pool);
@@ -363,7 +363,7 @@ static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool)
 
 	VPROF_BUDGET(pStr, "GMOD");
 
-	return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
+	return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool, _bool);
 }
 
 #if SYSTEM_WINDOWS
@@ -377,8 +377,8 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_StartFunctionStr, void*, StartFunctionStr, void*, const char* );
 	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_StartFunction, void*, StartFunctionInt, void*, int );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CScriptedEntity_Call, void*, ScriptedCall, void*, int, int );
-	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_CallFunctionStr, void*, CallFunctionStr, void*, const char* );
-	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_CallFunction, void*, CallFunctionInt, void*, int );
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CScriptedEntity_CallFunctionStr, void*, CallFunctionStr, void*, const char*, bool );
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CScriptedEntity_CallFunction, void*, CallFunctionInt, void*, int, bool );
 DETOUR_THISCALL_FINISH();
 #endif
 

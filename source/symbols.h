@@ -497,10 +497,10 @@ namespace Symbols
 	using CScriptedEntity_Call = void* (GMCOMMON_CALLING_CONVENTION*)(void*, int, int);
 	extern const std::vector<Symbol> CScriptedEntity_CallSym;
 
-	using CScriptedEntity_CallFunctionStr = void* (GMCOMMON_CALLING_CONVENTION*)(void*, const char*);
+	using CScriptedEntity_CallFunctionStr = void* (GMCOMMON_CALLING_CONVENTION*)(void*, const char*, bool);
 	extern const std::vector<Symbol> CScriptedEntity_CallFunctionStrSym;
 
-	using CScriptedEntity_CallFunction = void* (GMCOMMON_CALLING_CONVENTION*)(void*, int);
+	using CScriptedEntity_CallFunction = void* (GMCOMMON_CALLING_CONVENTION*)(void*, int, bool);
 	extern const std::vector<Symbol> CScriptedEntity_CallFunctionSym;
 
 	using lj_BC_FUNCC = void* (GMCOMMON_CALLING_CONVENTION*)(void* idk);
