@@ -308,7 +308,7 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 		return 1;
 
 	TValue* pVal = Lua::index2adr(L, 1);
-	if (!tvisgcv(pVal))
+	if (!tvisgcv(pVal) || tvisnil(pVal))
 		return 1;
 
 	GCobj* pTargetObject = gcV(pVal);
@@ -876,7 +876,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 LUA_FUNCTION_STATIC(luagc_GetFormattedGCObjectInfo)
 {
 	TValue* pVal = Lua::index2adr(LUA->GetState(), 1);
-	if (!tvisgcv(pVal))
+	if (!tvisgcv(pVal) || tvisnil(pVal))
 	{
 		LUA->PushNil();
 		return 1;
