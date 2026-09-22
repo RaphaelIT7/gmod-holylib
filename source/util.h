@@ -35,6 +35,7 @@ enum ThreadState
 
 namespace GarrysMod::NetworkMessage
 {
+	constexpr int LuaRun = 5; // "BroadcastLua"
 	constexpr int LuaFileDownload = 4; // Client told us which files he needs, so we must provide (IDs are sent in shorts / 2 bytes and the last one is ID 0!)
 	constexpr int RequestLuaFiles = 3; // Calls GModDataPack::OnFilesRequested - Tells the client to check the client_lua_files stringtable and to tell us which files they need
 	constexpr int ClientLuaError = 2;

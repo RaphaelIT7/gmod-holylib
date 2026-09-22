@@ -30,13 +30,11 @@ return {
             func = function()
                 local filter = RecipientFilter()
 
-                local bf = HolyLib.UserMessageBegin( filter, "LuaCmd" )
+                local bf = HolyLib.UserMessageBegin( filter, "GameTitle" )
 
                 local ok, err = pcall( function()
                     expect( bf ).to.beA( "bf_write" )
                     expect( bf:IsValid() ).to.beTrue()
-
-                    bf:WriteByte( 123 )
                 end )
 
                 HolyLib.MessageEnd()

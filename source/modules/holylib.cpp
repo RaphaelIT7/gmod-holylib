@@ -12,6 +12,7 @@
 #include "sourcesdk/baseclient.h"
 #include "hl2/hl2_player.h"
 #include "host_state.h"
+#include "usermessages.h"
 #include "detouring/customclassproxy.hpp"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -92,6 +93,7 @@ LUA_FUNCTION_STATIC(IsMapValid)
 }
 
 extern bf_write* GetActiveMessage();
+extern void SetActiveMessage(bf_write* bf);
 LUA_FUNCTION_STATIC(_EntityMessageBegin)
 {
 	CBaseEntity* pEnt = Util::Get_Entity(LUA, 1, true);
@@ -112,7 +114,16 @@ LUA_FUNCTION_STATIC(_UserMessageBegin)
 	const char* pName = LUA->CheckString(2);
 
 #if MODULE_EXISTS_BITBUF
-	UserMessageBegin(*pFilter, pName);
+	int msg_type = Util::pUserMessages->LookupUserMessage(pName);
+	if (msg_type == -1)
+	{
+		if (g_pHolyLibModule.InDebug())
+			Warning("UserMessageBegin called with unregistered message '%s'\n", pName);
+
+		LUA->ArgError(2, "Unregistered message!");
+	}
+
+	SetActiveMessage(Util::engineserver->UserMessageBegin(pFilter, msg_type));
 	Push_bf_write(LUA, GetActiveMessage(), false);
 #else
 	MISSING_MODULE_ERROR(LUA, bitbuf);

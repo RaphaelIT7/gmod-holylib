@@ -141,25 +141,30 @@ LUA_FUNCTION_STATIC(CBaseClient_ClientPrint)
 
 LUA_FUNCTION_STATIC(CBaseClient_SendLua)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 	const char* strLuaCode = LUA->CheckString(2);
-	bool bForceReliable = LUA->GetBool(3);
+	bool bAsUnreliable = LUA->GetBool(3);
 
-	// NOTE: Original bug was that we had the wrong bitcount for the net messages type which broke every netmessage we created including this one.
-	// It should work now, so let's test it later. (Never tested it ._., I should really try it once)
-	SVC_UserMessage msg;
-	msg.m_nMsgType = Util::pUserMessages->LookupUserMessage("LuaCmd");
-	if (msg.m_nMsgType == -1)
+	// NOTE:
+	// I want to avoid having to allocate a buffer which is why we just directly write into the stream
+	// Since CNetChan::SendNetMsg does the same anyways
+
+	int totalLength = 1 + strlen(strLuaCode) + 1;
+	bf_write* pBuf = bAsUnreliable ? &pNetChannel->m_StreamUnreliable : &pNetChannel->m_StreamReliable;
+	if (pBuf->GetNumBytesLeft() < (totalLength+4))
+		LUA->ThrowError("Cannot send Lua as it would overflow reliable stream");
+
+	pBuf->WriteUBitLong(svc_GMod_ServerToClient, NETMSG_TYPE_BITS);
+	pBuf->WriteUBitLong(totalLength * 8, 20);
+	pBuf->WriteByte(GarrysMod::NetworkMessage::LuaRun);
+	if (!pBuf->WriteString(strLuaCode))
 	{
+		// We somehow overflowed...
 		LUA->PushBool(false);
 		return 1;
 	}
 
-	byte pUserData[PAD_NUMBER(MAX_USER_MSG_DATA, 4)];
-	msg.m_DataOut.StartWriting(pUserData, sizeof(pUserData));
-	msg.m_DataOut.WriteString(strLuaCode);
-
-	LUA->PushBool(pClient->SendNetMsg(msg, bForceReliable));
+	LUA->PushBool(true);
 	return 1;
 }
 

@@ -12,6 +12,11 @@ bf_write* GetActiveMessage()
 	return g_pMsgBuffer;
 }
 
+void SetActiveMessage(bf_write* bf)
+{
+	g_pMsgBuffer = bf;
+}
+
 void EntityMessageBegin(CBaseEntity* entity, bool reliable /*= false*/)
 {
 	Assert(!g_pMsgBuffer);
