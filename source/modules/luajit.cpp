@@ -74,7 +74,11 @@ struct LuaDetourRegistration
 	void (*Install)(SourceSDK::ModuleLoader&, int);
 };
 
-static std::vector<LuaDetourRegistration> g_LuaDetourRegistrations;
+static std::vector<LuaDetourRegistration>& GetDetourList()
+{
+	static std::vector<LuaDetourRegistration> g_LuaDetourRegistrations;
+	return g_LuaDetourRegistrations;
+}
 
 template <typename T, T Func>
 struct LuaDetour;
@@ -86,7 +90,6 @@ struct LuaDetour<R (*)(lua_State*, Args...), Func>
 	static Detouring::Hook detour;
 	static R Hook(lua_State* L, Args... args)
 	{
-		// Msg("Called %s\n", pszName);
 		if (Lua::IsHolyState(L))
 			return Func(L, args...);
 
@@ -120,7 +123,7 @@ const char* LuaDetour<R (*)(lua_State*, Args...), Func>::pszName;
 	{ \
 		RegisterLuaDetour_##name() \
 		{ \
-			g_LuaDetourRegistrations.push_back({ InstallLuaDetour_##name }); \
+			GetDetourList().push_back({ InstallLuaDetour_##name }); \
 		} \
 	}; \
 	static RegisterLuaDetour_##name registerLuaDetour_##name;
@@ -509,11 +512,11 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 
 Override(luaJIT_setmode);
 // Gmod doesn't use lua_Buffer
-//Override(luaL_addlstring)
-//Override(luaL_addstring);
-//Override(luaL_addvalue);
-//Override(luaL_prepbuffer);
-//Override(luaL_pushresult);
+// Override(luaL_addlstring)
+// Override(luaL_addstring);
+// Override(luaL_addvalue);
+// Override(luaL_prepbuffer);
+// Override(luaL_pushresult);
 Override(luaL_argerror);
 Override(luaL_buffinit);
 Override(luaL_callmeta);
@@ -700,14 +703,21 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 		return;
 
 	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
-	//Override(luaJIT_version_2_0_4);
-	
-	for (const auto& registration : g_LuaDetourRegistrations)
+	// Override(luaJIT_version_2_0_4);
+
+	for (const auto& registration : GetDetourList())
 		registration.Install(lua_shared_loader, m_pID);
+
+	// SimpleOverride(luaL_addlstring);
+	// SimpleOverride(luaL_addstring);
+	// SimpleOverride(luaL_addvalue);
+	// SimpleOverride(luaL_prepbuffer);
+	// SimpleOverride(luaL_pushresult);
 
 	ManualOverride(luaL_openlibs, hook_luaL_openlibs); // Gmod calls luaL_openlibs
 	ManualOverride(luaL_error, hook_luaL_error);
 	ManualOverride(lua_pushfstring, hook_lua_pushfstring);
+	SimpleOverride(luaL_newstate); // GMod uses this one actually
 	SimpleOverride(lua_newstate);
 
 	func_lua_pushvfstring = (lua_pushvfstring_t)Detour::GetFunction(lua_shared_loader.GetModule(), Symbol::FromName("lua_pushvfstring"));
