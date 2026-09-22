@@ -181,13 +181,28 @@ There may be further options which will control other module specific functions.
 \- \-> Fixed wrong pushing of constants possibly causing crashes<br>
 \- \-> Add missing null checks for upvalues<br>
 \- \-> Heavily changed most `luagc` functions that traversed objects to avoid recursion<br>
+\- [#] Fixed `openupval` traversal in all places inside the `luagc` module<br>
+\-> It was able to result in an infinite loop as it was traversing the wrong list<br>
 \- [#] Filesystem module changes<br>
 \- \-> Reworked the entire optimization code<br>
 \- \-> Fixed invalid pointer issues with `filesystem.AsyncRead`<br>
 \- \-> Fixed an memory leak with `FileAsyncReadThink` not freeing memory<br>
+\- \-> Fixed `filesystem.AsyncRead` calling into the wrong Lua state/not the caller state<br>
 \- [#] Fixed `bitbuf.CreateStackWriteBuffer` actually pushing a `bf_read`<br>
 \- [#] Fixed `systimer.UnPause` working on non-paused timers<br>
+\- [#] Fixed `systimer.Adjust` not resetting the next run time<br>
 \- [#] Fixed `HolyLib.FadeClientVolume` pushing a return value when it has none<br>
+\- [#] Make `HolyLib.UserMessageBegin` throw a Lua error on invalid input (no longer an engine error)<br>
+\- [#] Fixed our Symbols for `InitLuaClasses` falsely having been `InitLuaLibraries`<br>
+\- [#] Always push `_HOLYLIB` enums into all states HolyLib touches<br>
+\-> In every state that HolyLib touches you can now find `_HOLYLIB`, `_HOLYLIB_RUN_NUMBER`, `_HOLYLIB_BRANCH` and `_HOLYLIB_VERSION`<br>
+\- [#] Fixed `EntityList:AddEntity` allowing duplicate entries<br>
+\- [#] Allow `pas.CheckBoxInPAS` to take an Entity to get the PAS position from<br>
+\- [#] Update Symbols for `CScriptedEntity::CallFunction`<br>
+\- [#] Fixed Iterator corruption with Util Async Callbacks, SysTimer Callbacks & `filesystem.AsyncRead` callback<br>
+\-> This happens when inside the callback you for example, add a new timer or do something that results in the internal list being modified.<br>
+\- [#] Fixed `CBaseClient:SendLua` causing a engine error<br>
+\-> In a GMod update the networking was moved from usermessages to GMod's `SVC_GMod_ServerToClient` message<br>
 
 You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main
@@ -2324,7 +2339,7 @@ Returns `true` if it is.<br>
 If given a EntityList, it will return a table which contains the result for each entity.<br>
 The key will be the entity and the value is the result.<br>
 
-#### bool pas.CheckBoxInPAS(Vector mins, Vector maxs, Vector pas)
+#### bool pas.CheckBoxInPAS(Vector mins, Vector maxs, Vector/Entity pas)
 Checks if the given pox is inside the PAS.<br>
 Returns `true` if it is.<br>
 

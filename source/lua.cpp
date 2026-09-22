@@ -760,7 +760,7 @@ bool Lua::FindOnObjectsMetaTable(lua_State* L, int nStackPos, int nKeyPos)
 		LUA->Push(nKeyPos);
 		LUA->RawGet(-2);
 		
-		if (Util::func_lua_type(LUA->GetState(), -1))
+		if (Lua::lua_type(LUA, -1))
 			return true;
 
 		LUA->Pop(2);
@@ -770,9 +770,11 @@ bool Lua::FindOnObjectsMetaTable(lua_State* L, int nStackPos, int nKeyPos)
 }
 
 // We need to do some hooking for these since our userdata is "special"
-class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
+class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy>
+{
 public:
-	CLuaInterfaceProxy(GarrysMod::Lua::ILuaInterface* pLua) {
+	CLuaInterfaceProxy(GarrysMod::Lua::ILuaInterface* pLua)
+	{
 		if (Detour::CheckValue("initialize", "CLuaInterfaceProxy", Initialize(pLua)))
 		{
 			Detour::CheckValue("CLuaInterface::SetUserType", Hook(&GarrysMod::Lua::ILuaInterface::SetUserType, &CLuaInterfaceProxy::SetUserType));
@@ -911,7 +913,7 @@ public:
 	*/
 	virtual int GetType(int iStackPos)
 	{
-		int type = Util::func_lua_type(This()->GetState(), iStackPos);
+		int type = Lua::lua_type(This(), iStackPos);
 
 		if (type == GarrysMod::Lua::Type::UserData)
 		{
@@ -924,7 +926,7 @@ public:
 	// Fixed with the next update - https://github.com/Facepunch/garrysmod-issues/issues/6418
 	virtual bool IsType(int iStackPos, int iType)
 	{
-		int actualType = Util::func_lua_type(This()->GetState(), iStackPos);
+		int actualType = Lua::lua_type(This(), iStackPos);
 
 		if (actualType == iType)
 			return true;

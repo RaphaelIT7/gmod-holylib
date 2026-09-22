@@ -25,7 +25,7 @@ namespace Symbols
 	const std::vector<Symbol> InitLuaClassesSym = { // Find caller of CLuaClass::InitClasses -> "Error initializing class %s\n"
 		Symbol::FromName("_Z14InitLuaClassesP13ILuaInterface"),
 		Symbol::FromSignature("\x48\x8B\x05****\x48\x85\xC0**\x8B\x50\x10\x85\xD2**\x55\x48\x89\xE5\x53\x31\xDB******\x48\x8B*\x48\x8B\x3C\xD8\xE8\xD4"), // 48 8B 05 ?? ?? ?? ?? 48 85 C0 ?? ?? 8B 50 10 85 D2 ?? ?? 55 48 89 E5 53 31 DB ?? ?? ?? ?? ?? ?? 48 8B ?? 48 8B 3C D8 E8 D4
-		Symbol::FromSignature("\x55\x8B\xEC*****\x85\xC0**\x8B\x00\x56\x8B\x30\x3B\xF0"), // 55 8B EC ?? ?? ?? ?? ?? 85 C0 ?? ?? 8B 00 56 8B 30 3B F0
+		Symbol::FromSignature("\x55\x8B\xEC\x51*****\x85\xC0******\x33\xC9"), // 55 8B EC 51 ?? ?? ?? ?? ?? 85 C0 ?? ?? ?? ?? ?? ?? 33 C9
 		Symbol::FromSignature("\x40\x57\x48\x83\xEC\x20\x48******\x48\x8B\xF9\x48\x85\xC0"), // 40 57 48 83 EC 20 48 ?? ?? ?? ?? ?? ?? 48 8B F9 48 85 C0
 	};
 

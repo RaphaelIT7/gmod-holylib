@@ -36,7 +36,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "luajit"; };
 	// RaphaelIT7: No windows support yet as we crash out of the blue when loading into a map
-	int Compatibility() override { return LINUX32 | LINUX64; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	bool IsEnabledByDefault() override { return false; };
 	void OnConfigLoad(Bootil::Data::Tree& pConfig) override
 	{
@@ -652,7 +652,6 @@ static lua_error_t func_lua_error = nullptr;
 using lua_pushvfstring_t = decltype(&lua_pushvfstring);
 static lua_pushvfstring_t func_lua_pushvfstring = nullptr;
 
-static Detouring::Hook detour_luaL_error;
 static int hook_luaL_error(lua_State* L, const char* fmt, ...)
 {
 	va_list args;
@@ -676,7 +675,6 @@ static int hook_luaL_error(lua_State* L, const char* fmt, ...)
 	return func_lua_error(L);
 }
 
-static Detouring::Hook detour_lua_pushfstring;
 static const char* hook_lua_pushfstring(lua_State* L, const char* fmt, ...)
 {
 	va_list args;
@@ -733,7 +731,6 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Util::func_lj_tab_new = &lj_tab_new;
 	Util::func_lua_setfenv = &lua_setfenv;
 	Util::func_lua_touserdata = &lua_touserdata;
-	Util::func_lua_type = &lua_type;
 	Util::func_lua_gc = &lua_gc;
 	Lua::func_luaL_checklstring = &luaL_checklstring;
 	Util::func_lua_pcall = &lua_pcall;

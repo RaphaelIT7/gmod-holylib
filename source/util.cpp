@@ -779,7 +779,7 @@ Symbols::lj_gc_barrierf Util::func_lj_gc_barrierf = nullptr;
 Symbols::lj_tab_get Util::func_lj_tab_get = nullptr;
 Symbols::lua_setfenv Util::func_lua_setfenv = nullptr;
 Symbols::lua_touserdata Util::func_lua_touserdata = nullptr;
-Symbols::lua_type Util::func_lua_type = nullptr;
+Symbols::lua_type Lua::func_lua_type = nullptr;
 Symbols::lua_gc Util::func_lua_gc = nullptr;
 Symbols::lua_setallocf Util::func_lua_setallocf = nullptr;
 Symbols::lua_newuserdata Util::func_lua_newuserdata = nullptr;
@@ -908,8 +908,8 @@ void Util::AddDetour()
 	func_lua_touserdata = (Symbols::lua_touserdata)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_touserdataSym);
 	Detour::CheckFunction((void*)func_lua_touserdata, "lua_touserdata");
 
-	func_lua_type = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_typeSym);
-	Detour::CheckFunction((void*)func_lua_type, "lua_type");
+	Lua::func_lua_type = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_typeSym);
+	Detour::CheckFunction((void*)Lua::func_lua_type, "lua_type");
 
 	func_lua_gc = (Symbols::lua_gc)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_gcSym);
 	Detour::CheckFunction((void*)func_lua_gc, "lua_gc");
@@ -948,7 +948,7 @@ void Util::AddDetour()
 	Detour::CheckFunction((void*)func_lua_newuserdata, "lua_newuserdata");
 
 	if (
-		!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !Lua::func_luaL_checklstring || !func_lua_call ||
+		!func_lua_touserdata || !Lua::func_lua_type || !func_lua_setfenv || !Lua::func_luaL_checklstring || !func_lua_call ||
 		!func_lua_pcall || !func_lua_cpcall || !func_lua_insert || !func_lua_toboolean || !func_lua_newuserdata
 		)
 	{

@@ -1093,6 +1093,18 @@ static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2, T3 arg3)
 		}
 	}
 
+	extern Symbols::lua_type func_lua_type;
+	inline int lua_type(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos)
+	{
+		if (IsHolyState(LUA))
+			return lua_type(LUA->GetState(), nStackPos);
+
+		if (func_lua_type)
+			return func_lua_type(LUA->GetState(), nStackPos);
+		else
+			return LUA->GetType(nStackPos);
+	}
+
 	/*
 	 * Why do we have the same code here when CLuaInterface::ReferencePush does exactly the same?
 	 * Because like this we should hopefully skip possibly funny code & the vtable call.
