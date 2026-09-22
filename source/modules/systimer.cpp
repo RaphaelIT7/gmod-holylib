@@ -362,8 +362,9 @@ void CSysTimerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 	if (!pData)
 		return;
 
-	for (ILuaTimer* timer : pData->pLuaTimers)
+	for (int i=0; i < pData->pLuaTimers.Count(); ++i)
 	{
+		ILuaTimer* timer = pData->pLuaTimers[i];
 		if (!timer->active)
 			continue;
 
