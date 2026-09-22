@@ -309,7 +309,10 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 
 	TValue* pVal = Lua::index2adr(L, 1);
 	if (!tvisgcv(pVal))
+	{
+		LUA->PreCreateTable(0, 0);
 		return 1;
+	}
 
 	GCobj* pTargetObject = gcV(pVal);
 

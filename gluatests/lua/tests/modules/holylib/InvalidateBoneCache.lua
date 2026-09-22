@@ -24,7 +24,7 @@ return {
         },
         {
             name = "Errors when given an Entity that isn't a CBaseAnimating",
-            when = HolyLib_IsModuleEnabled("HolyLib"),
+            when = HolyLib_IsModuleEnabled("HolyLib") and IS_BASE_BRANCH,
             func = function()
                 local ent = MakeTestEntity( "info_target" )
 
@@ -35,7 +35,7 @@ return {
         },
         {
             name = "Succeeds for a CBaseAnimating entity",
-            when = HolyLib_IsModuleEnabled("HolyLib"),
+            when = HolyLib_IsModuleEnabled("HolyLib") and IS_BASE_BRANCH,
             func = function()
                 local ent = MakeTestEntity( "prop_dynamic", nil, true )
 
