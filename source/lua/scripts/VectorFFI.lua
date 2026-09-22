@@ -63,7 +63,32 @@ local function expect(value, expected_type, arg_num, is_optional)
     return value
 end
 
+-- RaphaelIT7: GMod also accepts string input for __newindex!
 local function check_num(value, arg_num, is_optional)
+    if value == nil then
+        if is_optional then
+            return nil
+        end
+
+        local caller = debug.getinfo(2, "n").name or "unknown"
+        return error(string.format(
+            "bad argument #%d to '%s' (number expected, got no value)",
+            arg_num,
+            caller
+        ), 2)
+    end
+
+    if type(value) == "number" then
+        return value
+    end
+
+    if type(value) == "string" then
+        local num = tonumber(value)
+        if num ~= nil then
+            return num
+        end
+    end
+
     return expect(value, "number", arg_num, is_optional)
 end
 

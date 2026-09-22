@@ -63,7 +63,32 @@ local function expect(value, expected_type, arg_num, is_optional)
     return value
 end
 
+-- RaphaelIT7: GMod also accepts string input for __newindex!
 local function check_num(value, arg_num, is_optional)
+    if value == nil then
+        if is_optional then
+            return nil
+        end
+
+        local caller = debug.getinfo(2, "n").name or "unknown"
+        return error(string.format(
+            "bad argument #%d to '%s' (number expected, got no value)",
+            arg_num,
+            caller
+        ), 2)
+    end
+
+    if type(value) == "number" then
+        return value
+    end
+
+    if type(value) == "string" then
+        local num = tonumber(value)
+        if num ~= nil then
+            return num
+        end
+    end
+
     return expect(value, "number", arg_num, is_optional)
 end
 
@@ -72,14 +97,12 @@ local function check_ang(value, arg_num, is_optional)
 end
 
 local function check_ang_or_num(value, arg_num, is_optional)
-    local t = type(value)
-    if t == "Angle" then
-        -- we use Unpack, because if gmod's Angle is passed, it will be faster to use Unpack instead of accessing x, y, z directly
+    if type(value) == "Angle" then
         return value:Unpack()
-    elseif t == "number" then
-        return value, value, value
     end
-    return expect(value, "number", arg_num, is_optional)
+
+    local num = check_num(value, arg_num, is_optional)
+    return num, num, num
 end
 
 local methods = {}
@@ -159,7 +182,7 @@ local mt = {
         return Angle(-a.x, -a.y, -a.z)
     end,
     __tostring = function(a)
-        return string.format("%f %f %f", a.x, a.y, a.z)
+        return string.format("%.3f %.3f %.3f", a.x, a.y, a.z)
     end,
     MetaName = "Angle",
     MetaID = 11,
@@ -189,7 +212,7 @@ function methods:Sub(v)
 end
 
 function methods:Div(div)
-    local x, y, z = check_ang_or_num(tonumber(div), 1)
+    local x, y, z = check_ang_or_num(div, 1)
 
     self.x = self.x / x
     self.y = self.y / y
@@ -205,6 +228,9 @@ function methods:Mul(multiplier)
 end
 
 function methods:IsEqualTol(compare, tolerance)
+    check_ang(compare, 1)
+    tolerance = check_num(tolerance, 2)
+
     return math.abs(self.x - compare.x) <= tolerance and math.abs(self.y - compare.y) <= tolerance and
         math.abs(self.z - compare.z) <= tolerance
 end
@@ -235,8 +261,8 @@ function methods:Normalize()
 end
 
 function methods:Random(min, max)
-    min = min or -1
-    max = max or -1
+    min = check_num(min, 1, true) or -1
+    max = check_num(max, 2, true) or -1
 
     self.x = math.random(min, max)
     self.y = math.random(min, max)
@@ -252,9 +278,9 @@ function methods:Set(v)
 end
 
 function methods:SetUnpacked(x, y, z)
-    check_num(x, 1)
-    check_num(y, 2)
-    check_num(z, 3)
+    x = check_num(x, 1)
+    y = check_num(y, 2)
+    z = check_num(z, 3)
 
     self.x = x
     self.y = y
@@ -306,6 +332,23 @@ function methods:Forward()
     local z = -sp
 
     return Vector(x, y, z)
+end
+
+function methods:SnapTo(axis, target)
+    axis = expect(axis, "string", 1)
+    target = check_num(target, 2)
+
+    if axis == "p" or axis == "pitch" then
+        self.p = math.SnapTo(self.p, target)
+    elseif axis == "y" or axis == "yaw" then
+        self.y = math.SnapTo(self.y, target)
+    elseif axis == "r" or axis == "roll" then
+        self.r = math.SnapTo(self.r, target)
+    else
+        error(string.format("bad argument #1 to 'SnapTo' (invalid axis '%s')", axis), 2)
+    end
+
+    return self
 end
 
 ---@class Angle
