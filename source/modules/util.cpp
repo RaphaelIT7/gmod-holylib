@@ -777,9 +777,7 @@ void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	auto pData = GetUtilLuaData(pLua);
 
 	for (IJobEntry* entry : pData->pEntries)
-	{
 		entry->m_bCancel = true;
-	}
 
 	if (pCompressPool)
 		pCompressPool->ExecuteAll();
@@ -791,9 +789,8 @@ void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		pJsonPool->ExecuteAll();
 
 	for (IJobEntry* entry : pData->pEntries)
-	{
 		delete entry;
-	}
+
 	pData->pEntries.clear();
 
 	if (Util::PushTable(pLua, "util"))
@@ -815,18 +812,20 @@ void CUtilModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 	VPROF_BUDGET("HolyLib - CUtilModule::LuaThink", VPROF_BUDGETGROUP_HOLYLIB);
 
 	auto pData = GetUtilLuaData(pLua);
-	if (!pData || pData->pEntries.size() == 0)
+	if (!pData || pData->pEntries.empty())
 		return;
 
-	for(auto it = pData->pEntries.begin(); it != pData->pEntries.end(); )
+	// We don't use an iterator as a callback may result in pEntries being modified!
+	size_t i = 0;
+	while (i < pData->pEntries.size())
 	{
-		IJobEntry* entry = *it;
+		IJobEntry* entry = pData->pEntries[i];
 		if (entry->OnThink(pLua))
 		{
 			delete entry;
-			it = pData->pEntries.erase(it);
+			pData->pEntries.erase(pData->pEntries.begin() + i);
 		} else {
-			it++;
+			++i;
 		}
 	}
 }
