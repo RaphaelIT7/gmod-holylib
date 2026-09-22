@@ -19,14 +19,14 @@ return {
             name = "Errors when called without a boolean",
             when = HolyLib_IsModuleEnabled("HolyLib"),
             func = function()
-                expect( HolyLib.HideServer ).to.errWith( "bad argument #1 to '?' (boolean expected, got no value)" )
+                expect( HolyLib.HideServer ).to.errWith( "bad argument #1 to '?' (bool expected, got no value)" )
             end
         },
         {
             name = "Errors when given a non-boolean",
             when = HolyLib_IsModuleEnabled("HolyLib"),
             func = function()
-                expect( HolyLib.HideServer, "true" ).to.errWith( "bad argument #1 to '?' (boolean expected, got string)" )
+                expect( HolyLib.HideServer, "true" ).to.errWith( "bad argument #1 to '?' (bool expected, got string)" )
             end
         },
         {

@@ -1,3 +1,6 @@
+-- We use os.time() since in our tests we do a map change yet a Interface is not destroyed on Lua shutdown
+-- So a interface can remain from the last test run!
+local testName = "LuaThreads_FindInterface_Test" .. os.time()
 return {
     groupName = "luathreads.FindInterface",
     cases = {
@@ -26,7 +29,7 @@ return {
             name = "Returns nil when no interface with that name exists",
             when = HolyLib_IsModuleEnabled("luathreads"),
             func = function()
-                expect( luathreads.FindInterface( "LuaThreads_FindInterface_Test" ) ).to.beNil()
+                expect( luathreads.FindInterface( testName ) ).to.beNil()
             end
         },
         {
@@ -34,9 +37,9 @@ return {
             when = HolyLib_IsModuleEnabled("luathreads"),
             func = function()
                 local interfaceObj = luathreads.CreateInterface()
-                interfaceObj:SetName( "LuaThreads_FindInterface_Test" )
+                interfaceObj:SetName( testName )
 
-                expect( luathreads.FindInterface( "LuaThreads_FindInterface_Test" ) ).to.equal( interfaceObj )
+                expect( luathreads.FindInterface( testName ) ).to.equal( interfaceObj )
             end
         },
     }

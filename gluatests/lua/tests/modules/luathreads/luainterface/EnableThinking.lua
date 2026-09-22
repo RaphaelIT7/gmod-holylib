@@ -21,7 +21,7 @@ return {
             func = function()
                 local interfaceObj = luathreads.CreateInterface()
 
-                expect( interfaceObj.EnableThinking, interfaceObj, 0 ).to.errWith( "bad argument #2 to '?' (boolean expected, got number)" )
+                expect( interfaceObj.EnableThinking, interfaceObj, 0 ).to.errWith( "bad argument #2 to '?' (bool expected, got number)" )
             end
         },
         {

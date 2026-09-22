@@ -34,7 +34,7 @@ return {
                 local ok, result = pcall( HolyLib.GetEnvironmentValue, "HolyLib_GetEnvironmentValue_Test" )
 
                 if ok then
-                    expect( result ).to.beNil()
+                    expect( result ).to.equal( "" )
                 else
                     expect( result ).to.equal( "Tried to use a unsafe code function while -holylib_allowunsafe is not active!" )
                 end

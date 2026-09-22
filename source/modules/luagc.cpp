@@ -298,16 +298,21 @@ static bool LuaGC_ReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L)
 
 LUA_FUNCTION_STATIC(luagc_GetReferences)
 {
-	LUA->PreCreateTable(0, 0);
+	
 	lua_State* L = LUA->GetState();
 	global_State* pGState = G(L);
 	if (!pGState)
+	{
+		LUA->PreCreateTable(0, 0);
 		return 1;
+	}
 
 	TValue* pVal = Lua::index2adr(L, 1);
-	if (!tvisgcv(pVal) || tvisnil(pVal))
+	if (!tvisgcv(pVal))
 		return 1;
 
+	// We do it here as else we mess with index2adr causing funky stuff
+	LUA->PreCreateTable(0, 0);
 	GCobj* pTargetObject = gcV(pVal);
 	int nCount = 0;
 	GCobj* pObj = gcref(pGState->gc.root);
@@ -523,11 +528,12 @@ LUA_FUNCTION_STATIC(luagc_GetContainingReferences)
 LUA_FUNCTION_STATIC(luagc_GetAllGCObjects)
 {
 	lua_State* L = LUA->GetState();
-
-	LUA->PreCreateTable(0, 0);
 	global_State* pGState = G(L);
 	if (!pGState)
+	{
+		LUA->PreCreateTable(0, 0);
 		return 1;
+	}
 
 	// Allows you to pass this function an GC object
 	// This causes us to stop when we reach it
@@ -535,6 +541,9 @@ LUA_FUNCTION_STATIC(luagc_GetAllGCObjects)
 	TValue* pVal = Lua::index2adr(L, 1);
 	if (tvisgcv(pVal))
 		pTargetObject = gcV(pVal);
+
+	// We do it here as else we mess with index2adr causing funky stuff
+	LUA->PreCreateTable(0, 0);
 
 	int nCount = 0;
 	GCobj* pObj = gcref(pGState->gc.root);
@@ -544,7 +553,7 @@ LUA_FUNCTION_STATIC(luagc_GetAllGCObjects)
 		setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
 		Lua::RawSetI(LUA, -2, ++nCount);
 
-		pObj = gcref(pObj->gch.nextgc);
+		pObj = gcnext(pObj);
 	}
 
 	return 1;

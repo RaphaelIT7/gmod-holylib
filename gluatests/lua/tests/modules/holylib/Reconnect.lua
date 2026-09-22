@@ -39,9 +39,12 @@ return {
             func = function()
                 local bot = MakeTestBot()
 
-                expect( HolyLib.Reconnect( bot ) ).to.beFalse()
+                -- Bots get a CNetChan when sv_stressbots is enabled so this can actually pass
+                expect( HolyLib.Reconnect( bot ) ).to.equal( GetConVar("sv_stressbots"):GetBool() )
 
-                bot:Kick()
+                if IsValid( bot ) then
+                	bot:Kick()
+                end
             end
         },
     }

@@ -51,7 +51,10 @@ return {
             name = "A non GC value (number) behaves like passing no target at all",
             when = HolyLib_IsModuleEnabled("luagc"),
             func = function()
-                expect( luagc.GetGCCount( 5 ) ).to.equal( luagc.GetGCCount() )
+            	local firstCount = luagc.GetGCCount( 5 )
+            	local secondCount = luagc.GetGCCount()
+            	-- We don't do it inside the expect as the index methods may cause GC allocations!
+                expect( firstCount ).to.equal( secondCount )
             end
         },
         {

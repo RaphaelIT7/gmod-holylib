@@ -318,6 +318,15 @@ LUA_FUNCTION_STATIC(LuaInterface_RunTasks)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(LuaInterface_Destroy)
+{
+	LuaInterface* pData = Get_LuaInterface(LUA, 1, true);
+	DeleteGlobal_LuaInterface(pData);
+
+	delete pData;
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(luathreads_CreateInterface)
 {
 	LuaInterface* pData = new LuaInterface;
@@ -378,6 +387,7 @@ void CLuaThreadsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, LuaInterface_EnableThinking, "EnableThinking");
 		Util::AddFunc(pLua, LuaInterface_CanThink, "CanThink");
 		Util::AddFunc(pLua, LuaInterface_RunTasks, "RunTasks");
+		Util::AddFunc(pLua, LuaInterface_Destroy, "Destroy");
 	pLua->Pop(1);
 
 	Util::StartTable(pLua);
@@ -391,6 +401,7 @@ void CLuaThreadsModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "luathreads");
 
+	// This only nukes all Lua references, the LuaInterface still exists!
 	DeleteAll_LuaInterface(pLua); // Memory leak! ToDo: Clean things up properly.
 }
 

@@ -82,7 +82,11 @@ return {
                 expect( info.object ).to.equal( testFn )
                 expect( info.environment ).to.equal( env )
                 expect( type( info.proto ) ).to.equal( "proto" )
-                expect( info.upvalues[1] ).to.equal( upvalueValue )
+
+                expect( type( info.upvalues[1] ) ).to.equal( "upval" )
+
+                local upvalueInfo = luagc.GetFormattedGCObjectInfo( info.upvalues[1] )
+                expect( upvalueInfo.value ).to.equal( upvalueValue )
             end
         },
         {

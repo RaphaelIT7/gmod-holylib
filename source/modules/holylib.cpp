@@ -413,7 +413,7 @@ LUA_FUNCTION_STATIC(GetEnvironmentValue)
 	Util::DoUnsafeCodeCheck(LUA);
 	const char* pVarName = LUA->CheckString(1);
 	const char* pValue = getenv(pVarName);
-	LUA->PushString(pValue);
+	LUA->PushString(pValue ? pValue : ""); // getenv could return "" or null so we make a stable default just be ""
 	return 1;
 }
 
