@@ -100,8 +100,21 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 		pObj->SetFromStack(iStackPos);
 		CBaseEntity* pEntity = pObj->GetEntity();
 
-		if (!pEntity && bError)
-			LUA->ArgError(iStackPos, "Tried to use a NULL Entity!");
+		if (!pEntity)
+		{
+			if (bError)
+				LUA->ArgError(iStackPos, "Tried to use a NULL Entity!");
+
+			return nullptr;
+		}
+
+		if (!pEntity->IsPlayer())
+		{
+			if (bError)
+				LUA->ArgError(iStackPos, "Entity is not a player!");
+
+			return nullptr;
+		}
 
 		return (CBasePlayer*)pEntity;
 	}
@@ -116,10 +129,18 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 	}
 	
 	CBaseEntity* pEntity = Util::entitylist->GetBaseEntity(*pEntHandle);
-	if (!pEntity || !pEntity->IsPlayer())
+	if (!pEntity)
 	{
 		if (bError)
-			LUA->ArgError(iStackPos, "Player entity is NULL or not a player (!?)");
+			LUA->ArgError(iStackPos, "Tried to use a NULL Entity!");
+
+		return nullptr;
+	}
+
+	if (!pEntity->IsPlayer())
+	{
+		if (bError)
+			LUA->ArgError(iStackPos, "Entity is not a player!");
 
 		return nullptr;
 	}
@@ -232,6 +253,7 @@ CBaseEntity* Util::Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 	CBaseEntity* pEntity = Util::entitylist->GetBaseEntity(*pEntHandle);
 	if (!pEntity && bError)
 	{
+		// In this case- the Lua userdata held a valid EHANDLE but the EHANDLE refered to a nonexistent Entity
 		Warning(PROJECT_NAME ": EHANDLE Index %i - %i\n", pEntHandle->GetEntryIndex(), pEntHandle->GetSerialNumber());
 		LUA->ArgError(iStackPos, "Tried to use a NULL Entity! (The weird case?)");
 	}
