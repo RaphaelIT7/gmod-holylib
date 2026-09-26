@@ -69,15 +69,6 @@ enum class FileCacheEntry : unsigned char
 CUtlSymbol CBaseFileSystem::m_GamePathID;
 CUtlSymbol CBaseFileSystem::m_BSPPathID;
 
-// VS2022 falsely claims the out buffer may not be null terminated...
-static FORCEINLINE void GetFullPath(const CSearchPath* pSearchPath, const char* strFileName, char (&out)[MAX_PATH])
-{
-	V_strcpy_safe(out, pSearchPath->GetPathString());
-	size_t len = strlen(out);
-	V_strncpy(out + len, strFileName, sizeof(out) - len);
-	V_strlower(out + len);
-}
-
 // RaphaelIT7:
 // Hack! When comparing openInfo.m_AbsolutePath against m_AddonFileSystem.ModPath() we may differ in slashes!
 static bool PathStartsWith( const char *pszPath, const char *pszPrefix )
@@ -396,6 +387,13 @@ FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath )
 	if ( !holylib_filesystem_filecache.GetBool() )
 		return FileCacheEntry::UNKNOWN;
 
+#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
+	char szTempBuffer[MAX_PATH];
+	V_strncpy( szTempBuffer, pszAbsolutePath, sizeof( szTempBuffer ) );
+	V_strlower( szTempBuffer );
+	pszAbsolutePath = szTempBuffer;
+#endif
+
 	std::shared_lock<std::shared_mutex> lock( m_FileListMutex );
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it != m_FileList.end() )
@@ -408,6 +406,13 @@ FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath )
 
 void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
 {
+#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
+	char szTempBuffer[MAX_PATH];
+	V_strncpy( szTempBuffer, pszAbsolutePath, sizeof( szTempBuffer ) );
+	V_strlower( szTempBuffer );
+	pszAbsolutePath = szTempBuffer;
+#endif
+
 	std::unique_lock<std::shared_mutex> lock( m_FileListMutex );
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it == m_FileList.end() )
@@ -416,6 +421,13 @@ void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
 
 void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
 {
+#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
+	char szTempBuffer[MAX_PATH];
+	V_strncpy( szTempBuffer, pszAbsolutePath, sizeof( szTempBuffer ) );
+	V_strlower( szTempBuffer );
+	pszAbsolutePath = szTempBuffer;
+#endif
+
 	std::unique_lock<std::shared_mutex> lock( m_FileListMutex );
 	auto it = m_FileList.find( pszAbsolutePath );
 	if ( it != m_FileList.end() )
@@ -424,6 +436,18 @@ void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
 
 void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath )
 {
+#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
+	char szTempBuffer1[MAX_PATH];
+	V_strncpy( szTempBuffer1, pszOldAbsolutePath, sizeof( szTempBuffer1 ) );
+	V_strlower( szTempBuffer1 );
+	pszOldAbsolutePath = szTempBuffer1;
+
+	char szTempBuffer2[MAX_PATH];
+	V_strncpy( szTempBuffer2, pszNewAbsolutePath, sizeof( szTempBuffer2 ) );
+	V_strlower( szTempBuffer2 );
+	pszNewAbsolutePath = szTempBuffer2;
+#endif
+
 	std::unique_lock<std::shared_mutex> lock( m_FileListMutex );
 	auto it = m_FileList.find( pszOldAbsolutePath );
 	if ( it == m_FileList.end() )
@@ -525,9 +549,20 @@ bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath, bool bForceSca
 				g_FileWatcherSystem.CreateWatcher( szFullPath );
 
 			if ( RecursiveTraverse( szFullPath ) )
+			{
+#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
+				V_strlower( szFullPath );
+#endif
 				m_FileList.emplace( szFullPath, FileCacheEntry::FOLDER);
-		} else
+			}
+		}
+		else
+		{
+#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
+			V_strlower( szFullPath );
+#endif
 			m_FileList.emplace( szFullPath, FileCacheEntry::FILE );
+		}
 	} while ( func_CFileSystem_Stdio_FS_FindNextFile( g_pFullFileSystem, hFind, &findData ) );
 
 	func_CFileSystem_Stdio_FS_FindClose( g_pFullFileSystem, hFind );
@@ -595,9 +630,6 @@ static void hook_CBaseFileSystem_HandleOpenRegularFile(CBaseFileSystem* _this, C
 	if ( !bIsAbsolutePath )
 	{
 		eCacheEntry = g_DiskFileTree.ContainsPath( openInfo.m_AbsolutePath );
-
-		// openInfo.m_pFileName is a mess due to \\..\\ not yet being normalized!
-		// eCacheEntry = openInfo.m_pSearchPath->ContainsPath( openInfo.m_pFileName );
 		if ( eCacheEntry != FileCacheEntry::FILE && eCacheEntry != FileCacheEntry::UNKNOWN )
 			return;
 	}
