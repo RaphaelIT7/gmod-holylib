@@ -175,6 +175,17 @@ static CDiskFileTree g_DiskFileTree;
 static ConVar holylib_filesystem_static("holylib_filesystem_static", "0", FCVAR_ARCHIVE,
 	"If enabled, then no file watchers are created as it is assumed at runtime the filesystem won't change externally");
 
+static void NormalizePath( char (&pszBuffer)[MAX_PATH] )
+{
+	V_FixSlashes( pszBuffer, '/' );
+	// RaphaelIT7:
+	// Somehow... we can have some of those.
+	// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
+	V_RemoveDotSlashes( pszBuffer );
+	V_StripTrailingSlash( pszBuffer );
+	V_strlower( pszBuffer );
+}
+
 class CFileWatcherSystem : public IFileWatcherSystem
 {
 public: // IFileWatcherSystem
@@ -301,10 +312,7 @@ public:
 
 			char szFullPath[MAX_PATH];
 			V_snprintf(szFullPath, sizeof(szFullPath), "%s" CORRECT_PATH_SEPARATOR_S "%s", pszFullFolderPath, findData.cFileName);
-			V_FixSlashes(szFullPath, '/');
-			V_RemoveDotSlashes(szFullPath);
-			V_StripTrailingSlash(szFullPath);
-			V_strlower(szFullPath);
+			NormalizePath(szFullPath);
 
 			CreateWatcher(szFullPath);
 		} while (func_CFileSystem_Stdio_FS_FindNextFile(g_pFullFileSystem, hFind, &findData));
@@ -335,13 +343,7 @@ public:
 	{
 		m_bNextFullPath = !m_bNextFullPath;
 		V_strncpy( m_szFullPath[m_bNextFullPath], pszAbsolutePath, sizeof( m_szFullPath[m_bNextFullPath] ) );
-		V_FixSlashes( m_szFullPath[m_bNextFullPath], '/' );
-		// RaphaelIT7:
-		// Somehow... we can have some of those.
-		// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
-		V_RemoveDotSlashes( m_szFullPath[m_bNextFullPath] );
-		V_StripTrailingSlash( m_szFullPath[m_bNextFullPath] );
-		V_strlower( m_szFullPath[m_bNextFullPath] );
+		NormalizePath( m_szFullPath[m_bNextFullPath] );
 
 		return m_szFullPath[m_bNextFullPath];
 	}
@@ -1194,7 +1196,12 @@ static FileHandle_t hook_CBaseFileSystem_OpenForWrite( CBaseFileSystem* _this, c
 	}
 	
 	if (hFileHandle)
-		g_DiskFileTree.AddPath( pTmpFileName, FileCacheEntry::FILE );
+	{
+		char szTempBuffer[MAX_PATH];
+		V_strncpy( szTempBuffer, pTmpFileName, sizeof( szTempBuffer ) );
+		NormalizePath( szTempBuffer );
+		g_DiskFileTree.AddPath( szTempBuffer, FileCacheEntry::FILE );
+	}
 
 	return hFileHandle;
 }
@@ -1245,6 +1252,7 @@ void hook_CBaseFileSystem_CreateDirHierarchy( CBaseFileSystem* _this, const char
 					pRelativePathT,
 					std::generic_category().message(errno).c_str() );
 			} else {
+				NormalizePath( szScratchFileName );
 				g_DiskFileTree.AddPath( szScratchFileName, FileCacheEntry::FOLDER );
 			}
 
@@ -1265,6 +1273,7 @@ void hook_CBaseFileSystem_CreateDirHierarchy( CBaseFileSystem* _this, const char
 			pRelativePathT,
 			std::generic_category().message(errno).c_str() );
 	} else {
+		NormalizePath( szScratchFileName );
 		g_DiskFileTree.AddPath( szScratchFileName, FileCacheEntry::FOLDER );
 	}
 }
@@ -1316,8 +1325,11 @@ bool hook_CBaseFileSystem_RenameFile( CBaseFileSystem* _this, char const *pOldPa
 			pNewFileName,
 			std::generic_category().message(errno).c_str() );
 		return false;
-	} else
+	} else {
+		NormalizePath( szScratchFileName );
+		NormalizePath( pNewFileName );
 		g_DiskFileTree.RenamePath( szScratchFileName, pNewFileName );
+	}
 
 	return true;
 }
