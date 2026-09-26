@@ -183,7 +183,10 @@ static void NormalizePath( char (&pszBuffer)[MAX_PATH] )
 	// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
 	V_RemoveDotSlashes( pszBuffer );
 	V_StripTrailingSlash( pszBuffer );
+#if SYSTEM_WINDOWS
+	// Linux is case sensitive! Windows is not.
 	V_strlower( pszBuffer );
+#endif
 }
 
 class CFileWatcherSystem : public IFileWatcherSystem
@@ -287,10 +290,7 @@ public:
 
 		char szFolderPath[MAX_PATH];
 		V_strncpy(szFolderPath, pszFullFolderPath, sizeof(szFolderPath));
-		V_FixSlashes(szFolderPath, '/');
-		V_RemoveDotSlashes(szFolderPath);
-		V_StripTrailingSlash(szFolderPath);
-		V_strlower(szFolderPath);
+		NormalizePath( szFolderPath );
 
 		new CFileWatcher(szFolderPath);
 
@@ -386,13 +386,7 @@ void CDiskFileTree::BuildTree( const char *pszRoot )
 
 	char szFullPath[MAX_PATH];
 	V_strncpy( szFullPath, pszRoot, sizeof( szFullPath ) );
-	V_FixSlashes( szFullPath, '/' );
-	// RaphaelIT7:
-	// Somehow... we can have some of those.
-	// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
-	V_RemoveDotSlashes( szFullPath );
-	V_StripTrailingSlash( szFullPath );
-	V_strlower( szFullPath );
+	NormalizePath( szFullPath );
 
 	RecursiveTraverse( pszRoot );
 }
@@ -522,16 +516,11 @@ bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath, bool bForceSca
 
 		char szFullPath[MAX_PATH];
 		V_snprintf( szFullPath, sizeof( szFullPath ), "%s" CORRECT_PATH_SEPARATOR_S "%s", pszFolderPath, findData.cFileName );
-		V_FixSlashes( szFullPath, '/' );
-		// RaphaelIT7:
-		// Somehow... we can have some of those.
-		// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
-		V_RemoveDotSlashes( szFullPath );
-		V_StripTrailingSlash( szFullPath );
-		V_strlower( szFullPath );
+		NormalizePath( szFullPath );
 
 		const bool bDirectory = ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
-		if ( bDirectory ) {
+		if ( bDirectory )
+		{
 			if (bCreateWatchers)
 				g_FileWatcherSystem.CreateWatcher( szFullPath );
 
@@ -815,8 +804,10 @@ static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSea
 			return 0L;
 		}
 
+#if SYSTEM_WINDOWS
 		// RaphaelIT7: We force lower for consistency!
 		V_strlower( pTmpFileName );
+#endif
 		NormalizeGamePath( pTmpFileName );
 		FileCacheEntry eCacheEntry = g_DiskFileTree.ContainsPath( pTmpFileName );
 
@@ -908,8 +899,10 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 			}
 			else
 			{
+#if SYSTEM_WINDOWS
 				// RaphaelIT7: We force lower for consistency!
 				V_strlower( pTmpFileName );
+#endif
 				FileCacheEntry eCacheEntry = g_DiskFileTree.ContainsPath( pTmpFileName );
 
 				// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
@@ -1136,8 +1129,10 @@ static const char* hook_CBaseFileSystem_RelativePathToFullPath( CBaseFileSystem*
 			}
 		}
 
+#if SYSTEM_WINDOWS
 		// RaphaelIT7: We force lower for consistency!
 		V_strlower( pTmpFileName );
+#endif
 		FileCacheEntry eCacheEntry = g_DiskFileTree.ContainsPath( pTmpFileName );
 
 		// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
@@ -1305,10 +1300,12 @@ bool hook_CBaseFileSystem_RenameFile( CBaseFileSystem* _this, char const *pOldPa
 	else
 		V_strcpy_safe( pNewFileName, pNewPath );
 
+#if SYSTEM_WINDOWS
 	// RaphaelIT7: We force lower for consistency!
 	V_strlower( pNewFileName );
-	NormalizeGamePath( pNewFileName );
 	V_strlower( szScratchFileName );
+#endif
+	NormalizeGamePath( pNewFileName );
 	NormalizeGamePath( szScratchFileName );
 
 	// Make sure the directory exitsts, too
