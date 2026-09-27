@@ -166,6 +166,19 @@ static CDiskFileTree g_DiskFileTree;
 static ConVar holylib_filesystem_static("holylib_filesystem_static", "0", FCVAR_ARCHIVE,
 	"If enabled, then no file watchers are created as it is assumed at runtime the filesystem won't change externally");
 
+// Removes /// for example if you somehow have a fked up path
+void V_RecursiveStripTrailingSlash( char *ppath )
+{
+	Assert( ppath );
+
+	int len = V_strlen( ppath );
+	while ( len > 0 )
+	{
+		if ( PATHSEPARATOR( ppath[ len - 1 ] ) )
+			ppath[ --len ] = 0;
+	}
+}
+
 static void NormalizePath( char (&pszBuffer)[MAX_PATH] )
 {
 	V_FixSlashes( pszBuffer, '/' );
@@ -173,7 +186,7 @@ static void NormalizePath( char (&pszBuffer)[MAX_PATH] )
 	// Somehow... we can have some of those.
 	// No we cannot use NormalizeGamePath as the resulting path is wrong... somehow
 	V_RemoveDotSlashes( pszBuffer );
-	V_StripTrailingSlash( pszBuffer );
+	V_RecursiveStripTrailingSlash( pszBuffer );
 #if SYSTEM_WINDOWS
 	// Linux is case sensitive! Windows is not.
 	V_strlower( pszBuffer );
