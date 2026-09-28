@@ -172,11 +172,8 @@ void V_RecursiveStripTrailingSlash( char *ppath )
 	Assert( ppath );
 
 	int len = V_strlen( ppath );
-	while ( len > 0 )
-	{
-		if ( PATHSEPARATOR( ppath[ len - 1 ] ) )
-			ppath[ --len ] = 0;
-	}
+	while ( len > 0 && PATHSEPARATOR( ppath[ len - 1 ] ) )
+		ppath[ --len ] = 0;
 }
 
 static void NormalizePath( char (&pszBuffer)[MAX_PATH] )
@@ -385,6 +382,9 @@ static ConVar holylib_filesystem_skipinvalidluapaths("holylib_filesystem_skipinv
 
 void CDiskFileTree::BuildTree( const char *pszRoot )
 {
+	if ( !holylib_filesystem_filecache.GetBool() )
+		return;
+
 	if ( !V_IsAbsolutePath( pszRoot ) )
 		return;
 
@@ -419,6 +419,9 @@ FileCacheEntry CDiskFileTree::ContainsPath( const char *pszAbsolutePath )
 
 void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
 {
+	if ( !holylib_filesystem_filecache.GetBool() )
+		return;
+
 #if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
 	char szTempBuffer[MAX_PATH];
 	V_strncpy( szTempBuffer, pszAbsolutePath, sizeof( szTempBuffer ) );
@@ -434,6 +437,9 @@ void CDiskFileTree::AddPath( const char *pszAbsolutePath, FileCacheEntry type )
 
 void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
 {
+	if ( !holylib_filesystem_filecache.GetBool() )
+		return;
+
 #if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
 	char szTempBuffer[MAX_PATH];
 	V_strncpy( szTempBuffer, pszAbsolutePath, sizeof( szTempBuffer ) );
@@ -449,6 +455,9 @@ void CDiskFileTree::RemovePath( const char *pszAbsolutePath )
 
 void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszNewAbsolutePath )
 {
+	if ( !holylib_filesystem_filecache.GetBool() )
+		return;
+
 #if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
 	char szTempBuffer1[MAX_PATH];
 	V_strncpy( szTempBuffer1, pszOldAbsolutePath, sizeof( szTempBuffer1 ) );
@@ -506,6 +515,9 @@ void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszN
 
 void CDiskFileTree::Rebuild()
 {
+	if ( !holylib_filesystem_filecache.GetBool() )
+		return;
+
 #if GMOD_X86_64
 	return;
 #endif
@@ -528,6 +540,9 @@ void CDiskFileTree::Rebuild()
 // ToDo: Check out if we can improve memory usage
 bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath, bool bForceScan, bool bCreateWatchers )
 {
+	if ( !holylib_filesystem_filecache.GetBool() )
+		return true;
+
 	// If we have a entry then we already are tracking this one
 	if ( !bForceScan && m_FileList.find( pszFolderPath ) != m_FileList.end() )
 	{
@@ -1398,7 +1413,13 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		}
 
 		if ( V_IsAbsolutePath( pSearchPath->GetPathString() ) )
+		{
+			if ( V_stricmp( pSearchPath->GetPathIDString(), "BASE_PATH" ) == 0 )
+				g_FileWatcherSystem.CreateWatcher( pSearchPath->GetPathString() );
+
+			std::unique_lock<std::shared_mutex> lock( g_DiskFileTree.GetMutex() );
 			g_DiskFileTree.BuildTree( pSearchPath->GetPathString() );
+		}
 	}
 }
 

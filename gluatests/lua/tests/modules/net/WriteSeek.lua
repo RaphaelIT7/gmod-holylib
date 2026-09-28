@@ -50,10 +50,10 @@ return {
                 util.AddNetworkString( "Net_WriteSeek_Test" )
 
                 net.Start( "Net_WriteSeek_Test" )
-                net.WriteLong( 1234 )
+                net.WriteUInt( 1234, 32 )
                 net.WriteSeek( 8 )
-                net.WriteLong( 5678 )
-                net.Cancel()
+                net.WriteUInt( 5678, 32 )
+                net.Abort()
             end
         },
         {
@@ -64,7 +64,7 @@ return {
 
                 net.Start( "Net_WriteSeek_Test" )
                 HolyLib_RunPerformanceTest("net.WriteSeek", function() net.WriteSeek(8) end)
-                net.Cancel()
+                net.Abort()
             end
         },
     }

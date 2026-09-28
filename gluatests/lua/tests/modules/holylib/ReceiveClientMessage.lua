@@ -17,7 +17,7 @@ return {
         },
         {
             name = "Properly fakes a net message",
-            when = HolyLib_IsModuleEnabled( "HolyLib" ),
+            when = HolyLib_IsModuleEnabled( "HolyLib" ) and HolyLib_IsModuleEnabled( "bitbuf" ),
             func = function()
                 local bf = bitbuf.CreateWriteBuffer( 64 )
                 bf:WriteUBitLong( 0, 8 ) -- The message type. 0 = Lua net message
