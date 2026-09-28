@@ -25,7 +25,7 @@ static ConVar generic_fallback("holylib_precache_genericfallback", "-1", FCVAR_A
 static CPrecacheFixModule g_pPrecacheFixModule;
 IModule* pPrecacheFixModule = &g_pPrecacheFixModule;
 
-static void PR_CheckEmptyString(const char *s)
+static inline void PR_CheckEmptyString(const char *s)
 {
 	if (s[0] <= ' ')
 		Warning ("Bad string: %s", s); // This should be a Host_Error.

@@ -63,7 +63,7 @@ LUA_FUNCTION_STATIC(FadeClientVolume)
 {
 	CBasePlayer* ent = Util::Get_Player(LUA, 1, true);
 	edict_t* pEdict = ent->edict();
-	if (!pEdict)
+	if (!pEdict) // Fun Fact: This can happen when you use unholylib.SetEntIndex on the player xd
 		LUA->ArgError(1, "Failed to get edict?");
 
 	float fadePercent = LUA->CheckNumber(2);
@@ -223,14 +223,7 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 
 LUA_FUNCTION_STATIC(SetSignOnState)
 {
-	CBaseClient* pClient = nullptr;
-	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
-	{
-		pClient = Util::GetClientByPlayer(Util::Get_Player(LUA, 1, true));
-	} else {
-		pClient = Util::GetClientByUserID(LUA->CheckNumber(1));
-	}
-
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	int iSignOnState = LUA->CheckNumber(2);
 	int iSpawnCount = LUA->GetNumber(3);
 	bool bRawSet = LUA->GetBool(4);
@@ -366,14 +359,7 @@ LUA_FUNCTION_STATIC(GetRegistry)
 
 LUA_FUNCTION_STATIC(Disconnect)
 {
-	CBaseClient* pClient = nullptr;
-	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
-	{
-		pClient = Util::GetClientByPlayer(Util::Get_Player(LUA, 1, true));
-	} else {
-		pClient = Util::GetClientByUserID(LUA->CheckNumber(1));
-	}
-
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	const char* strReason = LUA->CheckString(2);
 	bool bSilent = LUA->GetBool(3);
 	bool bNoEvent = LUA->GetBool(4);
@@ -428,25 +414,20 @@ static Detouring::Hook detour_HostState_ChangeLevelMP;
 static void hook_HostState_ChangeLevelMP(const char* levelName, const char* landmarkName)
 {
 	if (levelName) 
-	{
 		V_strncpy(pLevelName, levelName, sizeof(pLevelName));
-	}
 
 	if (landmarkName)
-	{
 		V_strncpy(pLandmarkName, landmarkName, sizeof(pLandmarkName));
-	} else {
+	else
 		pLandmarkName[0] = '\0';
-	}
 
 	detour_HostState_ChangeLevelMP.GetTrampoline<Symbols::HostState_ChangeLevelMP>()(levelName, landmarkName);
 }
 
 void CHolyLibModule::LevelShutdown()
 {
-	if (*pLevelName == '\0') {
+	if (*pLevelName == '\0')
 		return;
-	}
 
 	if (Lua::PushHook("HolyLib:OnMapChange"))
 	{
@@ -517,11 +498,9 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::FinishTable(pLua, "HolyLib");
 	} else {
 		if (Lua::PushHook("HolyLib:Initialize", pLua))
-		{
 			pLua->CallFunctionProtected(1, 0, true);
-		} else {
+		else
 			DevMsg(1, PROJECT_NAME ": Failed to call HolyLib:Initialize!\n");
-		}
 	}
 }
 
