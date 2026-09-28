@@ -2877,10 +2877,10 @@ bool CNetChan::HasPendingReliableData( void )
 		   (m_WaitingList[FRAG_FILE_STREAM].Count() > 0);
 }
 
-double CNetChan::GetTimeConnected() const
+float CNetChan::GetTimeConnected() const
 {
 	double t = net_time - connect_time;
-	return (t>0.0) ? t : 0.0;
+	return (float)((t>0.0) ? t : 0.0);
 }
 
 const netadr_t & CNetChan::GetRemoteAddress() const
@@ -2914,10 +2914,10 @@ float CNetChan::GetTimeoutSeconds() const
 	return m_Timeout;
 }
 
-double CNetChan::GetTimeSinceLastReceived() const
+float CNetChan::GetTimeSinceLastReceived() const
 {
 	double t = net_time - last_received;
-	return (t>0.0) ? t : 0.0;
+	return (float)((t>0.0) ? t : 0.0);
 }
 
 bool CNetChan::IsOverflowed() const
@@ -3042,9 +3042,9 @@ float CNetChan::GetAvgLoss( int flow ) const
 	return m_DataFlow[flow].avgloss;
 }
 
-double CNetChan::GetTime( void ) const
+float CNetChan::GetTime( void ) const
 {
-	return net_time;
+	return (float)net_time;
 }
 
 bool CNetChan::GetStreamProgress( int flow, int *received, int *total ) const
