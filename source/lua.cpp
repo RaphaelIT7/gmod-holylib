@@ -460,6 +460,10 @@ void Lua::Shutdown()
 		pPluginThink.MarkAsDone();
 		if (g_Lua)
 			g_Lua->Cycle(); // Just to get our ThreadedCall unloaded since when we are unloaded we expect to not leave any memory.
+
+		// Since were not a plugin we fire this manually, timing may be off but meh, this is as good as we can do this
+		// We fire before Lua shutdown since we expect g_Lua on the first call to still be valid
+		g_pModuleManager.LevelShutdown();
 	}
 
 	g_pModuleManager.LuaShutdown(g_Lua);
@@ -483,6 +487,11 @@ void Lua::FinalShutdown()
 			Msg(PROJECT_NAME ": This should NEVER happen! Discarding of old reference %i\n", ref);
 	}
 	Util::g_pReference.clear();
+
+	// LevelShutdown on a server is actually called multiple times
+	// I call it here a second time just so that in case Lua did someting that set values again they will be cleared again
+	if (g_pModuleManager.IsMarkedAsBinaryModule())
+		g_pModuleManager.LevelShutdown();
 }
 
 void Lua::ManualShutdown()
