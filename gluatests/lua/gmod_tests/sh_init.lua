@@ -31,6 +31,9 @@ if reqwest then
     print("Loaded reqwest")
 end
 
+-- Make JIT highly agressive
+jit.opt.start("hotloop=1", "hotexit=1")
+
 -- ConVar's don't work since those would need to exist before it tries to set all values from the command line. (Maybe make a gmod request? idk)
 -- local loki_host = CreateConVar("holylib_loki_host", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki host secret.")
 -- local loki_api = CreateConVar("holylib_loki_api", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki api key secret.")
@@ -134,6 +137,13 @@ function HolyLib_RunPerformanceTest(name, callback)
         local totalTime, totalCalls = PerformanceTest(callback)
         local timePerCall = totalTime / totalCalls
         print("Finished performance test for \"" .. name .. "\". Took " .. totalTime .. "s with a total of " .. totalCalls .." calls (" .. timePerCall .. "s per call)")
+
+        -- Let's agressively clean up
+        collectgarbage("collect")
+        collectgarbage("collect")
+        collectgarbage("collect")
+        collectgarbage("collect")
+        collectgarbage("collect")
 
         if usingPublic then
             print("Using public Loki host to store temporary results.")

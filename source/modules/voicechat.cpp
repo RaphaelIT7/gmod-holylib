@@ -23,7 +23,6 @@
 class CVoiceChatModule : public IModule
 {
 public:
-	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
@@ -2295,20 +2294,6 @@ void CVoiceChatModule::Shutdown()
 		Util::DestroyThreadPool(pVoiceThreadPool);
 		pVoiceThreadPool = nullptr;
 	}
-}
-
-IVoiceServer* g_pVoiceServer = nullptr;
-void CVoiceChatModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-	if (appfn[0])
-	{
-		g_pVoiceServer = (IVoiceServer*)appfn[0](INTERFACEVERSION_VOICESERVER, nullptr);
-	} else {
-		SourceSDK::FactoryLoader engine_loader("engine");
-		g_pVoiceServer = engine_loader.GetInterface<IVoiceServer>(INTERFACEVERSION_VOICESERVER);
-	}
-
-	Detour::CheckValue("get interface", "g_pVoiceServer", g_pVoiceServer != nullptr);
 }
 
 #if SYSTEM_WINDOWS

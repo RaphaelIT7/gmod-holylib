@@ -2023,12 +2023,6 @@ struct EntityList // entitylist module.
 		return m_pEntities;
 	}
 
-	inline void CopyFrom(EntityList* pSourceList)
-	{
-		m_pEntities = pSourceList->GetEntities();
-		m_pEntReferences = pSourceList->GetReferences();
-	}
-
 	inline void Invalidate()
 	{
 		Clear();

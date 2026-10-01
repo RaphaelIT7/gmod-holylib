@@ -23,17 +23,21 @@ return {
             end
         },
         {
-            name = "Errors when called without a reason string",
+            name = "Errors when called without a valid client",
             when = HolyLib_IsModuleEnabled("HolyLib"),
             func = function()
-                expect( HolyLib.Disconnect, 999999999 ).to.errWith( "bad argument #2 to '?' (string expected, got no value)" )
+                expect( HolyLib.Disconnect, 999999999 ).to.errWith( "bad argument #1 to '?' (Failed to get a valid CBaseClient!)" )
             end
         },
         {
-            name = "Returns false for an unknown userid",
+            name = "Errors when called without a reason string",
             when = HolyLib_IsModuleEnabled("HolyLib"),
             func = function()
-                expect( HolyLib.Disconnect( 999999999, "test" ) ).to.beFalse()
+            	local bot = MakeTestBot()
+
+                expect( HolyLib.Disconnect, bot ).to.errWith( "bad argument #2 to '?' (string expected, got no value)" )
+
+                bot:Kick()
             end
         },
         {
