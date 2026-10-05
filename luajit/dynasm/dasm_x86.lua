@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 -- DynASM x86/x64 module.
 --
--- Copyright (C) 2005-2025 Mike Pall. All rights reserved.
+-- Copyright (C) 2005-2026 Mike Pall. All rights reserved.
 -- See dynasm.lua for full copyright notice.
 ------------------------------------------------------------------------------
 
@@ -1409,7 +1409,7 @@ local map_op = {
   dppd_3 =	"rmio:660F3A41rMU",
   dpps_3 =	"rmio:660F3A40rMU",
   extractps_3 =	"mri/do:660F3A17RmU|rri/qo:660F3A17RXmU",
-  insertps_3 =	"rrio:660F3A41rMU|rxi/od:",
+  insertps_3 =	"rrio:660F3A21rMU|rxi/od:",
   movntdqa_2 =	"rxo:660F382ArM",
   mpsadbw_3 =	"rmio:660F3A42rMU",
   packusdw_2 =	"rmo:660F382BrM",
