@@ -37,6 +37,7 @@ public:
 	void OnEntityDeleted(CBaseEntity* pEntity) override;
 	void ClientDisconnect(edict_t* pClient) override;
 	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
+	void LevelShutdown() override;
 	const char* Name() override { return "networking"; };
 	int Compatibility() override { return LINUX32 | LINUX64;  }; // ToDo: Fix CBaseClient offset being broken on 64x causing the access to CGameClient::m_pCurrentFrame to return a invalid pointer
 };
@@ -2116,6 +2117,15 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 			}
 		}
 	}
+}
+
+void CNetworkingModule::LevelShutdown()
+{
+	// Reset for next trip to trigger
+	// This can become a issue in the one utterly rare case
+	// where a server boots but never ticks and then changes level
+	// Which results in our g_nEntityTransmitCache holding stale entries causing all sorts of issues
+	g_pGlobalTransmitTickCache.g_iLastCheckTransmit = -1;
 }
 
 extern CGlobalVars *gpGlobals;

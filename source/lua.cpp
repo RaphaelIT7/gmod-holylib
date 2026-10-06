@@ -120,6 +120,12 @@ Default__index(_HOLYLIB_CORE_TEST_REFERENCED);
 Default__newindex(_HOLYLIB_CORE_TEST_REFERENCED);
 Default__GetTable(_HOLYLIB_CORE_TEST_REFERENCED);
 
+// RaphaelIT7: BUG!
+// I got no idea why or how BUT _HOLYLIB_CORE.PushReferencedTestUserData()
+// can cause Lua stack corruption when this test run or **randomy afterwards!**
+// IMPORTANT!
+// We only removed this from our tests, this may still cause crashes for anything that uses PushReferenced_LuaClass
+// Though interestingly enouth nothing else can reproduce it...
 LUA_FUNCTION_STATIC(Test_PushReferencedTestUserData)
 {
 	Push__HOLYLIB_CORE_TEST_REFERENCED(LUA, &g_pCoreTestReferencedUserData);

@@ -566,6 +566,56 @@ jobs:
       additional-setup: "curl -L -o gluatest/docker/_gluatest_artifacts/linux.tar.gz https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz"
       map: gm_glua_tests
 
+
+  # Sometimes we need to debug a issue that rarely happens on runs... soo lets scale up :hehe:
+  test_gmod_tests_32bit_hell_debug:
+    if: false
+    name: "Test 32x branches (gmod_tests) #${{ matrix.run }}"
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      fail-fast: false
+      matrix:
+        run:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+          - 16
+          - 17
+          - 18
+          - 19
+          - 20
+          - 21
+          - 22
+        branch:
+          - public
+          - dev
+          - prerelease
+        artifact:
+          - name: gmod_tests_32x
+            args: "-usegh"
+          - name: gmod_tests_no_ghostinj_32x
+            args: ""
+    with:
+      branch: ${{ matrix.branch }}
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
+      download-artifact: ${{ matrix.artifact.name }}
+      no-checkout: "true"
+      additional-setup: "curl -L -o gluatest/docker/_gluatest_artifacts/linux.tar.gz https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz"
+      map: gm_glua_tests
+
   test_gmod_tests_64bit:
     name: "Test x86-64 branch (gmod_tests)"
     needs: setup_gmod_tests_artifacts
@@ -708,9 +758,17 @@ jobs:
           - gameserver
           - soundscape
           - luajit
+        branch:
+          - public
+          - dev
+          - prerelease
+        extra:
+          - 1
+          - 2
+          - 3
     with:
       branch: dev
-      extra-startup-args: "-usegh -holylib_startdisabled -holylib_enable_${{ matrix.module }} 1"
+      extra-startup-args: "-usegh -holylib_enable_${{ matrix.module }} 0"
       download-artifact: "gluatest_32x"
       no-checkout: "true"
 

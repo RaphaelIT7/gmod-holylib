@@ -58,10 +58,12 @@ EntityList::~EntityList()
 	if (g_pEntListModule.InDebug())
 		Msg("Deleted-2 EntityList %p - %p\n", this, m_pLua);
 
-	Invalidate();
+	{
+		std::unique_lock<std::shared_mutex> lock(pEntityListsMutex);
+		pEntityLists.erase(this);
+	}
 
-	std::unique_lock<std::shared_mutex> lock(pEntityListsMutex);
-	pEntityLists.erase(this);
+	Invalidate();
 }
 
 void EntityList::Clear()
@@ -355,12 +357,12 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, EntityList_RemoveEntities, "RemoveEntities");
 		Util::AddFunc(pLua, EntityList_AddEntity, "AddEntity");
 		Util::AddFunc(pLua, EntityList_RemoveEntity, "RemoveEntity");
-		Util::AddFunc(pLua, EntityList_CreateCopy, "CreateCopy");
+		//Util::AddFunc(pLua, EntityList_CreateCopy, "CreateCopy");
 	pLua->Pop(1);
 
 	pLua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::AddFunc(pLua, CreateEntityList, "CreateEntityList");
-		Util::AddFunc(pLua, CreateEntityListFromGlobal, "CreateEntityListFromGlobal");
+		//Util::AddFunc(pLua, CreateEntityListFromGlobal, "CreateEntityListFromGlobal");
 		Util::AddFunc(pLua, GetGlobalEntityList, "GetGlobalEntityList");
 	pLua->Pop(1);
 }
