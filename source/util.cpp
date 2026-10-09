@@ -1046,7 +1046,7 @@ void Util::CheckVersion(bool bAutoUpdate) // This is called only when holylib is
 	};
 
 	auto res = pClient.Get("/api/check_version");
-	if (res->status != 200)
+	if (!res || res->status != 200)
 		return;
 
 	Bootil::Data::Tree pTree;
@@ -1093,7 +1093,7 @@ void Util::CheckVersion(bool bAutoUpdate) // This is called only when holylib is
 
 		if (!pReleaseDownload || pReleaseDownload->status != 200)
 		{
-			Msg(PROJECT_NAME " - versioncheck: Autoupdate failed to download new version! (%i)\n", pReleaseDownload->status);
+			Msg(PROJECT_NAME " - versioncheck: Autoupdate failed to download new version! (%i)\n", pReleaseDownload ? pReleaseDownload->status : -1);
 			return;
 		}
 

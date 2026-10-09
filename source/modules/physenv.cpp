@@ -1160,8 +1160,8 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 		}
 	}
 
+	UnregisterPhysicsEnvironment(pLuaEnv->pEnvironment);
 	g_pPhysics->DestroyEnvironment(pEnvironment);
-	delete pLuaEnv;
 
 	return 0;
 }
@@ -1326,6 +1326,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetPerformanceSettings)
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
 
 	physics_performanceparams_t params;
+	pEnvironment->GetPerformanceSettings(&params);
 	LUA->Push(2);
 		if (Util::HasField(LUA, "LookAheadTimeObjectsVsObject", GarrysMod::Lua::Type::Number))
 			params.lookAheadTimeObjectsVsObject = (float)LUA->GetNumber(-1);
@@ -1651,7 +1652,7 @@ static void FillObjectParams(objectparams_t& params, int iStackPos, GarrysMod::L
 			params.massCenterOverride = Get_Vector(LUA, -1, true);
 		LUA->Pop(1);
 
-		if (Util::HasField(LUA, "name", GarrysMod::Lua::Type::Number))
+		if (Util::HasField(LUA, "name", GarrysMod::Lua::Type::String))
 			params.pName = LUA->GetString(-1);
 		LUA->Pop(1);
 

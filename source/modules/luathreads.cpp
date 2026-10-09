@@ -76,7 +76,7 @@ public:
 
 	void EnsureThread();
 
-	void DestroyThread()
+	void StopThread()
 	{
 		if (m_iStatus != InterfaceStatus::INTERFACE_STOPPED)
 		{
@@ -92,6 +92,14 @@ public:
 			ReleaseThreadHandle(m_pThreadID);
 			m_pThreadID = nullptr;
 		}
+	}
+
+	void DestroyThread()
+	{
+		StopThread();
+
+		if (!m_pInterface)
+			return;
 
 		{
 			m_pMutex.Lock();
@@ -105,6 +113,7 @@ public:
 
 		g_pModuleManager.LuaShutdown(m_pInterface);
 		Lua::DestroyInterface(m_pInterface);
+		m_pInterface = nullptr;
 	}
 
 	void AddTask(InterfaceTask* pTask)
@@ -168,7 +177,6 @@ private:
 	{
 		// ThreadSetDebugName(ThreadGetCurrentId(), PROJECT_NAME " - LuaInterfaceThread");
 		LuaInterface* pData = (LuaInterface*)data;
-		pData->m_iStatus = InterfaceStatus::INTERFACE_RUNNING;
 		while (pData->m_iStatus == InterfaceStatus::INTERFACE_RUNNING)
 		{
 			pData->RunTasks();
@@ -181,7 +189,7 @@ private:
 		return 0;
 	}
 
-	CLuaInterface* m_pInterface;
+	CLuaInterface* m_pInterface = nullptr;
 	ThreadHandle_t m_pThreadID = nullptr;
 	InterfaceStatus m_iStatus = InterfaceStatus::INTERFACE_STOPPED;
 	unsigned int m_iSleepTime = 1; // Time in ms to sleep
@@ -208,7 +216,10 @@ void LuaInterface::EnsureThread()
 	if (HasThread())
 		return;
 
+	m_iStatus = InterfaceStatus::INTERFACE_RUNNING;
 	m_pThreadID = CreateSimpleThread((ThreadFunc_t)LuaInterfaceThread, this);
+	if (!m_pThreadID)
+		m_iStatus = InterfaceStatus::INTERFACE_STOPPED;
 }
 
 PushReferenced_LuaClass(LuaInterface)
@@ -279,7 +290,7 @@ LUA_FUNCTION_STATIC(LuaInterface_EnableThinking)
 	{
 		pData->EnsureThread();
 	} else {
-		pData->DestroyThread();
+		pData->StopThread();
 	}
 
 	return 0;

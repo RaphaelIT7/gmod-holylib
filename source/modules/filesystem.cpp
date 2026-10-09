@@ -280,18 +280,18 @@ public:
 		if (holylib_filesystem_static.GetBool())
 			return;
 
+		char szFolderPath[MAX_PATH];
+		V_strncpy(szFolderPath, pszFullFolderPath, sizeof(szFolderPath));
+		::NormalizePath( szFolderPath );
+
 		{
 			std::lock_guard<std::recursive_mutex> lock(m_WatchersMutex);
-			if (m_WatcherFolders.find(pszFullFolderPath) == m_WatcherFolders.end())
+			if (m_WatcherFolders.find(szFolderPath) != m_WatcherFolders.end())
 				return; // We already have a watcher on this folder
 		}
 
 		if (g_pFileSystemModule.InDebug())
 			Msg(PROJECT_NAME " - filesystem(CreateWatcher): %s\n", pszFullFolderPath);
-
-		char szFolderPath[MAX_PATH];
-		V_strncpy(szFolderPath, pszFullFolderPath, sizeof(szFolderPath));
-		NormalizePath( szFolderPath );
 
 		new CFileWatcher(szFolderPath);
 
@@ -313,7 +313,7 @@ public:
 
 			char szFullPath[MAX_PATH];
 			V_snprintf(szFullPath, sizeof(szFullPath), "%s" CORRECT_PATH_SEPARATOR_S "%s", pszFullFolderPath, findData.cFileName);
-			NormalizePath(szFullPath);
+			::NormalizePath(szFullPath);
 
 			CreateWatcher(szFullPath);
 		} while (func_CFileSystem_Stdio_FS_FindNextFile(g_pFullFileSystem, hFind, &findData));
@@ -344,7 +344,7 @@ public:
 	{
 		m_bNextFullPath = !m_bNextFullPath;
 		V_strncpy( m_szFullPath[m_bNextFullPath], pszAbsolutePath, sizeof( m_szFullPath[m_bNextFullPath] ) );
-		NormalizePath( m_szFullPath[m_bNextFullPath] );
+		::NormalizePath( m_szFullPath[m_bNextFullPath] );
 
 		return m_szFullPath[m_bNextFullPath];
 	}
@@ -1638,6 +1638,7 @@ struct IAsyncFile
 	int nBytesRead;
 	int status;
 	const char* content = nullptr;
+	unsigned int nContentLength = 0;
 	std::string strFileName;
 	std::string strPathID;
 	GarrysMod::Lua::ILuaInterface* luaState;
@@ -1665,6 +1666,7 @@ void AsyncCallback(const FileAsyncRequest_t &request, int nBytesRead, FSAsyncSta
 			std::memcpy(static_cast<void*>(content), request.pData, nContentLength);
 		content[nContentLength] = '\0';
 		async->content = content;
+		async->nContentLength = nContentLength;
 
 		if (!Lua::IsValidLuaState(async->luaState))
 			return; // Just to be sure as I don't trust the filesystem
@@ -1736,7 +1738,7 @@ void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 		pLua->PushString(file->req->pszFilename);
 		pLua->PushString(file->req->pszPathID);
 		pLua->PushNumber(file->status);
-		pLua->PushString(file->content);
+		pLua->PushString(file->content, file->nContentLength);
 		pLua->CallFunctionProtected(4, 0, true);
 		Util::ReferenceFree(pLua, file->callback, "FileAsyncReadThink");
 
@@ -1781,10 +1783,9 @@ std::string extractDirectoryPath(const std::string& filepath) {
 std::vector<std::string> SortByDate(std::vector<std::string> files, const char* filepath, const char* path, bool ascending)
 {
 	std::string str_filepath = extractDirectoryPath((std::string)filepath);
-	unordered_map<std::string_view, long> dates;
-	for (std::string file : files) {
+	unordered_map<std::string, long> dates;
+	for (const std::string& file : files)
 		dates[file] = g_pFullFileSystem->GetFileTime((str_filepath + file).c_str(), path);
-	}
 
 	std::sort(files.begin(), files.end(), [&dates](const std::string& a, const std::string& b) {
 		return dates[a] < dates[b];
@@ -1805,11 +1806,12 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 	const char* gamePath = LUA->CheckString(2);
 	const char* sorting = LUA->CheckStringOpt(3, "");
 
+	const std::string strDirectoryPath = extractDirectoryPath(filepath);
 	FileFindHandle_t findHandle;
 	const char *pFilename = g_pFullFileSystem->FindFirstEx(filepath, gamePath, &findHandle);
 	while (pFilename)
 	{
-		if (g_pFullFileSystem->IsDirectory(((std::string)filepath + pFilename).c_str(), gamePath)) {
+		if (g_pFullFileSystem->IsDirectory((strDirectoryPath + pFilename).c_str(), gamePath)) {
 			folders.push_back(pFilename);
 		} else {
 			files.push_back(pFilename);
@@ -1820,7 +1822,7 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 	g_pFullFileSystem->FindClose(findHandle);
 
 	LUA->CreateTable();
-	if (files.size() > 0) {
+	if (files.size() > 0 || folders.size() > 0) {
 		if (strcmp(sorting, "namedesc") == 0) { // sort the files descending by name.
 			std::sort(files.begin(), files.end(), std::greater<std::string>());
 			std::sort(folders.begin(), folders.end(), std::greater<std::string>());
@@ -1933,7 +1935,7 @@ LUA_FUNCTION_STATIC(filesystem_AddSearchPath)
 
 	const char* folderPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
-	SearchPathAdd_t addType = LUA->GetBool(-1) ? PATH_ADD_TO_HEAD : PATH_ADD_TO_TAIL;
+	SearchPathAdd_t addType = LUA->GetBool(3) ? PATH_ADD_TO_HEAD : PATH_ADD_TO_TAIL;
 	g_pFullFileSystem->AddSearchPath(folderPath, gamePath, addType);
 
 	return 0;
