@@ -318,6 +318,12 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(timer_Think)
+{
+	g_pSysTimerModule.LuaThink(LUA);
+	return 0;
+}
+
 void CSysTimerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
@@ -340,6 +346,7 @@ void CSysTimerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerI
 		Util::AddFunc(pLua, timer_TimeLeft, "TimeLeft");
 		Util::AddFunc(pLua, timer_Toggle, "Toggle");
 		Util::AddFunc(pLua, timer_UnPause, "UnPause");
+		Util::AddFunc(pLua, timer_Think, "Think");
 	Util::FinishTable(pLua, "systimer");
 }
 

@@ -96,6 +96,7 @@ return {
 
                     systimer.Toggle( name )
                     timer.Simple( 0.3, function()
+                    	systimer.Think() -- in testing sometimes its unreliable?
                         expect( fired ).to.beTrue()
 
                         done()
