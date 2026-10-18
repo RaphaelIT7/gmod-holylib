@@ -53,11 +53,7 @@ void ReferencedLuaUserData::ForceGlobalRelease(void* pData)
 			continue;
 		
 		bFound = true;
-		for (auto& [_, userData] : owningData)
-		{
-			if (userData->GetData())
-				userData->SetData(nullptr); // Remove any references any LuaUserData holds to us.
-		}
+		it2->second->SetData(nullptr);
 	}
 
 	if (!bFound)
@@ -88,6 +84,7 @@ void ReferencedLuaUserData::ForceGlobalRelease(void* pData)
 		it2->second->Release(nullptr);
 #else
 		it2->second->Release(pState->pLua);
+		owningData.erase(it2);
 #endif
 	}
 }
