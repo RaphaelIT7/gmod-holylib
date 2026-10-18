@@ -103,6 +103,8 @@ static inline TokenType KeywordType(const std::string& strWord)
 	if (strWord == "then") return TK_THEN;
 	if (strWord == "end") return TK_END;
 	if (strWord == "not") return TK_NOT;
+	if (strWord == "or") return TK_OR;
+	if (strWord == "and") return TK_AND;
 	if (strWord == "do") return TK_DO;
 	if (strWord == "elseif") return TK_ELSEIF;
 	if (strWord == "else") return TK_ELSE;
@@ -124,91 +126,91 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		if (c == '\n')
 		{
 			tokens.push_back({TK_LINEEND, std::string(1, c), true});
-			i++;
+			++i;
 			continue;
 		}
 
 		if (c == ' ' || c == '\t' || c == '\r')
 		{
 			tokens.push_back({TK_SOMETHING, std::string(1, c), true});
-			i++;
+			++i;
 			continue;
 		}
 
 		if (c == '(' || c == ')')
 		{
 			tokens.push_back({TK_PARENTHESIS, std::string(1, c)});
-			i++;
+			++i;
 			continue;
 		}
 
 		if (c == '>' && i+1 < content.size() && content[i+1] == '=')
 		{
 			tokens.push_back({TK_GREATER_OR_EQUAL, content.substr(i, 2)});
-			i+=2;
+			i += 2;
 			continue;
 		}
 
 		if (c == '>')
 		{
 			tokens.push_back({TK_GREATER, std::string(1, c)});
-			i++;
+			++i;
 			continue;
 		}
 
 		if (c == '<' && i+1 < content.size() && content[i+1] == '=')
 		{
 			tokens.push_back({TK_LESS_OR_EQUAL, content.substr(i, 2)});
-			i+=2;
+			i += 2;
 			continue;
 		}
 
 		if (c == '<')
 		{
 			tokens.push_back({TK_LESS, std::string(1, c)});
-			i++;
+			++i;
 			continue;
 		}
 
-		if (i+1 < content.size() && ((c == '|' && content[i+1] == '|') || (c == 'o' && content[i+1] == 'r')))
+		if (i+1 < content.size() && c == '|' && content[i+1] == '|')
 		{
 			tokens.push_back({TK_OR, content.substr(i, 2)});
-			i+=2;
+			i += 2;
 			continue;
 		}
 
 		if (i+1 < content.size() && ((c == '!' && content[i+1] == '=') || (c == '~' && content[i+1] == '=')))
 		{
 			tokens.push_back({TK_NOT_EQUAL, content.substr(i, 2)});
-			i+= 2;
+			i += 2;
 			continue;
 		}
 
 		if (i+1 < content.size() && ((c == '=' && content[i+1] == '=')))
 		{
 			tokens.push_back({TK_EQUAL, content.substr(i, 2)});
-			i+= 2;
+			i += 2;
 			continue;
 		}
 
-		if (i+1 < content.size() && ((c == '&' && content[i+1] == '&') || (c == 'a' && content[i+1] == 'n' && i+2 < content.size() && content[i+2] == 'd')))
+		if (i+1 < content.size() && c == '&' && content[i+1] == '&')
 		{
-			tokens.push_back({TK_AND, content.substr(i, c == '&' ? 2 : 3)});
-			i+= c == '&' ? 2 : 3;
+			tokens.push_back({TK_AND, content.substr(i, 2)});
+			i += 2;
 			continue;
 		}
 
 		if (c == '+')
 		{
 			tokens.push_back({TK_ADD, std::string(1, c)});
-			i++;
+			++i;
 			continue;
 		}
 
 		if (c == '*')
 		{
 			tokens.push_back({TK_MUL, std::string(1, c)});
-			i++;
+			++i;
 			continue;
 		}
 
@@ -219,11 +221,11 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 			if (i+1 < content.size() && content[i] == '[')
 			{
-				i += 1;
+				++i;
 				int count = 0;
 				while (i+1 < content.size() && content[i]=='=')
 				{
-					i++;
+					++i;
 					count++;
 				}
 
@@ -231,17 +233,17 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 				{
 					while (i+1 < content.size())
 					{
-						i++;
+						++i;
 						if (content[i] == ']')
 						{
 							if (count == 0 && i+1 < content.size() && content[i+1] == ']')
 								break;
 
-							i++;
+							++i;
 							int nextCount = 0;
 							while (i+1 < content.size() && content[i]=='=')
 							{
-								i++;
+								++i;
 								nextCount++;
 							}
 
@@ -254,19 +256,19 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 					if (content[i] == ']') {
 						if (count > 0)
-							i++; // Skip second ]
+							++i; // Skip second ]
 						else
-							i=i+2;
+							i += 2;
 					}
 				} else
 				{
 					while (i < content.size() && content[i] != '\n')
-						i++;
+						++i;
 				}
 			} else
 			{
 				while (i < content.size() && content[i] != '\n')
-					i++;
+					++i;
 			}
 
 			tokens.push_back({TK_COMMENT, content.substr(start, i-start)});
@@ -280,12 +282,12 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			{
 				i += 2;
 				while (i < content.size() && content[i] != '\n')
-					i++;
+					++i;
 			} else
 			{
 				i += 2;
 				while (i+1 < content.size() && !(content[i]=='*' && content[i+1]=='/'))
-					i++;
+					++i;
 
 				if (i+1 < content.size())
 					i += 2;
@@ -298,12 +300,12 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		if ((c == '\'' || c == '"') && (i == 0 || (content[i-1] != '\\' || (i >= 2 && content[i-2] == '\\'))))
 		{
 			int start = i;
-			i++;
-			while (i < content.size() && (content[i] != c || (content[i-1] == '\\' && content[i-2] != '\\')))
-				i++;
+			++i;
+			while (i < content.size() && content[i] != c)
+				i += content[i] == '\\' ? 2 : 1;
 
 			// String
-			i++;
+			++i;
 			tokens.push_back({TK_STRING, content.substr(start, i-start)});
 			continue;
 		}
@@ -311,11 +313,11 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		if (c == '[' && (i == 0 || content[i-1] != '\\') && i+1 < content.size())
 		{
 			int start = i;
-			i += 1;
+			++i;
 			int count = 0;
 			while (i+1 < content.size() && content[i]=='=')
 			{
-				i++;
+				++i;
 				count++;
 			}
 
@@ -323,17 +325,17 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			{
 				while (i+1 < content.size())
 				{
-					i++;
+					++i;
 					if (content[i] == ']')
 					{
 						if (count == 0 && i+1 < content.size() && content[i+1] == ']')
 							break;
 
-						i++;
+						++i;
 						int nextCount = 0;
 						while (i+1 < content.size() && content[i]=='=')
 						{
-							i++;
+							++i;
 							nextCount++;
 						}
 
@@ -346,9 +348,9 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 				if (content[i] == ']') {
 					if (count > 0)
-						i++; // Skip second ]
+						++i; // Skip second ]
 					else
-						i=i+2;
+						i += 2;
 				}
 
 				// Long String
@@ -363,7 +365,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		{
 			size_t start = i;
 			while (i < content.size() && std::isdigit((unsigned char)content[i]))
-				i++;
+				++i;
 
 			std::string strWord = content.substr(start, i - start);
 			tokens.push_back({TK_NUMBER, strWord});
@@ -374,7 +376,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		{
 			size_t start = i;
 			while (i < content.size() && (std::isalnum((unsigned char)content[i]) || content[i]=='_'))
-				i++;
+				++i;
 
 			std::string strWord = content.substr(start, i - start);
 			tokens.push_back({KeywordType(strWord), strWord});
@@ -385,26 +387,26 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		if (c == '-')
 		{
 			tokens.push_back({TK_SUB, std::string(1, c)});
-			i++;
+			++i;
 			continue;
 		}
 
 		if (c == '/')
 		{
 			tokens.push_back({TK_DIV, std::string(1, c)});
-			i++;
+			++i;
 			continue;
 		}
 
 		if (c == '!')
 		{
 			tokens.push_back({TK_NOT, std::string(1, c)});
-			i++;
+			++i;
 			continue;
 		}
 
 		tokens.push_back({TK_SOMETHING, std::string(1, c)});
-		i++;
+		++i;
 	}
 
 	tokens.push_back({TK_EOF, ""});
@@ -432,18 +434,61 @@ static bool IsNotTK(const std::vector<Token>& tokens, size_t i)
 	return tk == TK_NOT;
 }
 
+enum ScopeFlags : unsigned char
+{
+	SCOPE_NONE,
+	SCOPE_SERVER,
+	SCOPE_CLIENT,
+	SCOPE_UNCERTAIN
+};
+
 struct ScopeEvalInfo
 {
 	bool isEmpty = true;
 	TokenType evalToken = TokenType::TK_INVALID;
 	size_t start;
 	size_t end;
-	std::vector<bool> isServer = {false}; // if we got an or we must check every side
+	std::vector<ScopeFlags> flags = {ScopeFlags()}; // if we got an or we must check every side
+	ScopeFlags operand = ScopeFlags::SCOPE_NONE; // Needed to figure out if an condition could ever be true/false
 };
+
+static inline void SetScopeFlag(ScopeFlags& flag, ScopeFlags value)
+{
+	flag = (flag == ScopeFlags::SCOPE_NONE || flag == value) ? value : ScopeFlags::SCOPE_UNCERTAIN;
+}
+
+static ScopeFlags CombineFlags(const std::vector<ScopeFlags>& flags)
+{
+	ScopeFlags result = ScopeFlags::SCOPE_SERVER;
+	for (ScopeFlags nFlags : flags)
+	{
+		if (nFlags == ScopeFlags::SCOPE_CLIENT)
+			return ScopeFlags::SCOPE_CLIENT;
+
+		if (nFlags != ScopeFlags::SCOPE_SERVER)
+			result = ScopeFlags::SCOPE_UNCERTAIN;
+	}
+
+	return result;
+}
+
+static void FoldOperand(ScopeEvalInfo& info)
+{
+	ScopeFlags& flag = info.flags.back();
+	ScopeFlags operand = info.operand;
+	info.operand = ScopeFlags::SCOPE_NONE;
+
+	if (flag == ScopeFlags::SCOPE_NONE)
+		flag = operand;
+	else if (flag == ScopeFlags::SCOPE_SERVER || operand == ScopeFlags::SCOPE_SERVER)
+		flag = ScopeFlags::SCOPE_SERVER;
+	else if (flag != ScopeFlags::SCOPE_CLIENT || operand != ScopeFlags::SCOPE_CLIENT)
+		flag = ScopeFlags::SCOPE_UNCERTAIN;
+}
 
 // Input start must be advanced by 1!
 // We expect that the start argument was moved to the TK_THEN or TK_DO when were done!
-static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t& start)
+static ScopeFlags CanConditionBeRemoved(const std::vector<Token> &tokens, size_t& start)
 {
 	std::deque<size_t> pScopeIDs;
 	std::vector<ScopeEvalInfo> pScopes;
@@ -457,20 +502,22 @@ static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t
 		if (!tokens[start].isSpace && tokens[start].type != TK_PARENTHESIS)
 			pScopes[pScopeIDs.back()].isEmpty = false;
 
-		if (tokens[start].type == TK_SOMETHING)
-		{
-			if (tokens[start].content == "SERVER" && !IsNotTK(tokens, lastNonEmpty))
-			{
-				pScopes[pScopeIDs.back()].isServer[pScopes[pScopeIDs.back()].isServer.size()-1] = true;
-			} else if (tokens[start].content == "CLIENT" && IsNotTK(tokens, lastNonEmpty))
-			{
-				pScopes[pScopeIDs.back()].isServer[pScopes[pScopeIDs.back()].isServer.size()-1] = true;
-			}
-		}
+		ScopeFlags& curFlag = pScopes[pScopeIDs.back()].operand;
+		if (tokens[start].type == TK_SOMETHING && tokens[start].content == "SERVER")
+			SetScopeFlag(curFlag, !IsNotTK(tokens, lastNonEmpty) ? ScopeFlags::SCOPE_SERVER : ScopeFlags::SCOPE_CLIENT);
+		else if (tokens[start].type == TK_SOMETHING && tokens[start].content == "CLIENT")
+			SetScopeFlag(curFlag, IsNotTK(tokens, lastNonEmpty) ? ScopeFlags::SCOPE_SERVER : ScopeFlags::SCOPE_CLIENT);
+		else if (!tokens[start].isSpace && tokens[start].type != TK_PARENTHESIS && tokens[start].type != TK_NOT &&
+			tokens[start].type != TK_AND && tokens[start].type != TK_OR && tokens[start].type != TK_COMMENT)
+			curFlag = ScopeFlags::SCOPE_UNCERTAIN; // Annoying... (ToDo: Clean this up to proper evaluate conditions / figure out if their constant & server/client only)
+
+		if (tokens[start].type == TK_AND)
+			FoldOperand(pScopes[pScopeIDs.back()]);
 
 		if (tokens[start].type == TK_OR)
 		{
-			pScopes[pScopeIDs.back()].isServer.push_back(false);
+			FoldOperand(pScopes[pScopeIDs.back()]);
+			pScopes[pScopeIDs.back()].flags.push_back(ScopeFlags::SCOPE_NONE);
 		}
 
 		if (tokens[start].type == TK_PARENTHESIS)
@@ -484,27 +531,17 @@ static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t
 			} else {
 				size_t prevID = pScopeIDs.back();
 				pScopes[prevID].end = start;
-				
-				bool wasServer = pScopes[prevID].evalToken != TK_NOT;
-				for (bool bServer : pScopes[prevID].isServer)
-				{
-					if (bServer)
-						continue;
 
-					wasServer = false;
-					break;
-				}
+				FoldOperand(pScopes[prevID]);
+				ScopeFlags wasServer = CombineFlags(pScopes[prevID].flags);
+				if (pScopes[prevID].evalToken == TK_NOT && wasServer != ScopeFlags::SCOPE_UNCERTAIN)
+					wasServer = wasServer == ScopeFlags::SCOPE_SERVER ? ScopeFlags::SCOPE_CLIENT : ScopeFlags::SCOPE_SERVER;
 
 				pScopeIDs.pop_back();
 				if (pScopeIDs.empty())
-				{
-					if (g_pGModDataPackModule.InDebug())
-						Warning(PROJECT_NAME " - GModDataPack: How did we pop too many scopes???\n");
+					return ScopeFlags::SCOPE_NONE;
 
-					return false;
-				}
-
-				pScopes[pScopeIDs.back()].isServer[pScopes[pScopeIDs.back()].isServer.size()-1] = wasServer;
+				SetScopeFlag(pScopes[pScopeIDs.back()].operand, wasServer);
 			}
 		}
 
@@ -516,137 +553,286 @@ static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t
 	pScopes[0].end = start;
 	pScopeIDs.pop_back();
 
-	bool isServer = true;
-	for (const ScopeEvalInfo& info : pScopes)
-	{
-		if (info.isEmpty)
-			continue;
+	FoldOperand(pScopes[0]);
+	ScopeFlags result = CombineFlags(pScopes[0].flags);
+	return result == ScopeFlags::SCOPE_UNCERTAIN ? ScopeFlags::SCOPE_NONE : result;
+}
 
-		for (bool bServer : info.isServer)
-		{
-			if (bServer)
-				continue;
+static inline void NukeToken(Token& tok)
+{
+	tok.content = "";
+	tok.isSpace = true;
+	tok.type = TK_SOMETHING;
+}
 
-			isServer = false;
-			break;
-		}
+static inline bool OpensBlock(const Token& tok)
+{
+	return tok.type == TK_THEN || tok.type == TK_DO || tok.type == TK_FUNCTION || (tok.type == TK_SOMETHING && tok.content == "repeat");
+}
 
-		break;
-	}
-
-	return isServer;
+static inline bool ClosesBlock(const Token& tok)
+{
+	return tok.type == TK_END || (tok.type == TK_SOMETHING && tok.content == "until");
 }
 
 // The goal is to remove parts of a Lua script without changing the line number (so that errors remain easy to debug!)
-static size_t RemoveScoped(size_t i, std::vector<Token> &tokens, std::stringstream& ss, TokenType tok, bool& hasLineBreaks)
+static size_t RemoveScoped(size_t i, std::vector<Token>& tokens, TokenType tok, bool& hasLineBreaks, bool& hasElseIf)
 {
 	int depth = 1;
 	++i;
 	hasLineBreaks = false; // If it's a one line if -> "if x then x else x end" then we won't restore spaces
 	while (i < tokens.size() && depth > 0)
 	{
-		if (tokens[i].type == TK_THEN || tokens[i].type == TK_DO || tokens[i].type == TK_FUNCTION)
+		Token& curTok = tokens[i];
+		if (OpensBlock(curTok))
 			depth++;
-		else if (tokens[i].type == TK_END)
+		else if (ClosesBlock(curTok))
 		{
 			depth--;
 			if (tok == TK_ELSEIF && depth <= 0)
 				continue;
 		}
-		else if (tokens[i].type == TK_LINEEND)
+		else if (curTok.type == TK_LINEEND)
 		{
 			hasLineBreaks = true;
-			ss << '\n';
 		}
-		else if (tokens[i].type == TK_COMMENT)
+		else if (curTok.type == TK_COMMENT)
 		{
-			for (char c : tokens[i].content)
-				if (c=='\n') ss << '\n';
+			int lineBreaks = 0;
+			for (char c : curTok.content)
+				if (c=='\n') ++lineBreaks;
+
+			NukeToken(curTok);
+			for (int j=0; j<lineBreaks; ++j)
+				curTok.content.append("\n");
 		}
-		else if (tokens[i].type == TK_ELSE && depth == 1)
+		else if (curTok.type == TK_ELSE && depth == 1)
 		{
 			depth--;
 			continue;
 		}
-		else if (tokens[i].type == TK_ELSEIF)
+		else if (curTok.type == TK_ELSEIF)
 		{
 			depth--;
 			if (depth <= 0)
+			{
+				hasElseIf = true;
 				continue;
+			}
 		}
 
-		i++;
+		if (!curTok.isSpace)
+			NukeToken(curTok);
+
+		++i;
 	}
 
 	return i;
 }
 
-static size_t RemoveServerScoped(size_t j, std::vector<Token> &tokens, std::stringstream& ss, TokenType tok)
+static inline size_t NukeIfCond(size_t i, std::vector<Token> &tokens, ScopeFlags flag)
+{
+	while (i < tokens.size() && tokens[i].type != TK_THEN)
+		NukeToken(tokens[i++]);
+
+	if (flag == ScopeFlags::SCOPE_SERVER && i < tokens.size())
+		NukeToken(tokens[i++]);
+
+	return i;
+}
+
+static size_t RemoveServerScoped(size_t start, size_t j, std::vector<Token> &tokens, TokenType tok)
 {
 	bool hasLineBreaks = false;
-	size_t i = RemoveScoped(j, tokens, ss, tok, hasLineBreaks);
+	bool hasElseIf = false;
+	size_t i = RemoveScoped(j, tokens, tok, hasLineBreaks, hasElseIf);
+
+	size_t pos = tokens.size();
+	NukeIfCond(start, tokens, ScopeFlags::SCOPE_SERVER);
+	i = i - (pos - tokens.size());
 
 	if (i >= tokens.size())
 		return i;
 
-	if (tokens[i].type == TK_ELSEIF)
-		tokens[i].content = tok == TK_IF ? "if" : "elseif";
-	else if (tokens[i].type == TK_ELSE && tok == TK_IF)
+	if (tokens[i].type == TK_ELSEIF && tok == TK_IF)
+	{
+		tokens[i].type = TK_IF;
+		tokens[i].content = "if";
+	} else if (tokens[i].type == TK_ELSE && tok == TK_IF)
+	{
+		tokens[i].type = TK_DO;
 		tokens[i].content = "do";
+	}
 
-	// If we had for example "	elseif xx then" we want to restore the space before it.
+	// If we had for example "elseif xx then" we want to restore the space before it.
 	while (hasLineBreaks && i-1 > 0 && tokens[i-1].isSpace && tokens[i-1].type != TK_LINEEND)
 		i--;
 
 	return i;
 }
 
+static size_t FindBlockClose(const std::vector<Token>& tokens, size_t i)
+{
+	int depth = 1;
+	for (++i; i < tokens.size(); ++i)
+	{
+		if (OpensBlock(tokens[i]))
+			depth++;
+		else if (ClosesBlock(tokens[i]) && --depth <= 0)
+			return i;
+		else if (tokens[i].type == TK_ELSE && depth == 1)
+			return i;
+		else if (tokens[i].type == TK_ELSEIF && --depth <= 0)
+			return i;
+	}
+
+	return tokens.size();
+}
+
+static bool AlwaysReturns(const std::vector<Token>& tokens, size_t start, size_t end)
+{
+	int depth = 0;
+	for (size_t i = start; i < end; ++i)
+	{
+		if (OpensBlock(tokens[i]))
+			depth++;
+		else if (ClosesBlock(tokens[i]) || tokens[i].type == TK_ELSEIF)
+			depth--;
+		else if (tokens[i].type == TK_RETURN && depth == 0)
+			return true;
+	}
+
+	return false;
+}
+
+static void RemoveClientScoped(size_t start, size_t j, std::vector<Token> &tokens, TokenType tok)
+{
+	size_t close = FindBlockClose(tokens, j);
+	if (close >= tokens.size() || tokens[close].type == TK_ELSEIF)
+		return;
+
+	bool isElseIf = tok == TK_ELSEIF;
+	bool returns = !isElseIf && AlwaysReturns(tokens, j + 1, close);
+	NukeIfCond(start, tokens, ScopeFlags::SCOPE_CLIENT);
+	tokens[j].content = isElseIf ? "else" : "do";
+
+	bool hasLineBreaks = false;
+	bool hasElseIf = false;
+	size_t end = close;
+	if (tokens[close].type == TK_ELSE)
+	{
+		NukeToken(tokens[close]);
+		end = RemoveScoped(close, tokens, TokenType::TK_ELSEIF, hasLineBreaks, hasElseIf);
+	}
+
+	if (returns)
+		RemoveScoped(end, tokens, TokenType::TK_ELSEIF, hasLineBreaks, hasElseIf);
+}
+
 std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bool bRemoveComments)
 {
 	std::stringstream ss;
 	size_t i = 0;
-
-	while (i < tokens.size()) {
-		const Token &tok = tokens[i];
+	while (i < tokens.size())
+	{
+		Token &tok = tokens[i];
 		if (bRemoveComments && tok.type == TK_COMMENT)
 		{
+			int lineBreaks = 0;
 			for (char c : tok.content)
-				if (c == '\n') ss << '\n';
+				if (c=='\n') ++lineBreaks;
 
-			i++;
+			tok.content = "";
+			for (int j=0; j<lineBreaks; ++j)
+				tok.content.append("\n");
+
+			++i;
 			continue;
 		}
 
-		if (bRemoveServerCode && tok.type == TK_IF)
+		if (bRemoveServerCode && (tok.type == TK_IF || tok.type == TK_ELSEIF))
 		{
 			size_t j = i+1;
-			if (CanServerConditionBeRemoved(tokens, j))
+			ScopeFlags flag = CanConditionBeRemoved(tokens, j);
+			if (flag == ScopeFlags::SCOPE_SERVER)
 			{
 				if (j < tokens.size() && tokens[j].type == TK_THEN)
 				{
-					i = RemoveServerScoped(j, tokens, ss, TK_IF);
+					i = RemoveServerScoped(i, j, tokens, tok.type);
 					continue;
 				}
-			}
+			} else if (flag == ScopeFlags::SCOPE_CLIENT && j < tokens.size() && tokens[j].type == TK_THEN) // A "do" inside the condition would make NukeIfCond run past it
+				RemoveClientScoped(i, j, tokens, tok.type);
 		}
 
-		if (bRemoveServerCode && tok.type == TK_ELSEIF)
+		++i;
+	}
+
+	// Let's nuke empty lines, it always annoyed me that we keep spaces of nuked lines
+	// this also removes any trailing spaces from any line
+	size_t lineStart = 0;
+	for (size_t i=0; i<tokens.size(); ++i)
+	{
+		Token& tok = tokens[i];
+		if (tok.type == TK_LINEEND)
 		{
-			size_t j = i+1;
-			if (CanServerConditionBeRemoved(tokens, j))
+			if (lineStart < tokens.size())
 			{
-				if (j < tokens.size() && tokens[j].type == TK_THEN)
-				{
-					i = RemoveServerScoped(j, tokens, ss, TK_ELSEIF);
-					continue;
-				}
+				for (size_t j=lineStart; j<i; ++j)
+					NukeToken(tokens[j]);
 			}
+
+			lineStart = i+1;
+			continue;
 		}
 
-		if (tok.type != TK_EOF)
-			ss << tok.content;
+		if (tok.isSpace || tok.content.empty())
+		{
+			if (lineStart >= tokens.size())
+				lineStart = i;
+		} else
+			lineStart = tokens.size()+1;
+	}
 
-		i++;
+	// Lets also turn 4 spaces to a tab since it should save some size too (no one reads the networked client scripts anyways)
+	size_t spaceRun = 0;
+	for (size_t i=0; i<tokens.size(); ++i)
+	{
+		if (tokens[i].content != " ")
+		{
+			spaceRun = 0;
+			continue;
+		}
+
+		if (++spaceRun < 4)
+			continue;
+
+		tokens[i-3].content = "\t";
+		for (size_t j=i-2; j<=i; ++j)
+			tokens[j].content = "";
+
+		spaceRun = 0;
+	}
+
+	// I dislike this way a bit but it allows us to patch tokens from the past :)
+	// And we can nuke empty lines at the end
+	for (size_t endPos = tokens.size()-1; endPos > 0; --endPos)
+	{
+		if (!tokens[endPos].isSpace && !tokens[endPos].content.empty() && tokens[endPos].type != TokenType::TK_EOF)
+		{
+			if (endPos+1 < tokens.size())
+				tokens[endPos+1].type = TokenType::TK_EOF;
+
+			break;
+		}
+	}
+
+	for (auto& tok : tokens)
+	{
+		if (tok.type == TokenType::TK_EOF)
+			break;
+
+		ss << tok.content;
 	}
 
 	std::string pCode = ss.str();
