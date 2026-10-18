@@ -138,6 +138,9 @@ inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHa
 static Detouring::Hook detour_CGameMovement_TryPlayerMove;
 static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace) // Raphael: We still need to support player->m_surfaceFriction or what it's name was. I removed it since I currently can't get it.
 {
+	if (!func_MoveHelperServer || !func_CGameMovement_ClipVelocity || !func_CTraceFilterSimple_ShouldHitEntity || !enginetrace)
+		return detour_CGameMovement_TryPlayerMove.GetTrampoline<Symbols::CGameMovement_TryPlayerMove>()(gamemovement, pFirstDest, pFirstTrace);
+
 	int			bumpcount, numbumps;
 	Vector		dir;
 	float		d;

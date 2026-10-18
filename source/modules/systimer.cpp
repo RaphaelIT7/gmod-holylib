@@ -142,6 +142,7 @@ LUA_FUNCTION_STATIC(timer_Create)
 		Util::ReferenceFree(timer->pLua, timer->function, "timer.Create - old function");
 		Util::ReferenceFree(timer->pLua, timer->identifierReference, "timer.Create - old identifyer");
 		timer->markDelete = false;
+		timer->active = true;
 	}
 
 	LUA->Push(4);
@@ -385,7 +386,7 @@ void CSysTimerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 
 			if (timer->repetitions == 1)
 				timer->markDelete = true;
-			else
+			else if (timer->repetitions > 0)
 				timer->repetitions--;
 
 			Lua::ReferencePush(pLua, timer->function);

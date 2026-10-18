@@ -120,7 +120,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 				if (listener == pClient)
 				{
-					LUA->PushString(descriptor.name, 32);
+					LUA->PushString(descriptor.name);
 					Lua::RawSetI(LUA, -2, ++idx);
 					break;
 				}
@@ -328,8 +328,9 @@ Default__index(IGameEvent);
 Default__newindex(IGameEvent);
 Default__GetTable(IGameEvent);
 Default__IsValid(IGameEvent);
-Default__gc(IGameEvent, 
-	pGameEventManager->FreeEvent((IGameEvent*)pStoredData);
+Default__gc(IGameEvent,
+	if (pStoredData)
+		pGameEventManager->FreeEvent((IGameEvent*)pStoredData);
 )
 
 LUA_FUNCTION_STATIC(IGameEvent_IsEmpty)
@@ -468,9 +469,11 @@ LUA_FUNCTION_STATIC(gameevent_DuplicateEvent)
 
 LUA_FUNCTION_STATIC(gameevent_FireEvent)
 {
-	IGameEvent* pEvent = Get_IGameEvent(LUA, 1, true);
+	LuaUserData* pUserData = Get_IGameEvent_Data(LUA, 1, true);
+	IGameEvent* pEvent = (IGameEvent*)pUserData->GetData();
 	bool bDontBroadcast = LUA->GetBool(2);
 
+	pUserData->Release(LUA);
 	LUA->PushBool(pGameEventManager->FireEvent(pEvent, bDontBroadcast));
 	return 1;
 }

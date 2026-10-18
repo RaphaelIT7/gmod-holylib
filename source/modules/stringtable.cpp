@@ -600,7 +600,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	int strIndex = (int)LUA->CheckNumber(2);
-	if (!table->GetString(strIndex))
+	if (strIndex < 0 || !table->GetString(strIndex))
 	{
 		LUA->PushBool(false);
 		return 1;

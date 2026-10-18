@@ -474,6 +474,9 @@ static void SetOverrideStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEnti
 
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 {
+	if (g_bBlockAdditionToTransmit)
+		LUA->ThrowError("Tried to override state flags inside HolyLib:PostCheckTransmit!");
+
 	int flags = LUA->CheckNumber(2);
 	bool force = LUA->GetBool(3);
 
@@ -610,7 +613,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 		{
 			CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 			LUA->PushNumber(GetStateFlags(LUA, ent, force));
-			LUA->RawSet(-4);
+			LUA->RawSet(-5);
 		}
 		LUA->Pop(1);
 #if MODULE_EXISTS_ENTITYLIST
@@ -951,7 +954,10 @@ LUA_FUNCTION_STATIC(pvs_ForceWeaponTransmit)
 LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 {
 	if (!g_pCurrentTransmitInfo)
-		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
+		LUA->ThrowError("Tried to use pvs.PreventTransmitAllExcept while not in a CheckTransmit call!");
+
+	if (g_bBlockAdditionToTransmit)
+		LUA->ThrowError("Tried to use pvs.PreventTransmitAllExcept inside HolyLib:PostCheckTransmit!");
 
 	int ignoreFlags = LUA->CheckNumberOpt(2, 0);
 	CBitVec<MAX_EDICTS> pEntities;

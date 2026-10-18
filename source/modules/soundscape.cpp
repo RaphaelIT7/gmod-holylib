@@ -223,7 +223,10 @@ static void hook_CEnvSoundscape_UpdateForPlayer(CBaseEntity* pSoundScape, ss_upd
 {
 	int nTick = gpGlobals->tickcount;
 	if (nTick != nLastUpdateTick)
+	{
+		nLastUpdateTick = nTick;
 		pHandledPlayers.ClearAll();
+	}
 
 	int iClient = update.pPlayer->edict()->m_EdictIndex-1;
 	

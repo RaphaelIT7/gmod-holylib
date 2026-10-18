@@ -2695,6 +2695,9 @@ void CPhysEnvModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField(pLua, "CreateEnvironment");
 		Util::RemoveField(pLua, "GetActiveEnvironmentByIndex");
 		Util::RemoveField(pLua, "DestroyEnvironment");
+		Util::RemoveField(pLua, "GetCurrentEnvironment");
+		Util::RemoveField(pLua, "GetAllEnvironments");
+		Util::RemoveField(pLua, "EnablePhysHook");
 
 		Util::RemoveField(pLua, "FindCollisionSet");
 		Util::RemoveField(pLua, "FindOrCreateCollisionSet");
@@ -2703,7 +2706,10 @@ void CPhysEnvModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField(pLua, "SetLagThreshold");
 		Util::RemoveField(pLua, "GetLagThreshold");
 		Util::RemoveField(pLua, "SetPhysSkipType");
+		Util::RemoveField(pLua, "GetPhysSkipType");
+		Util::RemoveField(pLua, "ShouldSkip");
 
+		Util::RemoveField(pLua, "IVP_None");
 		Util::RemoveField(pLua, "IVP_NoSkip");
 		Util::RemoveField(pLua, "IVP_SkipImpact");
 		Util::RemoveField(pLua, "IVP_SkipSimulation");

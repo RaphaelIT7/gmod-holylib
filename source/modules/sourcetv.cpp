@@ -73,7 +73,7 @@ Get_LuaClass(CHLTVClient, "CHLTVClient")
 static Detouring::Hook detour_CHLTVClient_Deconstructor;
 static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 {
-	Delete_CHLTVClient(g_Lua, pClient); // ToDo: Remind myself to remove this since CHLTVClient's won't be deleted while the server is running. It's reusing them.
+	DeleteGlobal_CHLTVClient(pClient); // ToDo: Remind myself to remove this since CHLTVClient's won't be deleted while the server is running. It's reusing them.
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 
@@ -82,7 +82,10 @@ void CSourceTVLibModule::OnClientDisconnect(CBaseClient* pClient)
 	if (((CHLTVServer*)pClient->GetServer()) != hltv)
 		return;
 
-	if (g_Lua && Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
+	if (!g_Lua)
+		return;
+
+	if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 	{
 		Push_CHLTVClient(g_Lua, (CHLTVClient*)pClient);
 		g_Lua->CallFunctionProtected(2, 0, true);
@@ -233,6 +236,9 @@ LUA_FUNCTION_STATIC(sourcetv_StartRecord)
 		LUA->PushNumber(LUA_RECORD_ACTIVE);
 		return 1;
 	}
+
+	if (!func_COM_IsValidPath)
+		LUA->ThrowError("Failed to get COM_IsValidPath!");
 
 	if (!func_COM_IsValidPath(strFileName))
 	{
@@ -684,6 +690,9 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CHLTVDirector_StartNewShotSym,
 		(void*)DETOUR_THISCALL(hook_CHLTVDirector_StartNewShot, StartNewShot), m_pID
 	);
+
+	func_COM_IsValidPath = (Symbols::COM_IsValidPath)Detour::GetFunction(engine_loader.GetModule(), Symbols::COM_IsValidPathSym);
+	Detour::CheckFunction((void*)func_COM_IsValidPath, "COM_IsValidPath");
 
 	func_CHLTVDemoRecorder_StartRecording = (Symbols::CHLTVDemoRecorder_StartRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StartRecordingSym);
 	func_CHLTVDemoRecorder_StopRecording = (Symbols::CHLTVDemoRecorder_StopRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StopRecordingSym);
