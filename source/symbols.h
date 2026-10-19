@@ -123,12 +123,16 @@ struct ThreadPoolStartParams_t;
 /*
  * The symbols will have this order:
  * 0 - Linux 32x
- * 1 - Linux 64x
+ * 1 - Linux 64x (x86-64)
  * 2 - Windows 32x
- * 3 - Windows 64x
+ * 3 - Windows 64x (x86-64)
  * 4 - Windows Dedicated 32x (falls back to Windows 32x if non existent)
- * 5 - Windows Dedicated 64x (falls back to Windows 64x if non existent)
- * 6 - Windows 64x DEV
+ * 5 - Windows Dedicated 64x (x86-64 - falls back to Windows 64x (x86-64) if non existent)
+ * 6 - Windows 64x (main branch)
+ * 
+ * x86-64 & main branch 64x are similar in some ways but x86-64 has lots of SDK changes.
+ * It will fully be dropped once Linux 64x is on the dev branch.
+ * If a x86-64 breaks don't bother to fix it. it will be dropped next update anyways
  */
 namespace Symbols
 {
@@ -346,7 +350,11 @@ namespace Symbols
 	using CNetworkStringTable_DeleteAllStrings = void (GMCOMMON_CALLING_CONVENTION*)(void* table);
 	extern const std::vector<Symbol> CNetworkStringTable_DeleteAllStringsSym;
 
+#if defined(SYSTEM_WINDOWS)
+	using CNetworkStringTable_Deconstructor = void (GMCOMMON_CALLING_CONVENTION*)(void* table, unsigned int flags); // Windows only has the scalar deleting destructor
+#else
 	using CNetworkStringTable_Deconstructor = void (GMCOMMON_CALLING_CONVENTION*)(void* table);
+#endif
 	extern const std::vector<Symbol> CNetworkStringTable_DeconstructorSym;
 
 	//---------------------------------------------------------------------------------
@@ -774,7 +782,11 @@ namespace Symbols
 	using CNetChan_SendDatagram = int (GMCOMMON_CALLING_CONVENTION*)(CNetChan* chan, bf_write *datagram);
 	extern const std::vector<Symbol> CNetChan_SendDatagramSym;
 
+#if defined(SYSTEM_WINDOWS)
+	using CNetChan_D2 = void (GMCOMMON_CALLING_CONVENTION*)(CNetChan* chan, unsigned int flags); // Windows only has the scalar deleting destructor
+#else
 	using CNetChan_D2 = void (GMCOMMON_CALLING_CONVENTION*)(CNetChan* chan);
+#endif
 	extern const std::vector<Symbol> CNetChan_D2Sym;
 
 	using NET_CreateNetChannel = INetChannel* (*)(int socket, netadr_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewCHannel, int nProtocolVersion);
@@ -864,7 +876,11 @@ namespace Symbols
 	// extern const std::vector<Symbol> Filter_SendBanSym;
 
 	using NET_FindNetChannel = CNetChan* (*)(int socket, netadr_t &adr);
+	using netadr_s_CompareAdr = bool (GMCOMMON_CALLING_CONVENTION*)(const netadr_t* _this, const netadr_t& adr, bool onlyBase);
+	using netadr_s_ToString = const char* (GMCOMMON_CALLING_CONVENTION*)(const netadr_t* _this, bool onlyBase);
 	extern const std::vector<Symbol> NET_FindNetChannelSym;
+	extern const std::vector<Symbol> netadr_s_CompareAdrSym;
+	extern const std::vector<Symbol> netadr_s_ToStringSym;
 
 	using CNetChan_Constructor = void (GMCOMMON_CALLING_CONVENTION*)(CNetChan* pChanenl);
 	extern const std::vector<Symbol> CNetChan_ConstructorSym;
@@ -874,6 +890,9 @@ namespace Symbols
 
 	using NET_ReceiveDatagram = bool (*)(int sock, netpacket_s* packet);
 	extern const std::vector<Symbol> NET_ReceiveDatagramSym;
+
+	using NET_ReceiveP2PDatagram = bool (*)(int sock, netpacket_s* packet);
+	extern const std::vector<Symbol> NET_ReceiveP2PDatagramSym;
 
 	using NET_GetLastError = int (*)();
 	extern const std::vector<Symbol> NET_GetLastErrorSym;
@@ -928,6 +947,15 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	using GMODTable_Encode = PackedEntity* (*)(const unsigned char *pStruct, DVariant *pVar, const SendProp *pProp, bf_write *pOut, int objectID);
 	extern const std::vector<Symbol> GMODTable_EncodeSym;
+
+	using RecvTable_Decode = bool (*)(void* pTable, void* pStruct, bf_read* pIn, int objectID, bool updateDTI);
+	extern const std::vector<Symbol> RecvTable_DecodeSym;
+
+	using GMODTable_Decode = void (*)(void* pDecodeInfo);
+	extern const std::vector<Symbol> GMODTable_DecodeSym;
+
+	using CGMODDataTable_Skip = bool (*)(bf_read* pIn);
+	extern const std::vector<Symbol> CGMODDataTable_SkipSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: crashhandler Symbols

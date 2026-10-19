@@ -1210,6 +1210,7 @@ LUA_FUNCTION_STATIC(httpserver_Destroy)
 	if (pServer->GetServer().is_running())
 		pServer->Stop();
 
+	GetHttpServerLuaData(LUA)->pServers.erase(pServer);
 	Delete_HttpServer(LUA, pServer);
 	delete pServer;
 
@@ -1233,20 +1234,17 @@ LUA_FUNCTION_STATIC(httpserver_GetAll)
 LUA_FUNCTION_STATIC(httpserver_FindByName)
 {
 	std::string strName = LUA->CheckString(1);
-	bool bPushed = false;
 	LuaHttpServerModuleData* pLuaData = GetHttpServerLuaData(LUA);
 	for (auto& server : pLuaData->pServers)
 	{
 		if (server->GetName() == strName)
 		{
 			Push_HttpServer(LUA, server);
-			bPushed = true;
+			return 1;
 		}
 	}
 
-	if (!bPushed)
-		LUA->PushNil();
-
+	LUA->PushNil();
 	return 1;
 }
 

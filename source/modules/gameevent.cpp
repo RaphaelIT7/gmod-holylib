@@ -22,7 +22,7 @@ public:
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "gameevent"; };
-	int Compatibility() override { return LINUX32 | LINUX64; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS64; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
@@ -234,12 +234,19 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 }
 
 static Detouring::Hook detour_CBaseClient_ProcessListenEvents;
-bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents* msg)
+#if SYSTEM_WINDOWS
+using ListenEventsThis = IClientMessageHandler; // On Windows they use this one... annoying
+#else
+using ListenEventsThis = CBaseClient;
+#endif
+bool hook_CBaseClient_ProcessListenEvents(ListenEventsThis* pThis, CLC_ListenEvents* msg)
 {
 	VPROF_BUDGET("HolyLib - ProcessGameEventList", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 
 	if (!gameevent_callhook.GetBool())
-		return detour_CBaseClient_ProcessListenEvents.GetTrampoline<Symbols::CBaseClient_ProcessListenEvents>()(client, msg);
+		return detour_CBaseClient_ProcessListenEvents.GetTrampoline<Symbols::CBaseClient_ProcessListenEvents>()(pThis, msg);
+
+	CBaseClient* client = static_cast<CBaseClient*>(pThis);
 
 	int idx = 0;
 	CBasePlayer* pPlayer = Util::GetPlayerByClient(client);
@@ -291,7 +298,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		}
 	}
 
-	bool bRet = detour_CBaseClient_ProcessListenEvents.GetTrampoline<Symbols::CBaseClient_ProcessListenEvents>()(client, msg);
+	bool bRet = detour_CBaseClient_ProcessListenEvents.GetTrampoline<Symbols::CBaseClient_ProcessListenEvents>()(pThis, msg);
 
 	if (Lua::PushHook("HolyLib:PostProcessGameEvent"))
 	{
@@ -609,7 +616,7 @@ void CGameeventLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 
 #if SYSTEM_WINDOWS
 DETOUR_THISCALL_START()
-	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseClient_ProcessListenEvents, bool, ProcessListenEvents, CBaseClient*, CLC_ListenEvents* );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseClient_ProcessListenEvents, bool, ProcessListenEvents, ListenEventsThis*, CLC_ListenEvents* );
 DETOUR_THISCALL_FINISH();
 #endif
 

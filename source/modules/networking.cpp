@@ -1499,7 +1499,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			for (int iOtherClient = 0; iOtherClient<gpGlobals->maxClients; ++iOtherClient)
 			{
 				const PlayerTransmitTickCache& nOtherCache = g_pPlayerTransmitTickCache[iOtherClient];
-				if (nOtherCache.nAreaNum != clientArea)
+				if (nOtherCache.nAreaNum != clientArea + 1)
 					continue;
 
 				TransmitFastPathPlayer(pRecipientPlayer, clientIndex, pInfo, iOtherClient, nOtherCache);
@@ -1512,7 +1512,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	g_nEntityTransmitCache.pNeverTransmitBits.Or(g_pDontTransmitCache, &g_pDontTransmitCache);
 
 	const int clientEntIndex = pInfo->m_pClientEnt->m_EdictIndex;
-	static CBitVec<MAX_EDICTS> pClientCache; // Temporary cache used when we are calculating the transmit to the current pRecipientPlayer
+	static CBitVec<MAX_EDICTS> pClientCache; // Temporary cache used when we are calculating the transmit to the current pRecipientPlayer (CopyTo will nuke it already)
 	const bool bForceTransmit = sv_force_transmit_ents->GetBool();
 	bool bWasTransmitToPlayer = false;
 	// pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec, pInfo->m_pTransmitEdict);
@@ -1643,7 +1643,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 		pInfo->m_pTransmitEdict->CopyTo(&nTransmitCache.pClientBitVec);
 		CBitVec_AndNot(&nTransmitCache.pClientBitVec, &pClientCache);
-		nTransmitCache.nAreaNum = clientArea;
+		nTransmitCache.nAreaNum = clientArea + 1;
 	}
 	pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_bWasSeenByPlayer, &g_pGlobalTransmitTickCache.g_bWasSeenByPlayer);
 
@@ -2133,14 +2133,14 @@ void CNetworkingModule::Shutdown()
 {
 	g_pReplaceCServerGameEnts_CheckTransmit = false;
 
+	if (Util::gameeventmanager)
+		Util::gameeventmanager->RemoveListener(&g_pNetworkGameEventListener);
+
 	if (!framesnapshotmanager) // If we failed, we failed
 	{
 		Msg(PROJECT_NAME ": Failed to find framesnapshotmanager. Unable to fully unload!\n");
 		return;
 	}
-
-	if (Util::gameeventmanager)
-		Util::gameeventmanager->RemoveListener(&g_pNetworkGameEventListener);
 
 	/*
 	 * The code below to unload also belongs to sigsegv

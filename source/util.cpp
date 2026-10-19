@@ -384,7 +384,7 @@ INetChannel* Util::Get_NetChannel(GarrysMod::Lua::ILuaInterface* pLua, int iStac
 	INetChannel* pChannel = nullptr;
 	CBaseClient* pClient = nullptr;
 #if MODULE_EXISTS_GAMESERVER
-	pClient = Get_CBaseClient(pLua, iStackPos, bError);
+	pClient = Get_CBaseClient(pLua, iStackPos, false);
 	if (pClient && pClient->IsConnected())
 	{
 		pChannel = pClient->GetNetChannel();
@@ -392,11 +392,12 @@ INetChannel* Util::Get_NetChannel(GarrysMod::Lua::ILuaInterface* pLua, int iStac
 	else
 #endif
 	{
-		CBasePlayer* pPlayer = Get_Player(pLua, iStackPos, bError);
+		CBasePlayer* pPlayer = pClient ? nullptr : Get_Player(pLua, iStackPos, bError);
 		if (pPlayer)
 		{
 			pClient = Util::GetClientByPlayer(pPlayer);
-			pChannel = pClient->GetNetChannel();
+			if (pClient)
+				pChannel = pClient->GetNetChannel();
 		}
 	}
 
@@ -758,11 +759,12 @@ DLL_EXPORT void hook_Sys_Error_Internal_ignore_this_function_in_crashes_check_yo
 	{
 		if (strError.find(it->msg) != std::string_view::npos)
 		{
-			if (--it->count == 0)
-			{
+			if (it->count <= 1)
 				g_pErrorsToIgnore.erase(it);
-				return;
-			}
+			else
+				--it->count;
+
+			return;
 		}
 	}
 
@@ -825,7 +827,11 @@ void Util::AddDetour()
 	Detour::CheckValue("get interface", "IGameEventManager", gameeventmanager != nullptr);
 
 	SourceSDK::FactoryLoader server_loader("server");
+#if defined(SYSTEM_WINDOWS) && ARCHITECTURE_IS_X86_64
+	pUserMessages = Detour::ResolveSymbolWithOffset<CUserMessages>(server_loader.GetModule(), Symbols::UsermessagesSym);
+#else
 	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
+#endif
 	Detour::CheckValue("get class", "usermessages", pUserMessages != nullptr);
 
 	if (g_pModuleManager.GetAppFactory())

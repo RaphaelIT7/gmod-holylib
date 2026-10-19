@@ -326,7 +326,11 @@ void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 
 void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
 {
-	EntityList& pGlobalEntityList = GetGlobalEntityList(g_Lua);
+	auto pData = GetEntityListLuaData(g_Lua);
+	if (!pData)
+		return;
+
+	EntityList& pGlobalEntityList = pData->pGlobalEntityList;
 	pGlobalEntityList.FreeEntity(pEntity);
 
 	//Util::Push_Entity(pEntity); // BUG: The Engine hates us for this. "CREATING ENTITY - ALREADY HAS A LUA TABLE! AND IT SHOULDN'T"
@@ -374,6 +378,6 @@ void CEntListModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField(pLua, "GetGlobalEntityList");
 	pLua->Pop(1);
 
-	EntityList& pGlobalEntityList = GetGlobalEntityList(pLua);
-	pGlobalEntityList.Invalidate();
+	if (auto pData = GetEntityListLuaData(pLua))
+		pData->pGlobalEntityList.Invalidate();
 }

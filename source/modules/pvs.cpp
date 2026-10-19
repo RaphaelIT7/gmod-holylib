@@ -18,7 +18,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void Shutdown() override;
 	const char* Name() override { return "pvs"; };
-	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
@@ -371,6 +371,8 @@ LUA_FUNCTION_STATIC(pvs_GetArea)
 LUA_FUNCTION_STATIC(pvs_GetPVSForCluster)
 {
 	int cluster = LUA->CheckNumber(1);
+	if (cluster < -1 || cluster >= Util::engineserver->GetClusterCount())
+		LUA->ArgError(1, "Bogus cluster value!");
 
 	if (!currentPVS)
 		LUA->ThrowError("pvs: tried to call pvs.GetPVSForCluster with no active PVS!");

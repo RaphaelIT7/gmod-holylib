@@ -362,11 +362,18 @@ PushReferenced_LuaClass(INetworkStringTable)
 Get_LuaClass(INetworkStringTable, "INetworkStringTable")
 
 static Detouring::Hook detour_CNetworkStringTable_Deconstructor;
+#if defined(SYSTEM_WINDOWS)
+static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl, unsigned int flags)
+#else
 static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl)
+#endif
 {
 	DeleteGlobal_INetworkStringTable(tbl);
+#if defined(SYSTEM_WINDOWS)
+	detour_CNetworkStringTable_Deconstructor.GetTrampoline<Symbols::CNetworkStringTable_Deconstructor>()(tbl, flags);
+#else
 	detour_CNetworkStringTable_Deconstructor.GetTrampoline<Symbols::CNetworkStringTable_Deconstructor>()(tbl);
-	// Loves to crash on Windows. Why? Idk.
+#endif
 }
 
 LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
@@ -1228,7 +1235,7 @@ void CStringTableModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
-#if SYSTEM_LINUX
+#if SYSTEM_LINUX || ARCHITECTURE_IS_X86_64
 	// Note: This hook exists for safety and if everything goes well we shouldn't even require it.
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
@@ -1236,7 +1243,9 @@ void CStringTableModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CNetworkStringTable_DeconstructorSym,
 		(void*)hook_CNetworkStringTable_Deconstructor, m_pID
 	);
+#endif
 
+#if SYSTEM_LINUX
 	func_CNetworkStringTable_DeleteAllStrings = (Symbols::CNetworkStringTable_DeleteAllStrings)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetworkStringTable_DeleteAllStringsSym);
 	Detour::CheckFunction((void*)func_CNetworkStringTable_DeleteAllStrings, "CNetworkStringTable::DeleteAllStrings");
 #endif

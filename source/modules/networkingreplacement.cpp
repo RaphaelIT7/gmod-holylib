@@ -39,11 +39,11 @@
 class CNetworkingReplacementModule : public IModule
 {
 public:
-	virtual void ServerActivate(edict_t *pEdictList, int edictCount, int clientMax) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "networkingreplacement"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() { return false; };
+	void ServerActivate(edict_t *pEdictList, int edictCount, int clientMax) OVERRIDE;
+	void InitDetour(bool bPreServer) OVERRIDE;
+	const char* Name() { return "networkingreplacement"; };
+	int Compatibility() { return LINUX32; };
+	bool IsEnabledByDefault() { return false; };
 };
 
 static CNetworkingReplacementModule g_pNetworkingReplacementModule;

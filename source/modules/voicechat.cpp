@@ -106,9 +106,25 @@ struct VoiceData
 			memcpy(pData, pNewData, iLength);
 	}
 
-	inline void SetDataDirect(char* pNewData)
+	inline void SetDataDirect(char* pNewData, uint16_t iNewLength)
 	{
+		if (pData && pData != pNewData)
+			delete[] pData;
+
 		pData = pNewData;
+		iLength = iDataLength = iNewLength;
+	}
+
+	inline void NukeDecompressedData()
+	{
+		if (pDecompressedData)
+		{
+			delete[] pDecompressedData;
+			pDecompressedData = nullptr;
+		}
+
+		iDecompressedLength = 0;
+		bDecompressedChanged = false;
 	}
 
 	inline VoiceData* CreateCopy()
@@ -502,6 +518,7 @@ LUA_JIT_WRAPPED_3(VoiceData_SetData,
 
 	size_t iDataLength = Lua::GetGCStrLength(pCompressedData);
 	pData->SetData(Lua::GetGCStrData(pCompressedData), ClampVoiceDataLength(iNewLength, iDataLength));
+	pData->NukeDecompressedData();
 }
 
 // This is the JIT version with (userdata, string) args while the above is (userdata, string, int)
@@ -517,6 +534,7 @@ LUA_JIT_RAW_2(VoiceData_SetData_NoLength,
 
 	size_t iDataLength = Lua::GetGCStrLength(pCompressedData);
 	pData->SetData(Lua::GetGCStrData(pCompressedData), ClampVoiceDataLength(-1, iDataLength));
+	pData->NukeDecompressedData();
 }
 
 LUA_FUNCTION_STATIC(VoiceData_SetProximity)
@@ -735,7 +753,7 @@ struct VoiceStream {
 			g_pFullFileSystem->Read(&tickNumber, sizeof(int), fh);
 
 			uint16_t length;
-			if (version == VOICESTREAM_VERSION_1)
+			if (version == VOICESTREAM_VERSION_1 || version == VOICESTREAM_VERSION_2)
 			{
 				int tempLength;
 				g_pFullFileSystem->Read(&tempLength, sizeof(int), fh);
@@ -755,8 +773,7 @@ struct VoiceStream {
 			g_pFullFileSystem->Read(data, length, fh);
 
 			VoiceData* voiceData = new VoiceData;
-			voiceData->SetLength(length);
-			voiceData->SetDataDirect(data);
+			voiceData->SetDataDirect(data, length);
 
 			pStream->SetIndex((int)std::ceil(tickNumber * scaleRate), voiceData);
 		}

@@ -428,6 +428,15 @@ byte m_##name = 0;
 			// For LEA, symbolAddr is the direct address of the object
 			return reinterpret_cast<T*>(symbolAddr);
 		}
+
+		// MOV RCX, [RIP+imm32] (0x48 0x8B 0x0D + RVA)
+		// The global holds a pointer, so it gets dereferenced below
+		if (ip[0] == 0x48 && ip[1] == 0x8B && ip[2] == 0x0D) {
+			const size_t instrLen = 7;
+			int32_t rva = *reinterpret_cast<int32_t*>(ip + 3);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + rva);
+		}
 #endif
 
 #if defined SYSTEM_WINDOWS

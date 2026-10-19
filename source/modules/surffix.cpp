@@ -14,7 +14,7 @@ public:
 	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "surffix"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | WINDOWS64; };
 };
 
 static CSurfFixModule g_pSurfFixModule;
@@ -549,7 +549,14 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 IEngineTrace* enginetrace = nullptr; // Not static since it's defined as extern in enginecallbacks.h
 void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	enginetrace = (IEngineTrace*)appfn[0](INTERFACEVERSION_ENGINETRACE_SERVER, nullptr);
+	if (*appfn)
+		enginetrace = (IEngineTrace*)appfn[0](INTERFACEVERSION_ENGINETRACE_SERVER, nullptr);
+	else {
+		
+		SourceSDK::FactoryLoader engine_loader("engine");
+		enginetrace = engine_loader.GetInterface<IEngineTrace>(INTERFACEVERSION_ENGINETRACE_SERVER);
+	}
+
 	Detour::CheckValue("get interface", "enginetrace", enginetrace != nullptr);
 }
 

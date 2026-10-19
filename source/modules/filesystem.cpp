@@ -331,13 +331,15 @@ public:
 		CFileWatcher::CheckForChanges();
 #endif
 
-		std::erase_if(m_Watchers, [this](CFileWatcher* pWatcher) {
-			bool bFood = pWatcher->FoodForLumi();
-			if (bFood)
-				UnregisterInternalWatcher(pWatcher);
+		std::vector<CFileWatcher*> pFoodWatchers;
+		for (CFileWatcher* pWatcher : m_Watchers)
+		{
+			if (pWatcher->FoodForLumi())
+				pFoodWatchers.push_back(pWatcher);
+		}
 
-			return bFood;
-		});
+		for (CFileWatcher* pWatcher : pFoodWatchers)
+			UnregisterInternalWatcher(pWatcher);
 	}
 
 	const char* NormalizePath(const char* pszAbsolutePath)
