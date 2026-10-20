@@ -195,16 +195,13 @@ static void CleanupSetPreventTransmit(const CBaseEntity* ent)
 		return;
 
 	const int entIndex = pEdict->m_EdictIndex;
-	if (!ent->IsPlayer())
+	for (int i=0; i<MAX_PLAYERS; ++i)
 	{
-		for (int i=0; i<MAX_PLAYERS; ++i)
-		{
-			g_pShouldPrevent[i].Clear(entIndex);
-		}
-		return;
+		g_pShouldPrevent[i].Clear(entIndex);
 	}
 
-	g_pShouldPrevent[entIndex-1].ClearAll();
+	if (ent->IsPlayer())
+		g_pShouldPrevent[entIndex-1].ClearAll();
 }
 
 static Detouring::Hook detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer;
