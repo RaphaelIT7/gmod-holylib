@@ -328,21 +328,22 @@ void CNetChan::UncompressFragments( dataFragments_t *data )
 	data->isCompressed = false;
 }
 
-unsigned int CNetChan::RequestFile(const char *filename)
+unsigned int CNetChan::RequestFile(RequestFile_t requestType, unsigned int requestValue)
 {
-	m_FileRequestCounter++;
+	unsigned int transferID = m_FileRequestCounter++;
 
 	if ( net_showfragments.GetInt() == 2 )
 	{
-		DevMsg("RequestFile: %s (ID %i)\n", filename, m_FileRequestCounter );
+		DevMsg("RequestFile: %u %u (ID %i)\n", (unsigned int)requestType, requestValue, transferID );
 	}
 
 	m_StreamReliable.WriteUBitLong( net_File, NETMSG_TYPE_BITS );
-	m_StreamReliable.WriteUBitLong( m_FileRequestCounter, 32 );
-	m_StreamReliable.WriteString( filename );
+	m_StreamReliable.WriteUBitLong( transferID, 32 );
 	m_StreamReliable.WriteOneBit( 1 ); // request this file
+	m_StreamReliable.WriteOneBit( (int)requestType );
+	m_StreamReliable.WriteUBitLong( requestValue, 32 );
 
-	return m_FileRequestCounter;
+	return transferID;
 }
 
 void CNetChan::RequestFile_OLD(const char *filename, unsigned int transferID)
@@ -350,16 +351,15 @@ void CNetChan::RequestFile_OLD(const char *filename, unsigned int transferID)
 	Error( "Called RequestFile_OLD" );
 }
 
-void CNetChan::DenyFile(const char *filename, unsigned int transferID)
+void CNetChan::DenyFile(unsigned int transferID)
 {
 	if ( net_showfragments.GetInt() == 2 )
 	{
-		DevMsg("DenyFile: %s (ID %i)\n", filename, transferID );
+		DevMsg("DenyFile: (ID %i)\n", transferID );
 	}
 
 	m_StreamReliable.WriteUBitLong( net_File, NETMSG_TYPE_BITS );
 	m_StreamReliable.WriteUBitLong( transferID, 32 );
-	m_StreamReliable.WriteString( filename );
 	m_StreamReliable.WriteOneBit( 0 ); // deny this file
 }
 
@@ -384,7 +384,7 @@ bool CNetChan::SendFile(const char *filename, unsigned int transferID)
 
 	if ( !CreateFragmentsFromFile( sendfile, FRAG_FILE_STREAM, transferID	) )
 	{
-		DenyFile( sendfile, transferID ); // send host a deny message
+		DenyFile( transferID ); // send host a deny message
 		return false;
 	}
 
@@ -1900,14 +1900,15 @@ bool CNetChan::ProcessControlMessage( int cmd, bf_read &buf)
 	{
 		unsigned int transferID = buf.ReadUBitLong( 32 );
 
-		buf.ReadString( string, sizeof(string) );
-		if ( buf.ReadOneBit() != 0 && IsValidFileForTransfer( string ) )
+		if ( buf.ReadOneBit() != 0 )
 		{
-			m_MessageHandler->FileRequested( string, transferID );
+			RequestFile_t requestType = (RequestFile_t)buf.ReadOneBit();
+			unsigned int requestValue = buf.ReadUBitLong( 32 );
+			m_MessageHandler->FileRequested( requestType, requestValue, transferID );
 		}
 		else
 		{
-			m_MessageHandler->FileDenied( string, transferID );
+			m_MessageHandler->FileDenied( transferID );
 		}
 		return true;
 	}

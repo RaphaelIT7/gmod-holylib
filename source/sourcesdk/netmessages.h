@@ -767,20 +767,6 @@ class SVC_TempEntities: public CNetMessage
 	bf_write	m_DataOut;
 };
 
-class SVC_Menu : public CNetMessage
-{
-public:
-	DECLARE_SVC_MESSAGE( Menu );
-
-	SVC_Menu() { m_bReliable = true; m_Type = DIALOG_MENU; m_MenuKeyValues = nullptr; };
-	SVC_Menu( DIALOG_TYPE type, KeyValues *data ); 
-	~SVC_Menu();
-
-	KeyValues	*m_MenuKeyValues;
-	DIALOG_TYPE m_Type;
-	int			m_iLength;
-};
-
 class SVC_GameEventList : public CNetMessage
 {
 public:

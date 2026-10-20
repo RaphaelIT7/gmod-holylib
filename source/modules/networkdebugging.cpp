@@ -462,7 +462,6 @@ static void ReadDump(const CCommand &args)
 	pMessages.push_back((INetMessage*)new SVC_PacketEntities);
 	pMessages.push_back((INetMessage*)new SVC_TempEntities);
 	pMessages.push_back((INetMessage*)new SVC_Prefetch);
-	pMessages.push_back((INetMessage*)new SVC_Menu);
 	pMessages.push_back((INetMessage*)new SVC_GameEventList);
 	pMessages.push_back((INetMessage*)new SVC_GetCvarValue);
 	pMessages.push_back((INetMessage*)new SVC_CmdKeyValues);

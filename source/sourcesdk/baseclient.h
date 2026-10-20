@@ -205,7 +205,7 @@ public:
 	char			m_Name[MAX_PLAYER_NAME_LENGTH];			// for printing to other people
 	char			m_GUID[SIGNED_GUID_LEN + 1]; // the clients CD key
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	// CNETMsg_PlayerAvatarData_t m_msgAvatarData;	// Client avatar
 	// RaphaelIT7: This are the offsets for the variable above. Why not add it directly? Because it depends on sooo much it would be a pain to do. Maybe if I'm bored I'll do it.
 	int _offset[23];
@@ -220,7 +220,7 @@ public:
 	KeyValues		*m_ConVars;			// stores all client side convars
 	CBaseServer		*m_Server;			// pointer to server object
 	bool			m_bConVarsChanged;	// true if convars updated and not changes process yet
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	bool			m_bInitialConVarsSet; // Has the client sent their initial set of convars
 #endif
 	bool			m_bSendServerInfo;	// true if we need to send server info packet to start connect

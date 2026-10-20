@@ -40,7 +40,7 @@ public:
 	// State of entities this frame from the POV of the client.
 	int					last_entity;	// highest entity index
 	int					tick_count;	// server tick of this snapshot
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	CClientFrame*		m_pNext;
 #endif
 
@@ -49,7 +49,7 @@ public:
 	CBitVec<MAX_EDICTS>	*from_baseline;	// if bit n is set, this entity was send as update from baseline
 	CBitVec<MAX_EDICTS>	*transmit_always; // if bit is set, don't do PVS checks before sending (HLTV only)
 
-#if !PLATFORM_64BITS
+#if !GMOD_X86_64
 	CClientFrame*		m_pNext;
 #endif
 
@@ -80,7 +80,7 @@ private:
 	void			FreeFrame( CClientFrame* pFrame );
 
 	CClientFrame	*m_Frames;		// updates can be delta'ed from here
-#if !PLATFORM_64BITS
+#if !GMOD_X86_64
 	CClientFrame	*m_LastFrame;
 	int				m_nFrames;
 #endif

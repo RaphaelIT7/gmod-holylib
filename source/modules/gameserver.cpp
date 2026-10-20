@@ -11,6 +11,7 @@
 #include <framesnapshot.h>
 #include <netadr_new.h> // Better than the normal sdk one as this one actually sets stuff properly.
 #include <shared_mutex>
+#include "sourcesdk/server.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1564,7 +1565,11 @@ LUA_FUNCTION_STATIC(CNetChan_CanPacket)
 }
 
 static Detouring::Hook detour_CNetChan_D2;
+#if defined(SYSTEM_WINDOWS)
+static void hook_CNetChan_D2(CNetChan* pNetChan, unsigned int flags)
+#else
 static void hook_CNetChan_D2(CNetChan* pNetChan)
+#endif
 {
 	if (!ThreadInMainThread())
 	{
@@ -1575,7 +1580,11 @@ static void hook_CNetChan_D2(CNetChan* pNetChan)
 	if (g_Lua)
 		Delete_CNetChan(g_Lua, pNetChan);
 
+#if defined(SYSTEM_WINDOWS)
+	detour_CNetChan_D2.GetTrampoline<Symbols::CNetChan_D2>()(pNetChan, flags);
+#else
 	detour_CNetChan_D2.GetTrampoline<Symbols::CNetChan_D2>()(pNetChan);
+#endif
 }
 
 class NET_LuaNetChanMessage;
@@ -1590,9 +1599,9 @@ public:
 	void ConnectionCrashed(const char *reason); // network error occurred
 	void PacketStart(int incoming_sequence, int outgoing_acknowledged);	// called each time a new packet arrived
 	void PacketEnd(void); // all messages has been parsed
-	void FileRequested(const char *fileName, unsigned int transferID ); // other side request a file for download
+	void FileRequested(RequestFile_t requestType, unsigned int requestValue, unsigned int transferID ); // other side request a file for download
 	void FileReceived(const char *fileName, unsigned int transferID ); // we received a file
-	void FileDenied(const char *fileName, unsigned int transferID );	// a file request was denied by other side
+	void FileDenied(unsigned int transferID );	// a file request was denied by other side
 	void FileSent(const char *fileName, unsigned int transferID );	// we sent a file
 	bool ShouldAcceptFile(const char *fileName, unsigned int transferID);
 
@@ -1760,14 +1769,14 @@ void ILuaNetMessageHandler::PacketEnd()
 	m_pLua->CallFunctionProtected(1, 0, true);
 }
 
-void ILuaNetMessageHandler::FileRequested(const char *fileName, unsigned int transferID)
+void ILuaNetMessageHandler::FileRequested(RequestFile_t requestType, unsigned int requestValue, unsigned int transferID)
 {
-	//Msg("ILuaNetMessageHandler::FileRequested - %s | %d\n", fileName, transferID);
 	HANDLER_CALL_LUA_CALLBACK(FileRequested, )
 	Push_CNetChan(m_pLua, m_pChan);
-	m_pLua->PushString(fileName);
+	m_pLua->PushNumber((double)requestType);
+	m_pLua->PushNumber(requestValue);
 	m_pLua->PushNumber(transferID);
-	m_pLua->CallFunctionProtected(3, 0, true);
+	m_pLua->CallFunctionProtected(4, 0, true);
 }
 
 void ILuaNetMessageHandler::FileReceived(const char *fileName, unsigned int transferID)
@@ -1780,14 +1789,12 @@ void ILuaNetMessageHandler::FileReceived(const char *fileName, unsigned int tran
 	m_pLua->CallFunctionProtected(3, 0, true);
 }
 
-void ILuaNetMessageHandler::FileDenied(const char *fileName, unsigned int transferID)
+void ILuaNetMessageHandler::FileDenied(unsigned int transferID)
 {
-	//Msg("ILuaNetMessageHandler::FileDenied - %s | %d\n", fileName, transferID);
 	HANDLER_CALL_LUA_CALLBACK(FileDenied, )
 	Push_CNetChan(m_pLua, m_pChan);
-	m_pLua->PushString(fileName);
 	m_pLua->PushNumber(transferID);
-	m_pLua->CallFunctionProtected(3, 0, true);
+	m_pLua->CallFunctionProtected(2, 0, true);
 }
 
 void ILuaNetMessageHandler::FileSent(const char *fileName, unsigned int transferID)
@@ -1886,9 +1893,10 @@ LUA_FUNCTION_STATIC(CNetChan_SendFile)
 LUA_FUNCTION_STATIC(CNetChan_RequestFile)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	const char* pFileName = LUA->CheckString(2);
+	RequestFile_t requestType = (RequestFile_t)(int)LUA->CheckNumber(2);
+	unsigned int requestValue = (unsigned int)LUA->CheckNumber(3);
 
-	LUA->PushNumber(pNetChannel->RequestFile(pFileName));
+	LUA->PushNumber(pNetChannel->RequestFile(requestType, requestValue));
 	return 1;
 }
 
@@ -3000,7 +3008,7 @@ void CGameServerModule::Think(bool bSimulating)
 static Detouring::Hook detour_CSteam3Server_SendUpdatedServerDetails;
 static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
 {
-	CBaseServer* pServer = (CBaseServer*)Util::server;
+	CGameServer* pServer = (CGameServer*)Util::server; // RaphaelIT7: Use CGameServer just because it makes it easier to debug layout here :)
 	int nOrigMaxClients = pServer->m_nMaxclients;
 	pServer->m_nMaxclients = clamp(gameserver_maxplayers.GetInt(), nOrigMaxClients, ABSOLUTE_PLAYER_LIMIT);
 
@@ -3651,7 +3659,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseClient_ShouldSendMessages, bool, ShouldSendMessages, CGameClient*);
 	DETOUR_THISCALL_ADDRETFUNC1(hook_CBaseServer_ProcessConnectionlessPacket, bool, ProcessConnectionlessPacket, IServer*, netpacket_s*);
 	DETOUR_THISCALL_ADDRETFUNC1(hook_CNetChan_SendDatagram, int, SendDatagram, CNetChan*, bf_write*);
-	DETOUR_THISCALL_ADDFUNC0(hook_CNetChan_D2, D2, CNetChan*);
+	DETOUR_THISCALL_ADDFUNC1(hook_CNetChan_D2, D2, CNetChan*, unsigned int);
 	DETOUR_THISCALL_ADDRETFUNC1(hook_CGameClient_ExecuteStringCommand, int, ExecuteStringCommand, CGameClient*, const char*);
 DETOUR_THISCALL_FINISH()
 #endif

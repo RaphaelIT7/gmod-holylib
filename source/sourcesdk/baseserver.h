@@ -149,8 +149,6 @@ public: // IConnectionlessPacketHandler implementation
 
 	void	SetReportNewFakeClients( bool bReportNewFakeClients ) { m_bReportNewFakeClients = bReportNewFakeClients; }
 
-	void	SetPausedForced( bool bPaused, float flDuration = -1.f );
-
 	CBaseClient* Client(int index) { return static_cast<CBaseClient*>(m_Clients[index]); };
 
 public: // protected - private, doesn't matter, I want access :3
@@ -260,7 +258,7 @@ public: // Gimme that access
 	int			m_nNumConnections;		//Number of successful client connections.
 
 	bool		m_bReportNewFakeClients; // Whether or not newly created fake clients should be included in server browser totals
-	float		m_flPausedTimeEnd;
+	bool		m_bGModUnknown; // Magic (RaphaelIT7 (ToDo): Guess)
 };
 
 extern CThreadFastMutex g_svInstanceBaselineMutex;

@@ -179,10 +179,9 @@ public:	// INetChannel interface
 	bool		SendFile(const char *filename, unsigned int transferID); // transmit a local file
 	void		SetChoked( void ); // choke a packet
 	int			SendDatagram(bf_write *data); // build and send datagram packet
-	unsigned int RequestFile(RequestFile_t, unsigned int) { return 0; }; // request remote file to upload, returns request ID
-	unsigned int RequestFile(const char *filename); // request remote file to upload, returns request ID
+	unsigned int RequestFile(RequestFile_t requestType, unsigned int requestValue); // request remote file to upload, returns request ID
 	void RequestFile_OLD(const char *filename, unsigned int transferID); // request remote file to upload, returns request ID
-	void		DenyFile(const char *filename, unsigned int transferID); // deny a file request
+	void		DenyFile(unsigned int transferID); // deny a file request
 	bool		Transmit(bool onlyReliable = false); // send data from buffers
 	
 	const netadr_t	&GetRemoteAddress( void ) const;

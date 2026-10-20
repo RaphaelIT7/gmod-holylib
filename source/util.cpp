@@ -880,8 +880,9 @@ void Util::AddDetour()
 
 	// Why must getting IServer be an inconsistent hell :sob:
 #if SYSTEM_WINDOWS
-	server = Detour::ResolveSymbolNoDereference<IServer>( engine_loader, Symbol::FromName( "?sv@@3VCGameServer@@A" ) );
-	// Update (ToDo): it broke again for Windows clients- tested on 32x dev
+	server = Detour::ResolveSymbolWithOffset<IServer>( engine_loader.GetModule(), Symbols::svSym );
+	if (!server)
+		server = Detour::ResolveSymbolNoDereference<IServer>( engine_loader, Symbol::FromName( "?sv@@3VCGameServer@@A" ) );
 #else
 	server = InterfacePointers::Server();
 #endif

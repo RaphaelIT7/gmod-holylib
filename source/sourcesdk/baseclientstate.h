@@ -84,8 +84,8 @@ public: // INetMsgHandler interface:
 	virtual void PacketEnd( void ) {};
 
 	virtual void FileReceived( const char *fileName, unsigned int transferID );
-	virtual void FileRequested( const char *fileName, unsigned int transferID );
-	virtual void FileDenied( const char *fileName, unsigned int transferID );
+	virtual void FileRequested( RequestFile_t requestType, unsigned int requestValue, unsigned int transferID );
+	virtual void FileDenied( unsigned int transferID );
 	virtual void FileSent( const char *fileName, unsigned int transferID );
 	virtual bool ShouldAcceptFile( const char *fileName, unsigned int transferID ) { return true; };
 
@@ -105,7 +105,6 @@ public: // IServerMessageHandlers
 	PROCESS_SVC_MESSAGE( UpdateStringTable );
 	PROCESS_SVC_MESSAGE( SetView );
 	PROCESS_SVC_MESSAGE( PacketEntities );
-	PROCESS_SVC_MESSAGE( Menu );
 	PROCESS_SVC_MESSAGE( GameEventList );
 	PROCESS_SVC_MESSAGE( GetCvarValue );
 	PROCESS_SVC_MESSAGE( CmdKeyValues );
@@ -195,7 +194,6 @@ public:
 
 	int			m_nDeltaTick;		//	last valid received snapshot (server) tick
 	bool		m_bPaused;			// send over by server
-	float		m_flPausedExpireTime;
 	int			m_nViewEntity;		// cl_entities[cl.viewentity] == player point of view
 
 	int			m_nPlayerSlot;		// own player entity index-1. skips world. Add 1 to get cl_entities index;

@@ -71,7 +71,6 @@ public: // IServerMessageHandlers
 	PROCESS_SVC_MESSAGE( TempEntities );
 	PROCESS_SVC_MESSAGE( Prefetch );
 	PROCESS_SVC_MESSAGE( GameEventList );
-	PROCESS_SVC_MESSAGE( Menu );
 
 public:
 	void SendPacket();

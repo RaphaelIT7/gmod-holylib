@@ -226,6 +226,7 @@ namespace Symbols
 
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;
+	extern const std::vector<Symbol> svSym;
 
 	using CSteam3Server_NotifyClientDisconnect = void (GMCOMMON_CALLING_CONVENTION*)(void* server, CBaseClient* client);
 	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;

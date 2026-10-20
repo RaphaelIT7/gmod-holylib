@@ -109,6 +109,13 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x40\x48\x8B\xFA\x48\x85\xC9", 0x1C),
 	};
 
+	const std::vector<Symbol> svSym = { // Annoying stuff
+		Symbol::FromName("sv"),
+		Symbol::FromName("sv"),
+		Symbol::FromSignature("\x56\x57\xB9****\xE8****\xB9****\xC7\x05********", 0x2),
+		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x48\x83\xEC\x20\x48\x8D\x0D****\xE8****\x33\xED\x48\x8D\x05****\x48\x8D\x0D****\x48\x89\x05****", 0x14),
+	};
+
 	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = { // 64x = Search for "Dropped %s (%llu) from server (%s)\n"
 		Symbol::FromName("_ZN13CSteam3Server22NotifyClientDisconnectEP11CBaseClient"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xF3\x48\x83\xEC\x20\x48\x85\xF6"), // 55 48 89 E5 41 54 53 48 89 F3 48 83 EC 20 48 85 F6
