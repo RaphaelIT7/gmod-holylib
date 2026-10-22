@@ -384,7 +384,7 @@ void CPhysicsObject::RecheckCollisionFilter()
 	m_callbacks &= ~CALLBACK_ENABLING_COLLISION;
 }
 
-#if !PLATFORM_64BITS
+#if !GMOD_X86_64
 void CPhysicsObject::RecheckContactPoints()
 #else
 void CPhysicsObject::RecheckContactPoints( bool bSearchForNewContacts )
@@ -1701,7 +1701,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 
 	IVP_U_Matrix massCenterMatrix;
 	massCenterMatrix.init();
-#if !PLATFORM_64BITS // BUG: Crashes on 64x. UPDATE: Now it crashes on 32x.... Maybe solid_t on 32x is wrong causing this issue?
+#if !GMOD_X86_64 // BUG: Crashes on 64x. UPDATE: Now it crashes on 32x.... Maybe solid_t on 32x is wrong causing this issue?
 	if ( pParams->massCenterOverride )
 	{
 		IVP_U_Point center;
@@ -2055,7 +2055,7 @@ void CPhysicsObject::InitFromTemplate( CPhysicsEnvironment *pEnvironment, void *
 	m_pShadow = NULL;
 }
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 void CPhysicsObject::SetSphereRadius(float radius)
 {
 	DebugPrint();

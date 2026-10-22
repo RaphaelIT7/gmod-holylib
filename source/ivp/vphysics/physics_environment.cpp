@@ -2116,7 +2116,7 @@ void CPhysicsEnvironment::EnableConstraintNotify( bool bEnable )
 	m_enableConstraintNotify = bEnable;
 }
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 void CPhysicsEnvironment::PreSave(const physpresaverestoreparams_t& params)
 {
 	DebugPrint();

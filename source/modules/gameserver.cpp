@@ -3434,7 +3434,7 @@ static int FindFreeClientSlot()
 }
 
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
 	// m_nClientSlot = player slot! (entIndex - 1)

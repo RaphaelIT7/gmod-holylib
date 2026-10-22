@@ -13,7 +13,7 @@
 #include "ivu_types.hxx"
 #include "tier1/utlvector.h"
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 typedef physpresaverestoreparams_t physprerestoreparams_t;
 #endif
 
@@ -149,7 +149,7 @@ public:
 	// a constraint is being disabled - report the game DLL as "broken"
 	void NotifyConstraintDisabled( IPhysicsConstraint *pConstraint );
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	void PreSave( const physpresaverestoreparams_t &params ) override;
 	void PostSave() override;
 

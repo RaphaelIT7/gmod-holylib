@@ -30,7 +30,7 @@
 #include "mathlib/polyhedron.h"
 #include "tier1/byteswap.h"
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 #include <GarrysMod/FactoryLoader.hpp>
 
 #if _WIN32
@@ -57,7 +57,7 @@ public:
 	{
 		memset(m_bboxVertMap, 0, sizeof(m_bboxVertMap));
 	}
-#if PLATFORM_64BITS && _WIN32
+#if GMOD_X86_64 && _WIN32
 	~CPhysicsCollision()
 	{
 		if (pOrigPhysicsDLL)
@@ -124,7 +124,7 @@ public:
 	// If you delete the text and call members of IVPhysicsKeyParser, it will crash
 	IVPhysicsKeyParser	*VPhysicsKeyParserCreate( const char *pKeyData ) override;
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	IVPhysicsKeyParser	*VPhysicsKeyParserCreate( vcollide_t *pVCollide ) override;
 #endif
 
@@ -157,7 +157,7 @@ public:
 	CPhysCollide	*UnserializeCollide( char *pBuffer, int size, int index ) override;
 	void			CollideSetOrthographicAreas( CPhysCollide *pCollide, const Vector &areas ) override;
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	// Get an AABB for an oriented collision model
 	float			CollideGetRadius( const CPhysCollide *pCollide ) override;
 	void			*VCollideAllocUserData( vcollide_t *pVCollide, size_t userDataSize ) override;
@@ -179,7 +179,7 @@ private:
 	CUtlVector<bboxcache_t>	m_bboxCache;
 	byte				m_bboxVertMap[8];
 
-#if PLATFORM_64BITS && _WIN32
+#if GMOD_X86_64 && _WIN32
 	DLL_Handle pOrigPhysicsDLL = NULL;
 #endif
 };
@@ -1143,7 +1143,7 @@ static void LedgeInsidePoint( IVP_Compact_Ledge *pLedge, Vector& out )
 //			p3 - 
 // Output : float (volume in units^3)
 //-----------------------------------------------------------------------------
-#if !PLATFORM_64BITS // Mathlib has them on 64x.
+#if !GMOD_X86_64 // Mathlib has them on 64x.
 static float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector &p2, const Vector &p3 )
 {
 	Vector a, b, c, cross;
@@ -1817,7 +1817,7 @@ IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( const char *pKey
 	return CreateVPhysicsKeyParser( pKeyData, false );
 }
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( vcollide_t *pVCollide )
 {
 	DebugPrint();
@@ -1990,7 +1990,7 @@ void CPhysicsCollision::DestroyQueryModel( ICollisionQuery *pQuery )
 	delete pQuery;
 }
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 float CPhysicsCollision::CollideGetRadius(const CPhysCollide* pCollide)
 {
 	DebugPrint();

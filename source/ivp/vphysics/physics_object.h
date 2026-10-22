@@ -116,7 +116,7 @@ public:
 	void			WakeNow();
 	void			Sleep() override;
 	void			RecheckCollisionFilter() override;
-#if !PLATFORM_64BITS
+#if !GMOD_X86_64
 	void			RecheckContactPoints() override;
 #else
 	void			RecheckContactPoints( bool bSearchForNewContacts = false ) override;
@@ -192,7 +192,7 @@ public:
 
 	void			OutputDebugInfo() const override;
 
-#if !PLATFORM_64BITS
+#if !GMOD_X86_64
 	float			GetBuoyancyRatio() const override { return m_buoyancyRatio; };
 #endif
 
@@ -210,7 +210,7 @@ public:
 
 	[[nodiscard]] inline int		GetActiveIndex( void ) const { return m_activeIndex; }
 	inline void		SetActiveIndex( int index ) { m_activeIndex = index; }
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	[[nodiscard]] inline float	GetBuoyancyRatio( void ) const { return m_buoyancyRatio; }
 #endif
 	// returns true if the mass center is set to the default for the collision model
@@ -227,7 +227,7 @@ public:
 	[[nodiscard]] CPhysicsEnvironment	*GetVPhysicsEnvironment();
 	[[nodiscard]] const CPhysicsEnvironment	*GetVPhysicsEnvironment() const;
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	void			SetSphereRadius(float radius) override;
 
 	// EnableGravity still determines whether to apply gravity

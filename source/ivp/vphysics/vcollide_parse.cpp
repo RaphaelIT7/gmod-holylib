@@ -75,7 +75,7 @@ public:
 	void		ParseVehicle( vehicleparams_t *pVehicle, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseCustom( void *pCustom, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		SkipBlock( void ) override { ParseCustom(NULL, NULL); }
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	void		ParseCollisionRules( ragdollcollisionrules_t *pRules, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseRagdollAnimatedFriction( ragdollanimatedfriction_t *pFriction, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 #endif
@@ -995,7 +995,7 @@ void CVPhysicsParse::ParseCustom( void *pCustom, IVPhysicsKeyHandler *unknownKey
 	}
 }
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 void CVPhysicsParse::ParseCollisionRules(ragdollcollisionrules_t* pRules, IVPhysicsKeyHandler* unknownKeyHandler)
 {
 	DebugPrint();

@@ -150,7 +150,7 @@ public:
 		return m_strings.String(name);
 	}
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 	ISaveRestoreOps* GetMaterialIndexDataOps() const override;
 #endif
 
@@ -537,7 +537,7 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 				// sound names
 				else if ( !strcmpi( key, "stepleft" ) )
 				{
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 					prop.data.sounds.walkStepLeft = m_strings.AddString( value );
 					prop.data.sounds.runStepLeft = prop.data.sounds.walkStepLeft;
 #else
@@ -546,14 +546,14 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 				}
 				else if ( !strcmpi( key, "stepright" ) )
 				{
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 					prop.data.sounds.walkStepRight = m_strings.AddString( value );
 					prop.data.sounds.runStepRight = prop.data.sounds.walkStepRight;
 #else
 					prop.data.sounds.stepright = m_strings.AddString( value );
 #endif
 				}
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 				else if ( !strcmpi( key, "walkstepleft" ) )
 				{
 					prop.data.sounds.walkStepLeft = m_strings.AddString( value );
@@ -651,7 +651,7 @@ void CPhysicsSurfaceProps::SetWorldMaterialIndexTable( int *pMapArray, int mapSi
 	m_ivpManager.SetPropMap( pMapArray, mapSize );
 }
 
-#if PLATFORM_64BITS
+#if GMOD_X86_64
 ISaveRestoreOps* CPhysicsSurfaceProps::GetMaterialIndexDataOps() const
 {
 	DebugPrint();
