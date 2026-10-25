@@ -104,10 +104,10 @@ struct ThreadPoolStartParams_t;
 #define GMCOMMON_CALLING_CONVENTION
 #endif
 
-#if ARCHITECTURE_IS_X86_64
+#if GMOD_X86_64
 #define SIMPLETHREAD_RETURNVALUE long long unsigned
 #else
-#define SIMPLETHREAD_RETURNVALUE unsigned
+#define SIMPLETHREAD_RETURNVALUE uintp
 #endif
 
  /*
