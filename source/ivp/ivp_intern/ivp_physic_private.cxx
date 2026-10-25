@@ -431,9 +431,26 @@ IVP_BOOL IVP_Core::revive_simulation_core()
 
     }
     
+	IVP_U_Float_Point speedbackup, rot_speedbackup;
+	speedbackup.set_to_zero();
+
+	const bool bFirstRevive = ( time_of_last_psi.get_seconds() == 0.0 ); // @@@ hack, still initializing object, bug workaround if any code set the speed before a simulation
+
+	if (bFirstRevive)
+	{
+		speedbackup = speed;
+		rot_speedbackup = rot_speed;
+	}
+
     core->init_core_for_simulation();
     IVP_Event_Sim es(environment, environment->get_next_PSI_time() - environment->get_current_time());
     core->calc_next_PSI_matrix_zero_speed(&es);
+
+	if (bFirstRevive)
+	{
+		speed = speedbackup;
+		rot_speed = rot_speedbackup;
+	}
 
     // @@@ hack, go back to last PSI at wakeup at PSI ( satisfy init_PSI )
     

@@ -48,6 +48,7 @@ public:
     virtual IVP_DOUBLE get_friction_factor()=0;
     virtual IVP_DOUBLE get_second_friction_factor()=0; // second friction factor when two friction values is enabled
     virtual IVP_DOUBLE get_elasticity()=0;
+	virtual IVP_DOUBLE get_damping()=0;
     // INTERN_START
     virtual IVP_DOUBLE get_adhesion()=0;  // for future releases
     // INTERN_END
@@ -76,6 +77,7 @@ public:
     IVP_DOUBLE get_friction_factor() override;
     IVP_DOUBLE get_second_friction_factor() override { return second_friction_x; }
     IVP_DOUBLE get_elasticity() override;
+	IVP_DOUBLE get_damping() override { return 0.0f; }
     const char *get_name() override;		// helps debugging
     IVP_Material_Simple(IVP_DOUBLE friction, IVP_DOUBLE elasticity);
     virtual ~IVP_Material_Simple();

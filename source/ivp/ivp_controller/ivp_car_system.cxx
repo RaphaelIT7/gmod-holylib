@@ -225,7 +225,7 @@ IVP_DOUBLE IVP_Car_System_Real_Wheels::get_body_speed(IVP_COORDINATE_INDEX idx_z
 {
     // return (IVP_FLOAT)car_body->get_geom_center_speed();
     IVP_U_Float_Point *vec_ws;
-    vec_ws = &car_body->get_core()->speed;
+    vec_ws = &car_body->get_core()->delta_world_f_core_psis;
     // works well as we do not use merged cores
     const IVP_U_Matrix *mat_ws = car_body->get_core()->get_m_world_f_core_PSI();
     IVP_U_Point orientation;
@@ -383,10 +383,10 @@ IVP_Car_System_Real_Wheels::IVP_Car_System_Real_Wheels( IVP_Environment *env, IV
 	IVP_U_Float_Point hp; 
 	hp.set_to_zero();
 	hp.k[cs_car->x_idx] = 1.0f;
-	anchor_left_template.set_anchor_position_os( car_body, &hp );
+	anchor_left_template.set_anchor_position_cs( car_body, &hp );
 	
 	hp.k[cs_car->x_idx] = -1.0f;
-	anchor_right_template.set_anchor_position_os( car_body, &hp );
+	anchor_right_template.set_anchor_position_cs( car_body, &hp );
 	
 	torque_template.anchors[0]  = &anchor_left_template;
 	torque_template.anchors[1] = &anchor_right_template;
@@ -608,7 +608,7 @@ void IVP_Car_System_Real_Wheels::fix_wheel( IVP_POS_WHEEL wheel_nr, IVP_BOOL sto
 void IVP_Car_System_Real_Wheels::activate_booster( IVP_FLOAT thrust, IVP_FLOAT duration, IVP_FLOAT delay ) 
 {
 	// Do we have an booster?
-    if( booster_actuator[0] ) 
+	if (booster_actuator[0] && thrust != 0.0f)
 		return;
 
 	// Booster not ready yet.
@@ -617,7 +617,10 @@ void IVP_Car_System_Real_Wheels::activate_booster( IVP_FLOAT thrust, IVP_FLOAT d
 
     // Ignite booster by adding an actuator force to the car body 
     float gravity = environment->get_gravity()->real_length();
-    set_booster_acceleration( thrust * gravity );
+	if (thrust != 0.0f)
+	{
+		set_booster_acceleration( thrust * gravity );
+	}
 
 	// seconds
     booster_seconds_to_go = duration; 
@@ -726,6 +729,13 @@ void IVP_Car_System_Real_Wheels::environment_will_be_deleted(IVP_Environment *){
     delete this;
 }
 
+void IVP_Car_System_Real_Wheels::event_object_deleted(IVP_Event_Object *)
+{
+	// car constraint solver will delete itself at this point
+	car_constraint_solver = nullptr;
+	delete this;
+}
+
 IVP_FLOAT IVP_Car_System::calc_ackerman_angle(IVP_FLOAT alpha, IVP_FLOAT dx, IVP_FLOAT dz){
 
     // We got the steering angle for that front wheel towards
@@ -767,5 +777,10 @@ void IVP_Car_System_Real_Wheels::SetCarSystemDebugData( const IVP_CarSystemDebug
 //-----------------------------------------------------------------------------
 void IVP_Car_System_Real_Wheels::GetCarSystemDebugData( IVP_CarSystemDebugData_t &carSystemDebugData )
 {
-	return;
+	const IVP_U_Matrix *pMatrix = car_body->get_core()->get_m_world_f_core_PSI();
+	pMatrix->vmult4( &car_act_powerslide_back->get_actuator_anchor(0)->core_pos, &carSystemDebugData.backActuatorLeft );
+	pMatrix->vmult4( &car_act_powerslide_back->get_actuator_anchor(1)->core_pos, &carSystemDebugData.backActuatorRight );
+
+	pMatrix->vmult4( &car_act_powerslide_front->get_actuator_anchor(0)->core_pos, &carSystemDebugData.frontActuatorLeft );
+	pMatrix->vmult4( &car_act_powerslide_front->get_actuator_anchor(1)->core_pos, &carSystemDebugData.frontActuatorRight );
 }

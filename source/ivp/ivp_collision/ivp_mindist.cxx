@@ -50,7 +50,7 @@
 
 IVP_Mindist_Settings ivp_mindist_settings;
 
-void IVP_Mindist_Settings::set_collision_tolerance(IVP_DOUBLE t){
+void IVP_Mindist_Settings::set_collision_tolerance(IVP_DOUBLE t, IVP_DOUBLE gravLength){
     real_coll_dist =                         0.1f * t;
     
     min_coll_dists = real_coll_dist        + 0.9f * t;
@@ -63,7 +63,7 @@ void IVP_Mindist_Settings::set_collision_tolerance(IVP_DOUBLE t){
 
     keeper_dist = friction_dist + 0.3f * t;
 
-    speed_after_keeper_dist = IVP_Inline_Math::ivp_sqrtf( 2.0f * (keeper_dist - min_coll_dists) * 9.81f ); //speed when falling down from keeper dist to coll dist
+    speed_after_keeper_dist = IVP_Inline_Math::ivp_sqrtf( 2.0f * (keeper_dist - min_coll_dists) * gravLength ); //speed when falling down from keeper dist to coll dist
     distance_keepers_safety = 0.01f * t; 			//safety gap, when surpassed, mindist doesnt appear in complex
     max_distance_for_friction = friction_dist + 2.5f * t;
     max_distance_for_impact_system = friction_dist + 20.0f * t;
@@ -78,7 +78,7 @@ void IVP_Mindist_Settings::set_event_queue_min_delta_time_base(IVP_DOUBLE base){
 }
 
 IVP_Mindist_Settings::IVP_Mindist_Settings(){
-    set_collision_tolerance( 0.01f );
+    set_collision_tolerance( 0.01f, 9.81f );
 	set_event_queue_min_delta_time_base(1.0f);
 	max_spawned_mindist_count = 1000;
 }
@@ -788,9 +788,8 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
 	if(obj0->friction_core == obj1->friction_core) 
 	    continue;
 
-	if((obj0->get_core()->pinned && obj1->get_core()->pinned) ||
-		(obj0->get_core()->pinned && obj1->get_core()->physical_unmoveable) ||
-		(obj0->get_core()->physical_unmoveable && obj1->get_core()->pinned))
+	if ((obj0->get_core()->pinned || obj0->get_core()->physical_unmoveable) &&
+		(obj1->get_core()->pinned || obj1->get_core()->physical_unmoveable))
 	    continue;
 	
 	if (coll_filter->check_objects_for_collision_detection(obj0,obj1) == IVP_FALSE) continue;
@@ -1311,6 +1310,13 @@ void IVP_Mindist::create_cp_in_advance_pretension(IVP_Real_Object *robject,float
 			s2=new_cp->tmp_contact_info->span_friction_v[1].dot_product(&world_friction_vec);
 			new_cp->span_friction_s[0]= s1;
 			new_cp->span_friction_s[1]= s2;
+
+			IVP_Real_Object *pivp = get_sorted_synapse(1)->l_obj;
+			IVP_ASSERT(pivp != robject );
+			if (pivp->get_movement_state() == IVP_MT_NOT_SIM)
+			{
+				pivp->ensure_in_simulation_now();
+			}
 	    }
 
         robject->environment->sim_unit_mem->end_memory_transaction();

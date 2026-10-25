@@ -80,6 +80,7 @@ protected:
 	//: Note: if the constraint is deactivated, than adding constraints is much faster
 
 	void recalc_storage_size();
+	void sort_constraints();
 	int							m_n_iterations;
 	int							m_size_of_all_vmq_storages;
 	hk_Array<hk_Constraint*> 	m_constraints;

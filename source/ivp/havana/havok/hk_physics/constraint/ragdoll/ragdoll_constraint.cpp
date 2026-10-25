@@ -19,6 +19,50 @@
 #include <stddef.h> // for size_t
 #endif
 
+#include <xmmintrin.h>
+#include <cmath>
+#include <cfloat>
+
+static inline float ArcTan2Alt( float a, float b )
+{
+	const float flPi = 3.14159274f;
+	const float flR1 = 0.999953091f;
+	const float flR3 = -0.330807924f;
+	const float flR5 = 0.165911049f;
+
+	float absA = fabsf( a );
+	float absB = fabsf( b );
+	bool bSwapped = absB < absA;
+	float flMin = bSwapped ? absB : absA;
+	float flMax = bSwapped ? absA : absB;
+	bool bValid = FLT_EPSILON < flMax;
+
+	float flRcpMax = _mm_cvtss_f32( _mm_rcp_ss( _mm_set_ss( flMax ) ) );
+	float flRatio = ( ( flRcpMax + flRcpMax ) - flMax * flRcpMax * flRcpMax ) * flMin;
+	if ( !bValid )
+		flRatio = 0.0f;
+
+	float flSum = absA + absB;
+	float flRcpSum = _mm_cvtss_f32( _mm_rcp_ss( _mm_set_ss( flSum ) ) );
+	float flOffset = ( ( flRcpSum + flRcpSum ) - flSum * flRcpSum * flRcpSum ) * ( absA - absB );
+
+	bool bUseOffset = bValid && fabsf( flOffset ) < flRatio;
+	float x = bUseOffset ? flOffset : flRatio;
+	float flAtan = ( ( ( flR5 * x * x + flR3 ) * x * x ) + flR1 ) * x;
+
+	float flResult = bSwapped ? ( 1.57079637f - flAtan ) : flAtan;
+	if ( bUseOffset )
+		flResult = flAtan + 0.785398185f;
+
+	if ( std::signbit( a ) != std::signbit( b ) )
+		flResult = -flResult;
+
+	if ( b < 0.0f )
+		flResult += std::copysign( flPi, a );
+
+	return flResult;
+}
+
 
 /****************************************************************
  * Local class
@@ -82,10 +126,9 @@ void hk_Ragdoll_Constraint::init_ragdoll_constraint(const hk_Ragdoll_Constraint_
 	m_axisMap[1] = bp->m_axisMap[1];
 	m_axisMap[2] = bp->m_axisMap[2];
 
-	const hk_real factor = (sys) ? sys->get_epsilon() : 1.0f;
 	for(int i=0; i<3; i++)
 	{
-		m_limits[i].init_angular_limit(bp->m_limits[i], factor);
+		m_limits[i].init_angular_limit(bp->m_limits[i]);
 	}
 
 	// check for unsymmetric cone limits
@@ -121,6 +164,17 @@ void hk_Ragdoll_Constraint::write_to_blueprint( hk_Ragdoll_Constraint_BP *bp )
 	bp->m_axisMap[1] = m_axisMap[1];
 	bp->m_axisMap[2] = m_axisMap[2];
 
+	// HACKHACK: UNDO the coordinate remapping done by initialize_from_limited_ball_socket_bp
+	bp->m_transform_os_ks[0].get_column(m_axisMap[HK_LIMIT_TWIST]) = m_transform_os_ks[0].get_column(0);
+	bp->m_transform_os_ks[1].get_column(m_axisMap[HK_LIMIT_TWIST]) = m_transform_os_ks[1].get_column(0);
+	bp->m_transform_os_ks[0].get_column(m_axisMap[HK_LIMIT_PLANES]) = m_transform_os_ks[0].get_column(1);
+	bp->m_transform_os_ks[1].get_column(m_axisMap[HK_LIMIT_PLANES]) = m_transform_os_ks[1].get_column(1);
+	bp->m_transform_os_ks[0].get_column(m_axisMap[HK_LIMIT_CONE]) = m_transform_os_ks[0].get_column(2);
+	bp->m_transform_os_ks[1].get_column(m_axisMap[HK_LIMIT_CONE]) = m_transform_os_ks[1].get_column(2);
+
+	// twist is flipping in ballsocket conversion, flip it back
+	bp->m_limits[HK_LIMIT_TWIST].m_limit_min = -m_inputLimits[HK_LIMIT_TWIST].m_limit_max;
+	bp->m_limits[HK_LIMIT_TWIST].m_limit_max = -m_inputLimits[HK_LIMIT_TWIST].m_limit_min;
 }
 
 
@@ -223,7 +277,7 @@ int	hk_Ragdoll_Constraint::setup_and_step_constraint(
 
 			hk_Vector3 a_us; a_us.set_rotated_inv_dir ( m_ws_us, perp_axes_Att_ws );
 
-			work.joint_angles( HK_LIMIT_TWIST ) = -hk_Math::atan2( a_us.y, a_us.z);
+			work.joint_angles( HK_LIMIT_TWIST ) = -ArcTan2Alt( a_us.y, a_us.z);
 		}
 		// planes setup
 		work.joint_angles( HK_LIMIT_CONE )   = work.twist_axis_Ref_ws.dot( work.twist_axis_Att_ws );

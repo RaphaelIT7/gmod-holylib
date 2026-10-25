@@ -186,28 +186,24 @@ void IVP_SurfaceBuilder_Ledge_Soup::add_ledge_tree_to_convex_hull(class IVP_Comp
   if (node->child_2) add_ledge_tree_to_convex_hull(cr, node->child_2);
 }
 
-// todo(melvyn2) recreate using demcompiled version, much has changed
-// IVP_Compact_Ledge IVP_SurfaceBuilder_Ledge_Soup::build_root_convex_hull(){
 void IVP_SurfaceBuilder_Ledge_Soup::build_root_convex_hull(){
     IVV_Sphere *node = this->spheres_cluster[this->spheres_cluster[0].next].sphere;
 
     IVP_Compact_Recursive cr;
     add_ledge_tree_to_convex_hull(cr, node);
 
-    // if( this->parameters->force_convex_hull == NULL ) {
-    // something_1 = IVP_Compact_Recursive::compile();
-    // }
-    // else {
-    // IVP_Compact_Recursive::set_rekursive_convex_hull(); // not a typo
-    // something_1 = this->parameters->force_convex_hull
-    // }
-    // if ( something_1 != NULL ) {
-
-    // }
-    // return something_1;
-
-
-    IVP_Compact_Ledge *hull = cr.compile(); 
+	IVP_Compact_Ledge *hull;
+	if (this->parameters->force_convex_hull == nullptr)
+	{
+		hull = cr.compile();
+	}
+	else
+	{
+		cr.hull = this->parameters->force_convex_hull;
+		cr.set_rekursive_convex_hull();
+		hull = cr.hull;
+	}
+    if (!hull) return;
     c_ledge_vec.add(hull);
     node->compact_ledge = hull;
     rec_spheres.add(node);
@@ -1459,7 +1455,7 @@ void IVP_SurfaceBuilder_Ledge_Soup::insert_radius_in_compact_surface() {
     this->compact_surface->upper_limit_radius = (IVP_FLOAT)mass_radius;
     IVP_ASSERT( mass_radius_dev >=0.0f);
     IVP_ASSERT( mass_radius_dev <= mass_radius + P_FLOAT_RES);
-    this->compact_surface->max_factor_surface_deviation = int(1.0f + mass_radius_dev / (mass_radius * IVP_COMPACT_SURFACE_DEVIATION_STEP_SIZE));
+    this->compact_surface->max_factor_surface_deviation = int(1.0f + mass_radius_dev * (1.0 / (double)IVP_COMPACT_SURFACE_DEVIATION_STEP_SIZE) / mass_radius);
 }
 
 
@@ -1515,6 +1511,7 @@ void IVP_SurfaceBuilder_Ledge_Soup::convert_ledges_to_templates(IVP_U_BigVector<
 	    p->k[0] = cpp_array[j].k[0];
 	    p->k[1] = cpp_array[j].k[1];
 	    p->k[2] = cpp_array[j].k[2];
+		p->hesse_val = 0;
 	    points.add(p);
 	    //p->print();
 	}

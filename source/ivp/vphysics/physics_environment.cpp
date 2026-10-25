@@ -927,7 +927,7 @@ public:
 		return IVP_TRUE;
 	}
 	// return number of additional checks to do this psi
-    virtual int max_collision_checks_exceeded( int totalChecks )
+    int max_collision_checks_exceeded( int totalChecks ) override
 	{
 		DebugPrint();
 		if ( m_pSolver )
@@ -944,9 +944,12 @@ public:
 			return;
 		IVP_Anomaly_Manager::max_velocity_exceeded(al, pCore, velocity_in_out);
 	}
-	IVP_BOOL max_contacts_exceeded_check_freezing( IVP_Core **pCoreList, int coreCount )
+	IVP_BOOL max_contacts_exceeded_check_freezing( IVP_Core **pCoreList, int coreCount ) override
 	{
 		DebugPrint();
+		if ( !m_pSolver )
+			return IVP_Anomaly_Manager::max_contacts_exceeded_check_freezing( pCoreList, coreCount );
+
 		CUtlVector<IPhysicsObject *> list;
 		list.EnsureCapacity(coreCount);
 		for ( int i = 0; i < coreCount; i++ )
@@ -1167,7 +1170,7 @@ CPhysicsEnvironment::CPhysicsEnvironment( void )
 
 	// UNDONE: Revisit brush/terrain/object shrinking and tune this number to something larger
 	// UNDONE: Expose this to callers, also via physcollision
-	m_pPhysEnv->set_global_collision_tolerance( ConvertDistanceToIVP( g_PhysicsUnits.globalCollisionTolerance - 1e-4f ) );	// just under 1/4 inch tolerance
+	m_pPhysEnv->set_global_collision_tolerance( ConvertDistanceToIVP( g_PhysicsUnits.globalCollisionTolerance - 1e-4f ), 9.81f );	// just under 1/4 inch tolerance
 	m_pSleepEvents = new CSleepObjects;
 
 	m_pDeleteQueue = new CDeleteQueue;

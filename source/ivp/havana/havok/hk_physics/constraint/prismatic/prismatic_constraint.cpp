@@ -56,8 +56,7 @@ void hk_Prismatic_Constraint::init_prismatic_constraint(const hk_Prismatic_BP* b
 
 	m_perp_axis_Ros = hk_Vector3_Util::perp_vec(	m_axis_Ros );
 
-	const hk_real factor = (sys) ? sys->get_epsilon() : 1.0f;
-	m_limits[0].init_limit( bp->m_limit , factor );
+	m_limits[0].init_limit( bp->m_limit );
 
 	hk_real mass_0 = get_rigid_body(0)->get_mass();
 	hk_real mass_1 = get_rigid_body(1)->get_mass();

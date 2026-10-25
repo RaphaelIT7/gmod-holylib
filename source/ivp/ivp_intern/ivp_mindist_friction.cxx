@@ -236,24 +236,32 @@ void IVP_Contact_Point::p_calc_friction_ss_KK(const IVP_Compact_Edge *K, const I
 
   IVP_DOUBLE quad_dist = norm.quad_length();
     
-  if(quad_dist > (P_DOUBLE_RES * P_DOUBLE_RES)){ // not parallel
-    IVP_U_Point K_area;	// area vertical to K and norm
-    IVP_U_Point L_area;	// area vertical to L and norm
+  IVP_U_Point K_area;	// area vertical to K and norm
+  IVP_U_Point L_area;	// area vertical to L and norm
+  IVP_DOUBLE a,x;
+  IVP_DOUBLE inv_a_b_K = 0.0f, inv_a_b_L = 0.0f;
+  bool not_parallel = quad_dist > P_FLOAT_EPS;
+  if(not_parallel){
     K_area.calc_cross_product(&Kvec, &norm);
     L_area.calc_cross_product(&Lvec, &norm);
+    IVP_DOUBLE a_b_K = K_area.dot_product( &Lp ) - K_area.dot_product( &Lp_next );
+    IVP_DOUBLE a_b_L = L_area.dot_product( &Kp ) - L_area.dot_product( &Kp_next );
+    if(fabs(a_b_K) < P_DOUBLE_EPS || fabs(a_b_L) < P_DOUBLE_EPS){
+      not_parallel = false;
+    } else {
+      inv_a_b_K = 1.0f / a_b_K;
+      inv_a_b_L = 1.0f / a_b_L;
+    }
+  }
 
-    IVP_DOUBLE a,b,x;
+  if(not_parallel){ // not parallel
     a = K_area.dot_product( &Lp );
-    b = K_area.dot_product( &Lp_next );
-    IVP_DOUBLE inv_a_b = 1.0f / (a-b);
     x = K_area.dot_product( &Kp );
-    sl = (a-x) * inv_a_b;
+    sl = (a-x) * inv_a_b_K;
 
     a = L_area.dot_product( &Kp );
-    b = L_area.dot_product( &Kp_next );
-    inv_a_b = 1.0f / (a-b);
     x = L_area.dot_product( &Lp );
-    sk = (a-x) * inv_a_b;
+    sk = (a-x) * inv_a_b_L;
 
     //TL -- modify if necessary  #+#  very bad code down there, vec0 won't be normized soon
     IVP_U_Point vec0,vec1;

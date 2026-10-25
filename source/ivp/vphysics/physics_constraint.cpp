@@ -921,7 +921,7 @@ void CPhysicsConstraint::InitSliding( IVP_Environment *pEnvironment, CPhysicsCon
 			bp.set_friction( ConvertDistanceToIVP(sliding.friction) );
 		}
 	}
-	prismatic_bp.m_limit.init_limit( bp, 1.0 );
+	prismatic_bp.m_limit.init_limit( bp );
 
 	hk_Local_Constraint_System *lcs = constraint_group ? constraint_group->GetLCS() : NULL;
 	if ( !lcs )

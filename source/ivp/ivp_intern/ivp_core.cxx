@@ -81,13 +81,13 @@ void IVP_Core::get_surface_speed_ws( const IVP_U_Point *position_ws_in, IVP_U_Fl
 void IVP_Core::get_diff_surface_speed_of_two_cores(const IVP_Core *this_core, const IVP_Core *other_core,
 						   const IVP_U_Float_Point *obj_point_this, const IVP_U_Float_Point *obj_point_other,
 						   IVP_U_Float_Point *delta_velocity_ws){
-    if(this_core && !this_core->physical_unmoveable)    {
+    if(this_core && !this_core->physical_unmoveable && !this_core->pinned)    {
 	this_core->get_surface_speed_on_test(obj_point_this,&this_core->speed,&this_core->rot_speed,delta_velocity_ws);
     } else {
 	delta_velocity_ws->set_to_zero();
     }
 
-    if(other_core && !other_core->physical_unmoveable)    {
+    if(other_core && !other_core->physical_unmoveable && !other_core->pinned)    {
 	IVP_U_Float_Point velocity_ws_2;
 	other_core->get_surface_speed_on_test(obj_point_other,&other_core->speed,&other_core->rot_speed,&velocity_ws_2);
         delta_velocity_ws->subtract(&velocity_ws_2);
@@ -101,13 +101,13 @@ void IVP_Core::get_diff_surface_speed_of_two_cores_on_test(const IVP_Core *this_
 							   IVP_U_Float_Point *diff_speed_this_minus_other_out)
 {
     IVP_U_Float_Point world_this,world_other;
-    if(!this_core->physical_unmoveable)    {
+    if(!this_core->physical_unmoveable && !this_core->pinned)    {
 	this_core->get_surface_speed_on_test(obj_point_this,trans_speed0,rot_speed0,&world_this);
     } else {
 	world_this.set_to_zero();
     }
 
-    if(!other_core->physical_unmoveable)    {
+    if(!other_core->physical_unmoveable && !other_core->pinned)    {
 	other_core->get_surface_speed_on_test(obj_point_other,trans_speed1,rot_speed1,&world_other);
     } else {
 	world_other.set_to_zero();
@@ -300,45 +300,40 @@ IVP_DOUBLE IVP_Core::calc_correct_virt_mass(const IVP_U_Float_Point *core_point,
     }
 }
 
-void IVP_Core::apply_velocity_limit() {
-    float unk;
+void IVP_Core::apply_velocity_limit()
+{
+	IVP_Environment *env = environment;
+	IVP_Anomaly_Limits *limits = env->get_anomaly_limits();
+	if (limits->get_max_velocity() > 0)
+	{
+		float corev = this->speed.real_length();
+		if (corev > limits->get_max_velocity())
+		{
+			this->speed.mult(limits->get_max_velocity() / corev);
+		}
 
-    IVP_Anomaly_Limits* al = environment->get_anomaly_limits();
-    IVP_DOUBLE max_speed = al->get_max_velocity();
-    if (max_speed > 0.0)
-    {
-        IVP_DOUBLE trans_len = speed.real_length();
-        if (trans_len > max_speed)
-        {
-            unk = max_speed / trans_len;
-            speed.mult(unk);
-        }
+		corev = speed_change.real_length();
+		if (corev > limits->get_max_velocity())
+		{
+			speed_change.mult(limits->get_max_velocity() / corev);
+		}
+	}
 
-        IVP_DOUBLE rot_change_len = speed_change.real_length();
-        if (rot_change_len > max_speed)
-        {
-            unk = max_speed / rot_change_len;
-            speed_change.mult(unk);
-        }
-    }
-    IVP_FLOAT max_angular_velocity_per_psi = al->get_max_angular_velocity_per_psi();
-    if (max_angular_velocity_per_psi > 0.0)
-    {
-        IVP_DOUBLE max_rot_speed = environment->get_inv_delta_PSI_time() * max_angular_velocity_per_psi;
-        IVP_DOUBLE rot_len = rot_speed.real_length();
-        if (rot_len > max_rot_speed)
-        {
-            unk = max_rot_speed / rot_len;
-            rot_speed.mult(unk);
-        }
+	if (limits->get_max_angular_velocity_per_psi() > 0)
+	{
+		float rotSpeed = rot_speed.real_length();
+		float maxSpeed = limits->get_max_angular_velocity_per_psi() * env->get_inv_delta_PSI_time();
+		if (rotSpeed > maxSpeed)
+		{
+			rot_speed.mult(maxSpeed / rotSpeed);
+		}
 
-        IVP_DOUBLE rot_change_len = speed_change.real_length();
-        if (rot_change_len > max_rot_speed)
-        {
-            unk = max_rot_speed / rot_change_len;
-            rot_speed_change.mult(unk);
-        }
-    }
+		rotSpeed = speed_change.real_length();
+		if (rotSpeed > maxSpeed)
+		{
+			rot_speed_change.mult(maxSpeed / rotSpeed);
+		}
+	}
 }
 
 void p_calc_2d_distances_to_axis(const IVP_U_Float_Point *point,const IVP_U_Float_Point *direction, IVP_U_Float_Point *distances){
@@ -488,12 +483,7 @@ void IVP_Core::damp_object(IVP_DOUBLE delta_time_, const IVP_U_Float_Point *rota
 }
 
 void IVP_Core::set_rotation_inertia( const IVP_U_Float_Point *r){
-	rot_inertia.set(
-		r->k[0] > P_FLOAT_MAX ? P_FLOAT_MAX : r->k[0],
-		r->k[1] > P_FLOAT_MAX ? P_FLOAT_MAX : r->k[1],
-		r->k[2] > P_FLOAT_MAX ? P_FLOAT_MAX : r->k[2]
-	);
-
+	rot_inertia.set(r);
 	this->calc_calc();
 }
 
@@ -824,23 +814,21 @@ void IVP_Core::calc_calc(){
     IVP_ASSERT(get_rot_inertia()->real_length() > P_DOUBLE_EPS);
     IVP_U_Float_Hesse *iri = (IVP_U_Float_Hesse *)get_inv_rot_inertia();
 
-    // clamp to valid values so we don't end up with nans along the way
-    // weird decompile code...
-    IVP_U_Float_Point &ri = rot_inertia;
-    for ( int i = 0; i < 3; i++ )
-    {
-        if ( _finite( ri.k[i] ) && ri.k[i] <= 1e18f )
-        {
-            if ( ri.k[i] < -1e18f )
-                ri.k[i] = -1e18f;
-        }
-        else
-        {
-            ri.k[i] = 1e18f;
-        }
-    }
+	// clamp to valid values so we don't end up with nans along the way
+	for ( int j = 0; j < 3; j++ )
+	{
+		if ( !_finite(rot_inertia.k[j]) || (rot_inertia.k[j] > 1e18f) )
+		{
+			rot_inertia.k[j] = 1e18f;
+		}
+		else if ( rot_inertia.k[j] < -1e18f )
+		{
+			rot_inertia.k[j] = -1e18f;
+		}
+	}
+    const IVP_U_Float_Point *ri = get_rot_inertia();
 
-    iri->set( 1.0f/ri.k[0],1.0f/ri.k[1], 1.0f/ri.k[2]);
+    iri->set( 1.0f/ri->k[0],1.0f/ri->k[1], 1.0f/ri->k[2]);
     iri->hesse_val = 1.0f/get_mass();
 
     IVP_U_Float_Point diff_vec( iri->k[1] - iri->k[2],
@@ -868,7 +856,8 @@ void IVP_Core::transform_PSI_matrizes_core(const IVP_U_Matrix *m_core_f_core){
 }
 
     
-void IVP_Core::init(IVP_Real_Object *io){
+void IVP_Core::init(IVP_Real_Object *io, bool hasGravity)
+{
     P_MEM_CLEAR(this);
     objects.reset();
     objects.add(io);
@@ -878,19 +867,23 @@ void IVP_Core::init(IVP_Real_Object *io){
     sim_unit_of_core = new IVP_Simulation_Unit();
     sim_unit_of_core->add_sim_unit_core( this );
     sim_unit_of_core->set_unit_movement_type(IVP_MT_NOT_SIM);
-    this->add_core_controller(environment->standard_gravity_controller);
+	if (hasGravity)
+	{
+		this->add_core_controller(environment->standard_gravity_controller);
+	}
     //current_sim_man_slot = -1; //not simulated
     movement_state=IVP_MT_NOT_SIM;
 }
 
 IVP_Core::IVP_Core(IVP_Real_Object *io){
-    init(io);
+    init(io, true);
     environment->get_sim_units_manager()->add_sim_unit_to_manager(sim_unit_of_core);
 }
 
 IVP_Core::IVP_Core(IVP_Real_Object *io, const IVP_U_Quat *q_world_f_object_init, const IVP_U_Point *position, IVP_BOOL physical_unmoveable_, IVP_BOOL enable_piling_optimization)
 {
-    init(io);
+	bool hasGravity = !physical_unmoveable_;
+	init(io, hasGravity);
     physical_unmoveable = physical_unmoveable_;
     // init_core_for_simulation();
 
@@ -964,10 +957,23 @@ IVP_Movement_Type IVP_Core::calc_movement_state(IVP_Time psi_time) {
 	if (qrot_sum * upper_limit_radius * upper_limit_radius > IVP_MINIMAL_ROT_SPEED_PER_PSI_SHORT * IVP_MINIMAL_ROT_SPEED_PER_PSI_SHORT) break;
 
 	// don't check long term for slow objects
-	if (psi_time - time_of_calm_reference[0] > environment->get_freeze_manager()->freeze_check_dtime){
-	    return  IVP_MT_CALM;
+	if (psi_time - time_of_calm_reference[0] > environment->get_freeze_manager()->freeze_check_dtime)
+	{
+		// double check this because a rotation of exactly PI / freeze_check_dtime can alias as a zero rotation
+		float speedCheck = (IVP_PI / environment->get_freeze_manager()->freeze_check_dtime) * 0.75f;
+		if (rot_speed.quad_length() > (speedCheck * speedCheck))
+		{
+			IVP_U_Float_Quat tmp;
+			tmp.set(&q_world_f_core_last_psi);
+			IVP_DOUBLE deltaQThisPSI = q_world_f_core_next_psi.inline_estimate_q_diff_to(&tmp);
+			if (deltaQThisPSI * upper_limit_radius * upper_limit_radius > IVP_MINIMAL_ROT_SPEED_PER_PSI_SHORT * IVP_MINIMAL_ROT_SPEED_PER_PSI_SHORT)
+				break;
+		}
+
+		return IVP_MT_CALM;
 	}
-	return  IVP_MT_SLOW;
+
+	return IVP_MT_SLOW;
     }
     q_world_f_core_calm_reference[0].set(&q_world_f_core_next_psi);
     position_world_f_core_calm_reference[0].set( & pos_world_f_core_last_psi );
@@ -982,9 +988,9 @@ IVP_Movement_Type IVP_Core::calc_movement_state(IVP_Time psi_time) {
 	if (qrot_sum * upper_limit_radius * upper_limit_radius > IVP_MINIMAL_ROT_SPEED_PER_PSI_LONG*IVP_MINIMAL_ROT_SPEED_PER_PSI_LONG) break;
 
 	if (psi_time - time_of_calm_reference[1] > IVP_HAS_MOVED_LONG_TIME){
-	    return  IVP_MT_CALM;	// enforce calm down after some seconds
+	    return IVP_MT_CALM;	// enforce calm down after some seconds
 	}
-	return  IVP_MT_MOVING;
+	return IVP_MT_MOVING;
     }
     
     q_world_f_core_calm_reference[1].set(&q_world_f_core_last_psi);

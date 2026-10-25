@@ -28,6 +28,7 @@ class hk_Pulley_Work
 
 		hk_VM_Query_Builder< hk_VMQ_Storage<1> > query_engine;
 		hk_real current_length;
+		bool skip_solve;
 };
 
 void hk_Pulley_Constraint::init_constraint( const void* vbp )
@@ -122,6 +123,31 @@ int hk_Pulley_Constraint::setup_and_step_constraint( hk_PSI_Info& pi, void *mem,
 
 	work.current_length = dir[0].normalize_with_length() + dir[1].normalize_with_length() - m_length;
 
+	if ( m_is_rigid || work.current_length >= 0 )
+	{
+		work.skip_solve = false;
+	}
+	else
+	{
+		// HACKHACK: Project the object to its next position.  If it violates the constraint at
+		// that time, then this frame will cross the inequality.  So solve anyway.  Note that
+		// this will effectively push the object toward the constraint, but that's a better
+		// artifact than bouncing at the limit
+		hk_Vector3 next_translation_ws_ks[2];
+		next_translation_ws_ks[0]._set_transformed_pos( b0->get_transform_next_PSI(pi.get_delta_time()), m_translation_os_ks[0]);
+		next_translation_ws_ks[1]._set_transformed_pos( b1->get_transform_next_PSI(pi.get_delta_time()), m_translation_os_ks[1]);
+
+		hk_Vector3 next_dir[2];
+		next_dir[0].set_sub( m_worldspace_point[0], next_translation_ws_ks[0] );
+		next_dir[1].set_sub( m_worldspace_point[1], next_translation_ws_ks[1] );
+		next_dir[1]*=m_gearing;
+
+		hk_real next_length = next_dir[0].length() + next_dir[1].length() - m_length;
+		work.skip_solve = 0.01f * m_length > next_length;
+		if ( work.skip_solve )
+			return HK_NEXT_MULTIPLE_OF(16, static_cast<int>(sizeof(hk_Pulley_Work)));
+	}
+
 	query_engine.begin(1);
 
 	{
@@ -139,17 +165,14 @@ int hk_Pulley_Constraint::setup_and_step_constraint( hk_PSI_Info& pi, void *mem,
 	mass_matrix(0,0) = 1.0f / mass_matrix(0,0); // invert in place
 
 	{ // step
-		if ( m_is_rigid || work.current_length >= 0 )
-		{
-			hk_real *approaching_velocity = query_engine.get_vmq_storage().get_velocities();
-			hk_real delta_dist = tau_factor * m_tau * pi.get_inv_delta_time() * work.current_length - damp_factor * m_strength * approaching_velocity[0];
+		hk_real *approaching_velocity = query_engine.get_vmq_storage().get_velocities();
+		hk_real delta_dist = tau_factor * m_tau * pi.get_inv_delta_time() * work.current_length - damp_factor * m_strength * approaching_velocity[0];
 
-			hk_Vector3 impulses;
-			impulses(0) = delta_dist * mass_matrix(0,0);
+		hk_Vector3 impulses;
+		impulses(0) = delta_dist * mass_matrix(0,0);
 
-			query_engine.apply_impulses( HK_BODY_A, b0, (hk_real *)&impulses(0) );
-			query_engine.apply_impulses( HK_BODY_B, b1, (hk_real *)&impulses(0) );
-		}
+		query_engine.apply_impulses( HK_BODY_A, b0, (hk_real *)&impulses(0) );
+		query_engine.apply_impulses( HK_BODY_B, b1, (hk_real *)&impulses(0) );
 	}
 	return HK_NEXT_MULTIPLE_OF(16, static_cast<int>(sizeof(hk_Pulley_Work)));
 }
@@ -157,6 +180,9 @@ int hk_Pulley_Constraint::setup_and_step_constraint( hk_PSI_Info& pi, void *mem,
 void hk_Pulley_Constraint::step_constraint( hk_PSI_Info& pi, void *mem, hk_real tau_factor, hk_real damp_factor )
 {
 	hk_Pulley_Work &work = *(hk_Pulley_Work *)mem;
+	if ( work.skip_solve )
+		return;
+
 	hk_VM_Query_Builder< hk_VMQ_Storage<1> > &query_engine = work.query_engine;
 
 	hk_real *approaching_velocity = query_engine.get_vmq_storage().get_velocities();
@@ -167,17 +193,15 @@ void hk_Pulley_Constraint::step_constraint( hk_PSI_Info& pi, void *mem, hk_real 
 
 	query_engine.update_velocities(HK_BODY_A, b0);
 	query_engine.update_velocities(HK_BODY_B, b1);
-	if ( m_is_rigid || work.current_length >= 0 )
-	{
-		hk_real delta_dist = tau_factor * m_tau * pi.get_inv_delta_time() * work.current_length - damp_factor * m_strength * approaching_velocity[0];
 
-		hk_Vector3 impulses;
-		hk_Dense_Matrix& mass_matrix = query_engine.get_vmq_storage().get_dense_matrix();
-		impulses(0) = delta_dist * mass_matrix(0,0);
+	hk_real delta_dist = tau_factor * m_tau * pi.get_inv_delta_time() * work.current_length - damp_factor * m_strength * approaching_velocity[0];
 
-		query_engine.apply_impulses( HK_BODY_A, b0, (hk_real *)&impulses(0) );
-		query_engine.apply_impulses( HK_BODY_B, b1, (hk_real *)&impulses(0) );
-	}
+	hk_Vector3 impulses;
+	hk_Dense_Matrix& mass_matrix = query_engine.get_vmq_storage().get_dense_matrix();
+	impulses(0) = delta_dist * mass_matrix(0,0);
+
+	query_engine.apply_impulses( HK_BODY_A, b0, (hk_real *)&impulses(0) );
+	query_engine.apply_impulses( HK_BODY_B, b1, (hk_real *)&impulses(0) );
 }
 
 

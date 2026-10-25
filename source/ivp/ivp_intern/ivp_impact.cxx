@@ -80,7 +80,7 @@ IVP_Contact_Point *IVP_Mindist::try_to_generate_managed_friction(IVP_Friction_Sy
 	if(gen_success!=IVP_TRUE) {
 	    *associated_fs=fr_info0->l_friction_system;
 	    *having_new=IVP_FALSE;
-	    if(call_recalc_svals) {
+	    if(call_recalc_svals && friction_dist) {
 		friction_dist->recalc_friction_s_vals();
 		friction_dist->read_materials_for_contact_situation(friction_dist->tmp_contact_info);		
 	    }
@@ -1517,7 +1517,7 @@ void IVP_Impact_System::add_pair_to_impact_system(IVP_Friction_Core_Pair *new_pa
 }
 
 void IVP_Impact_System::synchronize_core_for_impact_system(IVP_Core *new_core) {
-    if (IVP_MTIS_SIMULATED( new_core->movement_state )){
+    if (IVP_MTIS_SIMULATED( new_core->movement_state ) && !new_core->pinned){
 	new_core->synchronize_with_rot_z();
     }
 }

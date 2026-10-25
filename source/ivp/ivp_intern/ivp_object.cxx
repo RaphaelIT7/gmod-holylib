@@ -49,6 +49,10 @@ void IVP_Real_Object::change_nocoll_group_ident(const char *new_string ) {
 void IVP_Real_Object::set_pinned(IVP_BOOL is_pinned)
 {
     IVP_Core* core = this->get_core();
+	if (core->physical_unmoveable)
+	{
+		return;
+	}
 
     /**
      * Set the core pinned flag and zero the velocities
@@ -71,6 +75,8 @@ void IVP_Real_Object::set_pinned(IVP_BOOL is_pinned)
 	 */
 	core->inv_rot_inertia.set(0.0f, 0.0f, 0.0f);
 	core->inv_rot_inertia.hesse_val = 0.0f;
+
+	// clear any velocity change
 	core->speed_change.set_to_zero();
 	core->rot_speed_change.set_to_zero();
 
@@ -161,20 +167,8 @@ void IVP_Real_Object::recompile_material_changed() {
 }
 
 void IVP_Real_Object::force_grow_friction_system() {
-    IVP_Movement_Type movement_state_temp;
-    IVP_Movement_Type movement_state_temp2;
-
-    movement_state_temp = flags.object_movement_state;
-    flags.object_movement_state = IVP_Movement_Type::IVP_MT_GET_MINDIST;
-    movement_state_temp2 = physical_core->movement_state;
-    physical_core->movement_state = IVP_Movement_Type::IVP_MT_GET_MINDIST;
-
-    physical_core->environment->mindist_manager->recheck_ov_element(this);
-
-    flags.object_movement_state = movement_state_temp;
-    physical_core->movement_state = movement_state_temp2;
-
-    physical_core->grow_friction_system();
+    this->get_all_near_mindists();
+    this->get_core()->grow_friction_system();
 }
 
 void IVP_Real_Object::enable_collision_detection(IVP_BOOL enable){
@@ -590,9 +584,12 @@ void IVP_Real_Object::get_all_near_mindists() {
     IVP_Movement_Type temp_movement= (IVP_Movement_Type)physical_core->movement_state;
     
     physical_core->movement_state=IVP_MT_GET_MINDIST;
+	IVP_Movement_Type temp_obj_movement = get_movement_state();
+	set_movement_state( IVP_MT_GET_MINDIST );
     physical_core->environment->get_mindist_manager()->recheck_ov_element(this);
     
     this->physical_core->movement_state=temp_movement;
+	set_movement_state( temp_obj_movement );
 }
 
 void IVP_Real_Object::recheck_collision_filter(){
@@ -603,8 +600,7 @@ void IVP_Real_Object::recheck_collision_filter(){
 
 void IVP_Real_Object::revive_nearest_objects_grow_fs() {
   if(this->get_core()->physical_unmoveable) {
-    this->get_all_near_mindists();
-    this->get_core()->grow_friction_system();
+    this->force_grow_friction_system();
     this->get_core()->revive_adjacent_to_unmoveable();
   } else {
     this->get_core()->ensure_core_to_be_in_simulation();

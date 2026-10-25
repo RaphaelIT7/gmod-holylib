@@ -76,14 +76,15 @@ hk_result hk_Ragdoll_Constraint_BP_Builder::initialize_from_limited_ball_socket_
 			r.m_transform_os_ks[0].get_column(2) = m0.get_column( axis );
 			r.m_transform_os_ks[1].get_column(2) = m1.get_column( axis );
 
+			// after HK_PI, the ragdoll limits start to have errors, use a hinge instead
 			if( limit_diff[axis] > HK_PI && limit_diff[axis] < HK_PI*2.f )
 				limit_diff[axis] = HK_PI;
 
 			r.m_limits[ HK_LIMIT_CONE ].set_limits( -limit_diff[axis] * 0.5f, limit_diff[axis] * 0.5f);
 
-			r.m_axisMap[0] = naxis;
-			r.m_axisMap[1] = axis;
-			r.m_axisMap[2] = paxis;
+			r.m_axisMap[HK_LIMIT_TWIST] = naxis;
+			r.m_axisMap[HK_LIMIT_CONE] = axis;
+			r.m_axisMap[HK_LIMIT_PLANES] = paxis;
 
 			break;
 		}
@@ -166,13 +167,13 @@ hk_result hk_Ragdoll_Constraint_BP_Builder::initialize_from_limited_ball_socket_
 				r.m_transform_os_ks[0].get_column(2) = m0.get_column( u_axis );
 				r.m_transform_os_ks[1].get_column(2) = m1.get_column( u_axis );
 
-				r.m_limits[ HK_LIMIT_TWIST ].set_limits( bp->m_angular_limits[axis_of_min_inertia].m_min, bp->m_angular_limits[axis_of_min_inertia].m_max );
+				r.m_limits[ HK_LIMIT_TWIST ].set_limits( -bp->m_angular_limits[axis_of_min_inertia].m_max, -bp->m_angular_limits[axis_of_min_inertia].m_min );
 				r.m_limits[ HK_LIMIT_CONE ]. set_limits( - limit_diff[u_axis] * 0.5f, limit_diff[u_axis] * 0.5f);
 				r.m_limits[ HK_LIMIT_PLANES].set_limits( bp->m_angular_limits[l_axis].m_min, bp->m_angular_limits[l_axis].m_max );
 
-				r.m_axisMap[0] = axis_of_min_inertia;
-				r.m_axisMap[1] = u_axis;
-				r.m_axisMap[2] = l_axis;
+				r.m_axisMap[HK_LIMIT_TWIST] = axis_of_min_inertia;
+				r.m_axisMap[HK_LIMIT_CONE] = u_axis;
+				r.m_axisMap[HK_LIMIT_PLANES] = l_axis;
 			}
 			break;
 		}
@@ -221,4 +222,7 @@ void hk_Ragdoll_Constraint_BP_Builder::set_ragdoll_constraint(
 	r.m_limits[ HK_LIMIT_CONE ]. set_limits( cone_limits.m_min, cone_limits.m_max);
 	r.m_limits[ HK_LIMIT_PLANES].set_limits( plane_limits.m_min, plane_limits.m_max );
 	r.m_constrainTranslation = constrainTranslation;
+	r.m_axisMap[HK_LIMIT_TWIST] = 0;
+	r.m_axisMap[HK_LIMIT_CONE] = 1;
+	r.m_axisMap[HK_LIMIT_PLANES] = 2;
 }

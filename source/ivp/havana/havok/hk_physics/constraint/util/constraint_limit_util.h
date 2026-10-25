@@ -2,6 +2,8 @@
 #ifndef HK_PHYSICS_CONSTRAINT_LIMIT_UTIL_H
 #define HK_PHYSICS_CONSTRAINT_LIMIT_UTIL_H
 
+#include <cfloat>
+
 // IVP_EXPORT_PUBLIC
 class hk_Constraint_Limit_Util {
 public:
@@ -261,6 +263,10 @@ public:
 
 
 			impulse = correction_per_psi * virtual_mass;
+			if (impulse < FLT_EPSILON)
+			{
+				impulse = FLT_EPSILON;
+			}
 
 			if ( hk_Math::fabs( impulse ) * pi.get_inv_delta_time() > limit.m_joint_friction ){
 				hk_real factor = limit.m_joint_friction/ hk_Math::fabs( impulse ) * pi.get_delta_time();

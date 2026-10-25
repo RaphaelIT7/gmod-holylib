@@ -271,6 +271,8 @@ IVP_DOUBLE IVP_Compact_Ledge_Solver::calc_s_val(const IVP_Compact_Edge *edge, co
 }
 #endif
 
+static const IVP_DOUBLE ivp_cls_sign_eps = 1.1754943508222875e-38;
+
 void IVP_Compact_Ledge_Solver::calc_unscaled_s_val_K_space(const IVP_Compact_Ledge *c_ledge, const IVP_Compact_Edge *edge, const IVP_U_Point *p_object,IVP_Unscaled_S_Result *result)
 {
      // calcs intersect pos
@@ -283,8 +285,8 @@ void IVP_Compact_Ledge_Solver::calc_unscaled_s_val_K_space(const IVP_Compact_Led
     IVP_U_Point d1; d1.subtract( p1, p_object );
     IVP_DOUBLE a = -d.dot_product( &d0 );
     IVP_DOUBLE b = d.dot_product( &d1 );
-    result->checks[0] = a;
-    result->checks[1] = b;
+    result->checks[0] = a + ivp_cls_sign_eps;
+    result->checks[1] = b + ivp_cls_sign_eps;
 }
 
 
@@ -382,9 +384,9 @@ void IVP_Compact_Ledge_Solver::calc_unscaled_qr_vals_F_space(const IVP_Compact_L
     
     IVP_ASSERT ( sizeof( result->checks[0]) == sizeof(IVP_FLOAT));
     char *res = (char *) & result->checks[0];
-    ((IVP_FLOAT *)( res + ivp_uqr_mod_table[this_edge_index] ))[0] = r;
-    ((IVP_FLOAT *)( res + ivp_uqr_mod_table[this_edge_index+1] ))[0] = Det - q - r;
-    ((IVP_FLOAT *)( res + ivp_uqr_mod_table[this_edge_index+2] ))[0] = q;
+    ((IVP_FLOAT *)( res + ivp_uqr_mod_table[this_edge_index] ))[0] = r + ivp_cls_sign_eps;
+    ((IVP_FLOAT *)( res + ivp_uqr_mod_table[this_edge_index+1] ))[0] = (Det - q - r) + ivp_cls_sign_eps;
+    ((IVP_FLOAT *)( res + ivp_uqr_mod_table[this_edge_index+2] ))[0] = q + ivp_cls_sign_eps;
 }
 
 
@@ -446,8 +448,8 @@ IVP_RETURN_TYPE IVP_Compact_Ledge_Solver::calc_unscaled_KK_vals(const IVP_KK_Inp
     b = L_area.dot_product( &in.K_Los[1] );
     x = L_area.dot_product( in.L_Los[0] );
     ab = a - b;
-    result->checks_K[0] = (a-x) * ab;
-    result->checks_K[1] = (x-b) * ab;
+    result->checks_K[0] = (a-x) * ab + ivp_cls_sign_eps;
+    result->checks_K[1] = (x-b) * ab + ivp_cls_sign_eps;
 
     return IVP_OK;
   }
@@ -553,8 +555,7 @@ IVP_DOUBLE IVP_Compact_Ledge_Solver::quad_dist_edge_to_point_K_space(const IVP_C
     IVP_U_Point vec_world;
     vec_world.inline_set_vert_to_area_defined_by_three_points(p0, p1, object_pos );
     
-    IVP_DOUBLE iqlen = 1.0f / p0->quad_distance_to(p1);
-    return vec_world.quad_length() * iqlen;    
+    return vec_world.quad_length() / (p0->quad_distance_to(p1) + (IVP_DOUBLE)1e-18f);
 }
 
 IVP_DOUBLE IVP_Compact_Ledge_Solver::calc_qlen_PF_F_space(const IVP_Compact_Ledge *ledge, const IVP_Compact_Triangle *tri,const  IVP_U_Point *object_pos)

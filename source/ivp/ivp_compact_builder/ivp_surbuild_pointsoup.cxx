@@ -268,13 +268,13 @@ IVP_DOUBLE IVP_SurMan_PS_Plane::get_area_size(){
   return sum;
 }
 
-IVP_DOUBLE IVP_SurMan_PS_Plane::get_qlen_of_all_edges(){
+IVP_DOUBLE IVP_SurMan_PS_Plane::get_len_of_all_edges(){
   IVP_DOUBLE sum = 0.0;
   for (int i = 0; i< points.len(); i++){
     int in = (i+1) % points.len();
     IVP_U_Point *a = points.element_at(i);
     IVP_U_Point *b = points.element_at(in);
-    sum += a->quad_distance_to(b);
+    sum += IVP_Inline_Math::ivp_sqrtf(a->quad_distance_to(b));
   }
   return sum;
 }
@@ -342,7 +342,7 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
 	    }
 	    // check area size of facet
 	    IVP_DOUBLE area_sum = plane->get_area_size();
-	    IVP_DOUBLE qedge_sum = plane->get_qlen_of_all_edges();
+	    IVP_DOUBLE edge_sum = plane->get_len_of_all_edges();
 
 	    // swap area
 	    if (area_sum < 0){
@@ -352,7 +352,7 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
 		//point_indizes.reverse();
 	    }
 	    
-	    if ( area_sum  <  0.5 * P_MIN_EDGE_LEN * IVP_Inline_Math::ivp_sqrtf(qedge_sum)){
+	    if ( area_sum < 0.5 * P_MIN_EDGE_LEN * edge_sum ){
 	      // degenarete area -> find and delete interior point
 	      // search point which is farest from point 0
 	      IVP_DOUBLE max_dist = -1.0;
@@ -463,6 +463,7 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_le
 	int d = 0;
 	for (int i=0; i<points_in->len(); i++) {
 	    IVP_U_Point *p = points_in->element_at(i);
+		p->hesse_val = 0.0f;
 	    IVP_U_Point *found_point = point_hash.find_point(p);
 	    if (found_point){
 		continue;
@@ -503,7 +504,7 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_le
     IVP_BOOL try_unjumbled = IVP_TRUE;
     IVP_BOOL qhull_free_flag = IVP_FALSE;
     for ( IVP_DOUBLE random_eps = 1e-12f; random_eps < 0.02f;  ){  
-      snprintf(flags, sizeof(flags), "qhull Qs Pp C-0 W1e-14 E1.0e-18"); // "qhull QbB Pp"
+      snprintf(flags, sizeof(flags), "qhull Qs Pp C-0 W1e-14 E1.0e-6"); // "qhull QbB Pp"
       int exitcode = 0;
       if (try_unjumbled){
 	  if (qhull_free_flag)	  qh_freeqhull(!qh_ALL);                   /* free long memory  */
@@ -543,7 +544,9 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_le
 	    // get discarded by qhull)
 	    for(int i = 0; i < points.len(); i++)
 	    {
-		point_hash.add_point(points.element_at(i));
+			IVP_U_Point *pointIn = points.element_at(i);
+			pointIn->hesse_val = 0.0;
+			point_hash.add_point(pointIn);
 	    }
 	}
 
@@ -554,10 +557,14 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_le
 	    // cycle through the compact ledge points, find the corresponding point
 	    // in the hash and copy the extra data (hesse_val) value to the compact
 	    // point
+		// copy compact poly points into this temp because the hash assumes they are IVP_U_Points
+		// that might contain doubles, whereas Compact_Poly_Point contains floats
+		IVP_U_Point searchKey;
 	    for(int i = 0; i < compact_ledge_num_points; i++)
 	    {
 		IVP_Compact_Poly_Point* cpp = &((res->get_point_array())[i]);
-		IVP_U_Point* associated_point = point_hash.find_point(reinterpret_cast<IVP_U_Point*>(cpp));
+		searchKey.set( cpp );
+		IVP_U_Point* associated_point = point_hash.find_point(&searchKey);
 
 		if(associated_point)
 		{

@@ -1162,9 +1162,13 @@ void IVP_Friction_System::do_friction_system(const IVP_Event_Sim *es_in)
 #endif
 
     if((this->friction_dist_number - this->complex_not_necessary_number) > IVP_MAX_FRICTION_MATRIX) {
-	this->static_fr_oversized_matrix_panic();
-	my_mem->end_memory_transaction();
-	return;    
+	IVP_Anomaly_Manager *am = l_environment->get_anomaly_manager();
+	if (am->max_contacts_exceeded_check_freezing( (IVP_Core **)cores_of_friction_system.elems, cores_of_friction_system.len() ))
+	{
+		this->static_fr_oversized_matrix_panic();
+		my_mem->end_memory_transaction();
+		return;
+	}
     }
     
     IVP_Friction_Solver fr_solver(this,es_in);
@@ -1226,12 +1230,13 @@ void IVP_Friction_System::undo_complex_pushes() {
 
 IVP_DOUBLE IVP_Friction_System::get_max_energy_gain() {
     IVP_DOUBLE sum_gain=0.0f;
+    const IVP_FLOAT gravity = l_environment->gravity_scalar;
+    const IVP_FLOAT mass = l_environment->get_anomaly_limits()->min_friction_mass;
     for (int k = cores_of_friction_system.len()-1; k>=0; k--){
 	IVP_Core *my_core = cores_of_friction_system.element_at(k);
 	if(my_core->physical_unmoveable==IVP_FALSE) {
-	    IVP_DOUBLE force_gravity=my_core->get_mass()*9.81f; //@@TL #+# oh oh 
 	    // allow lift of 10cm
-	    sum_gain+=force_gravity*0.1f;
+	    sum_gain+=IVP_DOUBLE(mass*gravity)*0.1;
 	}
     }
     return sum_gain;

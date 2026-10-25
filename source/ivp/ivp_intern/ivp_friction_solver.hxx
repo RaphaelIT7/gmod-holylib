@@ -103,6 +103,7 @@ void IVP_Friction_Solver::async_apply_impulse( const IVP_Impact_Solver_Long_Term
 	IVP_U_Float_Point hp; hp.set_pairwise_mult( &info->contact_cross_nomal_cs[0], c0->get_inv_rot_inertia());
 	c0->rot_speed_change.add_multiple( &hp, -impulse);
 	c0->speed_change.add_multiple( &info->surf_normal, -impulse * c0->get_inv_mass());
+	c0->apply_velocity_limit();
     }
 
     IVP_Core *c1;
@@ -110,6 +111,7 @@ void IVP_Friction_Solver::async_apply_impulse( const IVP_Impact_Solver_Long_Term
 	IVP_U_Float_Point hp; hp.set_pairwise_mult( &info->contact_cross_nomal_cs[1], c1->get_inv_rot_inertia());
 	c1->rot_speed_change.add_multiple( &hp, impulse);
 	c1->speed_change.add_multiple( &info->surf_normal, impulse * c1->get_inv_mass());
+	c1->apply_velocity_limit();
     }
 }
 

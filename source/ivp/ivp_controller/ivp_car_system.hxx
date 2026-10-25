@@ -285,6 +285,8 @@ public:
 	// Debug
 	void SetCarSystemDebugData( const IVP_CarSystemDebugData_t &carSystemDebugData ) override;
 	void GetCarSystemDebugData( IVP_CarSystemDebugData_t &carSystemDebugData ) override;
+
+	void event_object_deleted(IVP_Event_Object *) override;
 };
 
 

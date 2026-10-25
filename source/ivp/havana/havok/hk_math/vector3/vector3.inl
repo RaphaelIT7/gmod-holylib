@@ -344,7 +344,8 @@ void hk_Vector3::normalize()
 hk_real hk_Vector3::normalize_with_length()
 {
 	hk_real len = this->length();
-	*this *= (1.0f)/len;
+	// add a very small number to avoid divide by zero
+	*this *= (1.0f)/(len + 1e-18f);
 	return len;
 }
 

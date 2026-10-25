@@ -174,8 +174,6 @@ IVP_Environment::IVP_Environment(IVP_Environment_Manager *manager,IVP_Applicatio
 	this->delete_debug_information = IVP_TRUE;
     }
 
-    integrated_energy_damp = IVP_Inline_Math::ivp_expf ( IVP_FLOAT(log(0.9f)) * get_delta_PSI_time() );
-
     IVP_Mindist_Minimize_Solver::init_mms_function_table();
     IVP_Mindist_Event_Solver::init_mim_function_table();
 
@@ -206,6 +204,7 @@ void IVP_Environment::set_delta_PSI_time(IVP_DOUBLE psi_time){
     IVP_ASSERT(psi_time <= IVP_MAX_DELTA_PSI_TIME);
     delta_PSI_time = psi_time;
     inv_delta_PSI_time = 1.0f / delta_PSI_time;
+    integrated_energy_damp = IVP_Inline_Math::ivp_expf ( IVP_FLOAT(log(0.9f)) * delta_PSI_time );
 }
 
 IVP_Environment::~IVP_Environment(){
@@ -985,9 +984,8 @@ void IVP_Environment::simulate_psi(IVP_Time /*psi_time*/){
     return;
 }
 
-void IVP_Environment::set_global_collision_tolerance( IVP_DOUBLE tolerance, [[maybe_unused]] IVP_DOUBLE gravity_length ){
-    ivp_mindist_settings.set_collision_tolerance( tolerance );
-    // CRACK - lol. according to both IDA and Ghidra, nothing is done with gravity_length
+void IVP_Environment::set_global_collision_tolerance( IVP_DOUBLE tolerance, IVP_DOUBLE gravity_length ){
+	ivp_mindist_settings.set_collision_tolerance( tolerance, gravity_length );
 }
 
 IVP_FLOAT IVP_Environment::get_global_collision_tolerance()

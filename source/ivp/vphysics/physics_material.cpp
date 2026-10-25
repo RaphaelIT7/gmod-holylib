@@ -46,7 +46,7 @@ public:
 		return 0;
 	}
 
-	virtual IVP_DOUBLE get_damping()
+	IVP_DOUBLE get_damping() override
 	{
 		return data.physics.dampening;
 	}

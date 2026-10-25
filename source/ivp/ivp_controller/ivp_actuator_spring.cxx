@@ -338,6 +338,10 @@ void IVP_Actuator_Suspension::do_simulation_controller(IVP_Event_Sim *es,IVP_U_V
 	IVP_U_Float_Point impulse_vector_ws;
 	impulse_vector_ws.set_multiple(&dir_ws, impulse );
 	pc1->async_push_core_ws(&pos1_ws, &impulse_vector_ws);
+
+	if (!pc1->objects.element_at(0)->get_first_friction_synapse()){
+	    impulse_clipped *= 0.1f;
+	}
 	
 	impulse_vector_ws.set_multiple(&dir_ws, impulse_clipped );
 	pc0->async_push_core_ws(&pos0_ws, &impulse_vector_ws);

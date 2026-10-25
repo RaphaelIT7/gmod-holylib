@@ -69,7 +69,8 @@ public:
     center_gradient = 0.0f;
   }
 
-  int get_synapse_check_count( IVP_Environment* pEnvironment );
+	int get_synapse_check_count(IVP_Environment *);
+	int too_many_synapses_checked_error_get_additional( IVP_Environment *, int checked );
     
 protected:  
     IVP_Hull_Manager();

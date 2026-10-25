@@ -70,7 +70,7 @@ public:
 	// base size for event queue delta time stepping @@CB
 	IVP_DOUBLE event_queue_min_delta_time_base;
 
-    void set_collision_tolerance(IVP_DOUBLE);
+    void set_collision_tolerance(IVP_DOUBLE, IVP_DOUBLE gravity_length);
 	void set_event_queue_min_delta_time_base(IVP_DOUBLE); //@@CB
     IVP_Mindist_Settings();
 } ivp_mindist_settings;

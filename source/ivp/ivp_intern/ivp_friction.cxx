@@ -95,7 +95,7 @@ IVP_Contact_Point::IVP_Contact_Point( IVP_Mindist *md)
 	const IVP_Compact_Edge *e1 = syn1->edge;
 	IVP_U_Point wHesse_vecF_Fos;
 	IVP_CLS.calc_hesse_vec_object_not_normized(e1, e1->get_compact_ledge(), &wHesse_vecF_Fos);
-	inv_triangle_det = 1.0f / wHesse_vecF_Fos.real_length();
+	inv_triangle_det = 1.0f / (wHesse_vecF_Fos.real_length() + (IVP_DOUBLE)1e-18f);
     }
 
     this->old_energy_dynamic_fr=0.0f;
@@ -113,7 +113,8 @@ IVP_Contact_Point::IVP_Contact_Point( IVP_Mindist *md)
     slowly_turn_on_keeper = IVP_SLOWLY_TURN_ON_KEEPER;
     l_friction_system=NULL;
     two_friction_values=IVP_FALSE;
-    
+	this->last_contact_point_ws.set_to_zero();
+	this->surf_normal_ws.set_to_zero();
 }
 
 
@@ -246,6 +247,19 @@ void IVP_Contact_Point::static_friction_single(const IVP_Event_Sim *es,IVP_FLOAT
 bool IVP_Contact_Point::friction_force_local_constraint_2d_wheel( IVP_Core *core_a, IVP_Impact_Solver_Long_Term *info,
 																  const IVP_Event_Sim *es, IVP_FLOAT &flEnergy )
 {
+	// Dampening on vehicle wheels - just from the world.
+	// TODO: Figure out how to deal with dampening on wheel and adding the world to it.
+	// Change to damp_object()
+	IVP_Material *materials[2];
+	get_material_info( materials );
+	IVP_DOUBLE flDamping = materials[1]->get_damping();
+	if ( flDamping != 0.0f )
+	{
+		IVP_U_Float_Point rot_damp;
+		rot_damp.set( 0.0f, 0.0f, 0.0f );
+		core_a->damp_object( es->delta_time, &rot_damp, flDamping );
+	}
+
 	IVP_Constraint_Car_Object *wheel = core_a->car_wheel;
 	IVP_Constraint_Solver_Car *solver = wheel->solver_car;
 
@@ -526,7 +540,7 @@ void IVP_Contact_Point::friction_force_local_constraint_1d(const IVP_Event_Sim *
     IVP_U_Float_Point world_speed[2];
     for(i=0;i<2;i++) {
 	IVP_Core *c = core[i];
-	if(!c->physical_unmoveable){
+	if(!c->physical_unmoveable && !c->pinned){
 	    c->get_surface_speed(&tmp_contact_info->contact_point_cs[i],&world_speed[i]);
 	} else {
 	    world_speed[i].set_to_zero();
@@ -548,7 +562,7 @@ void IVP_Contact_Point::friction_force_local_constraint_1d(const IVP_Event_Sim *
 	translation_vec[i].set_to_zero();
 	rotation_vec[i].set_to_zero();
 	
-	if(!c->physical_unmoveable) {
+	if(!c->physical_unmoveable && !c->pinned) {
 	    IVP_U_Matrix *mat=&c->m_world_f_core_last_psi;
 	   
 	    IVP_U_Float_Point push_world_vec;
@@ -583,7 +597,7 @@ void IVP_Contact_Point::friction_force_local_constraint_1d(const IVP_Event_Sim *
     for(i=0;i<2;i++) {
 	IVP_Core *c = core[i];
 	
-	if(!c->physical_unmoveable) {
+	if(!c->physical_unmoveable && !c->pinned) {
 	    c->speed.add_multiple(&translation_vec[i],push_val);
 	    c->rot_speed.add_multiple(&rotation_vec[i],push_val);
 	}
@@ -1691,16 +1705,13 @@ IVP_DOUBLE IVP_Mutual_Energizer::calc_energy_potential(IVP_DOUBLE speed_pot,IVP_
     speed=x*inv_mass0;
     E0=mass0*speed*speed;
 
-    IVP_DOUBLE tmp = energy_now+P_DOUBLE_EPS - (E0+E1);
-	// VALVE: For very large energies (e.g. 3e15) this can be slightly off due to precision errors :(
-	// Clamp instead
-	// IVP_ASSERT(tmp>=0);
-	if ( tmp < 0 )
+	IVP_DOUBLE tmp = energy_now - E0 - E1;
+	if (tmp < -P_DOUBLE_EPS)
 	{
-		tmp = 0;
+		return 0.0f;
 	}
 
-    return 0.5f*(energy_now-E0-E1);
+	return 0.5f*(tmp+P_DOUBLE_EPS);
 }
 
 // rot moment in a direction
@@ -1976,10 +1987,10 @@ void IVP_Contact_Point::calc_virtual_mass_of_mindist() {
 	core[i] = get_synapse(i)->get_object()->get_core();
     }
     IVP_DOUBLE virt_mass_mindist_no_dir;
-    if(core[0]->physical_unmoveable) {
+    if(core[0]->physical_unmoveable || core[0]->pinned) {
 	virt_mass_mindist_no_dir =  core[1]->calc_virt_mass_worst_case(&tmp_contact_info->contact_point_cs[1]);
     } else {
-	if(core[1]->physical_unmoveable) {
+	if(core[1]->physical_unmoveable || core[1]->pinned) {
 	    virt_mass_mindist_no_dir =  core[0]->calc_virt_mass_worst_case(&tmp_contact_info->contact_point_cs[0]);
 	} else {
 	    IVP_DOUBLE vmass_no_dir[2];

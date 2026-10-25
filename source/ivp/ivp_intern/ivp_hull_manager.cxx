@@ -63,3 +63,9 @@ int IVP_Hull_Manager::get_synapse_check_count( IVP_Environment* pEnvironment )
 {
     return pEnvironment->get_anomaly_limits()->max_collision_checks_per_psi;
 }
+
+int IVP_Hull_Manager::too_many_synapses_checked_error_get_additional( IVP_Environment *pEnvironment, int checked )
+{
+	IVP_Anomaly_Manager *am = pEnvironment->get_anomaly_manager();
+	return am->max_collision_checks_exceeded( checked );
+}

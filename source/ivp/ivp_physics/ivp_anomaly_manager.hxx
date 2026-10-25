@@ -30,7 +30,7 @@ public:
     inline IVP_FLOAT get_max_velocity() const { return max_velocity; } // [m/s]**2
     inline IVP_FLOAT get_max_angular_velocity_per_psi() const { return max_angular_velocity_per_psi; } // [radians/psi]**2
     inline int get_max_collisions_per_psi(){ return max_collisions_per_psi; }  // per core
-    inline int get_max_collision_checks_per_psi() { return max_collision_checks_per_psi; }
+    inline int get_max_collision_checks_per_psi() { return max_collision_checks_per_psi; } // per hull manager
 
     virtual void environment_will_be_deleted(IVP_Environment *);
 
@@ -56,10 +56,12 @@ public:
     virtual void max_angular_velocity_exceeded( IVP_Anomaly_Limits *, IVP_Core *, IVP_U_Float_Point *angular_velocity_in_out);
     virtual void inter_penetration( IVP_Mindist *mindist,IVP_Real_Object *, IVP_Real_Object *, IVP_DOUBLE);
     virtual IVP_BOOL max_collisions_exceeded_check_freezing(IVP_Anomaly_Limits *, IVP_Core *); // return true if object should be temp. freezed
+	virtual int max_collision_checks_exceeded(int totalChecks); // return number of additional checks this PSI
+	virtual IVP_BOOL max_contacts_exceeded_check_freezing(IVP_Core **pCoreList, int coreCount); // return true if friction system should be frozen
 
     virtual void environment_will_be_deleted(IVP_Environment *);
 
-	// to solve penetration we push objects with 2* force of gravity
+	// to solve penetration we push objects with 4* force of gravity
 	// there might be situation in that this is not necessary 
 	//  -> derive from IVP_Anomaly_Manager and have different implementation
     virtual IVP_FLOAT get_push_speed_penetration( IVP_Real_Object *, IVP_Real_Object *);

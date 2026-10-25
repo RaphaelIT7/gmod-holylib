@@ -82,11 +82,44 @@ int hk_Breakable_Constraint::get_vmq_storage_size()
 
 struct BreakableConstraintHelper
 {
-	BreakableConstraintHelper( hk_Rigid_Body* b )
+	BreakableConstraintHelper( hk_Rigid_Body* b, hk_real massScale )
 		:	m_core(b->get_rigid_body_core()),
 			m_old_lin_vel(m_core->_get_linear_velocity()),
-			m_old_ang_vel(m_core->_get_spin())
+			m_old_ang_vel(m_core->_get_spin()),
+			m_scaled(false),
+			m_ivp_core(b->get_core())
 	{
+		IVP_Core* core = b->get_core();
+		if ( massScale > 0.0f && massScale != 1.0f && !core->physical_unmoveable && !core->pinned )
+		{
+			m_inertia = (IVP_U_Float_Hesse*)core->get_rot_inertia();
+			m_inv_inertia = (IVP_U_Float_Hesse*)core->get_inv_rot_inertia();
+			m_old_inertia = *m_inertia;
+			m_old_inv_inertia = *m_inv_inertia;
+
+			if ( massScale * m_inertia->hesse_val > 10000.0f )
+				massScale = 10000.0f / m_inertia->hesse_val;
+
+			const hk_real invScale = 1.0f / massScale;
+			for ( int i = 0; i < 3; i++ )
+			{
+				m_inertia->k[i] *= massScale;
+				m_inv_inertia->k[i] *= invScale;
+			}
+			m_inertia->hesse_val *= massScale;
+			m_inv_inertia->hesse_val *= invScale;
+			m_scaled = true;
+		}
+	}
+
+	void RestoreMass()
+	{
+		if ( m_scaled )
+		{
+			*m_inertia = m_old_inertia;
+			*m_inv_inertia = m_old_inv_inertia;
+			m_scaled = false;
+		}
 	}
 
 	bool breaks( hk_real linear_limit, hk_real angular_limit )
@@ -112,6 +145,9 @@ struct BreakableConstraintHelper
 
 	void UnapplyConstraint()
 	{
+		if (m_ivp_core->physical_unmoveable || m_ivp_core->pinned)
+			return;
+
 		// restore old values on break
 		m_core->_get_linear_velocity() = m_old_lin_vel;
 		m_core->_get_spin() = m_old_ang_vel;
@@ -120,6 +156,12 @@ struct BreakableConstraintHelper
 	hk_Rigid_Body_Core* m_core;
 	hk_Vector3 m_old_lin_vel;
 	hk_Vector3 m_old_ang_vel;
+	IVP_U_Float_Hesse* m_inertia;
+	IVP_U_Float_Hesse* m_inv_inertia;
+	IVP_U_Float_Hesse m_old_inertia;
+	IVP_U_Float_Hesse m_old_inv_inertia;
+	bool m_scaled;
+	IVP_Core* m_ivp_core;
 };
 
 
@@ -146,8 +188,8 @@ int	hk_Breakable_Constraint::setup_and_step_constraint( hk_PSI_Info& pi, void *m
 	 */
 	//HK_ASSERT(0 && "Incomplete implementation");
 	m_is_broken = false;
-	BreakableConstraintHelper ss0( get_rigid_body(0) );
-	BreakableConstraintHelper ss1( get_rigid_body(1) );
+	BreakableConstraintHelper ss0( get_rigid_body(0), m_bodyMassScale[0] );
+	BreakableConstraintHelper ss1( get_rigid_body(1), m_bodyMassScale[1] );
 	
 	m_real_constraint->setup_and_step_constraint(pi, mem, tau_factor, damp_factor);
 
@@ -161,6 +203,8 @@ int	hk_Breakable_Constraint::setup_and_step_constraint( hk_PSI_Info& pi, void *m
 		ss0.UnapplyConstraint();
 		ss1.UnapplyConstraint();
 	}
+	ss0.RestoreMass();
+	ss1.RestoreMass();
 	return m_real_constraint->get_vmq_storage_size();
 }
 
@@ -172,8 +216,8 @@ void hk_Breakable_Constraint::step_constraint( hk_PSI_Info& pi, void *mem, hk_re
 	//HK_ASSERT(0 && "Incomplete implementation");
 	//if( m_is_broken == false )
 	{
-		BreakableConstraintHelper ss0( get_rigid_body(0) );
-		BreakableConstraintHelper ss1( get_rigid_body(1) );
+		BreakableConstraintHelper ss0( get_rigid_body(0), m_bodyMassScale[0] );
+		BreakableConstraintHelper ss1( get_rigid_body(1), m_bodyMassScale[1] );
 
 		m_real_constraint->step_constraint(pi,mem,tau_factor,damp_factor);
 
@@ -186,6 +230,8 @@ void hk_Breakable_Constraint::step_constraint( hk_PSI_Info& pi, void *mem, hk_re
 			ss0.UnapplyConstraint();
 			ss1.UnapplyConstraint();
 		}
+		ss0.RestoreMass();
+		ss1.RestoreMass();
 	}	
 }
 

@@ -281,9 +281,11 @@ void IVP_Constraint_Solver_Car::do_simulation_controller( IVP_Event_Sim *es,
     IVP_DOUBLE *input_vec_ptr = this->co_matrix.desired_vector;
     IVP_ASSERT( this->co_matrix.columns == wheel_objects.len() * 2 );
 
-    int init_local_translation = 0;					// flag
-    int invalid_count= 0;							// for plan B removal
     IVP_FLOAT delta_time = es->delta_time;
+    IVP_DOUBLE max_quad_speed = (IVP_DOUBLE)this->max_delta_speed * this->max_delta_speed;
+    if( core_B->get_mass() >= 10000.0f ){
+	max_quad_speed *= 2.75;
+    }
     
     // for all appendices
     for(int app_cnt=0; app_cnt < wheel_objects.len(); app_cnt++){
@@ -324,16 +326,23 @@ void IVP_Constraint_Solver_Car::do_simulation_controller( IVP_Event_Sim *es,
 	    // difference too high?
 	    {
 		IVP_DOUBLE quad_speed = delta_speed_vec.quad_length();
-		if( quad_speed > (this->max_delta_speed*this->max_delta_speed)){
-		  invalid_count ++;
-		  // IVP_DOUBLE factor = this->max_delta_speed / delta_speed_vec.fast_real_length();
-		  // delta_speed_vec.mult(factor);
-		    psis_left_for_plan_B = 10;
-		  if(this->local_translation_in_use == IVP_FALSE){
-		    // switch to ball and socket local solution
-		    init_local_translation = 1;
-		    break;
-		  }
+		if( quad_speed > max_quad_speed ) {
+		    IVP_U_Point diff;
+		    diff.subtract(&cur_pos_A_in_B, &next_pos_B_in_B);
+		    diff.mult(inv_dtime);
+		    diff.normize();
+		    delta_speed_vec.set_multiple(&diff, 0.25f * this->max_delta_speed);
+
+			core_A->speed.set_to_zero();
+			core_A->speed_change.set_to_zero();
+
+		    if( core_B->current_speed + core_B->max_surface_rot_speed < 1e-4f ){
+			IVP_U_Quat quat_A;
+			IVP_U_Point pos_A;
+			app->real_object->get_quat_world_f_object_AT(&quat_A, &pos_A);
+			m_world_f_B->vmult4(&next_pos_B_in_B, &pos_A);
+			app->real_object->beam_object_to_new_position(&quat_A, &pos_A, IVP_TRUE);
+		    }
 		}
 	    }
 	}
@@ -347,60 +356,6 @@ void IVP_Constraint_Solver_Car::do_simulation_controller( IVP_Event_Sim *es,
 	(*input_vec_ptr++) = delta_speed_vec.k[x_idx];
 	(*input_vec_ptr++) = delta_speed_vec.k[z_idx];	
     }
-
-    if(invalid_count == 0 && (this->local_translation_in_use==IVP_TRUE)){
-      // switch back to regular translation
-	psis_left_for_plan_B--;
-	if (psis_left_for_plan_B <0){
-	      int app_nr;
-	      for(app_nr=0; app_nr< wheel_objects.len(); app_nr++){
-		P_DELETE(this->c_local_ballsocket[app_nr]);
-		this->c_local_ballsocket[app_nr] = NULL;
-	      }
-	      this->local_translation_in_use = IVP_FALSE;
-	      IVP_IF(1){
-		ivp_message("plan B deactivated.\n");
-	      }
-	}
-    }
-    
-    if(init_local_translation==IVP_TRUE){
-	IVP_IF(1){
-	    ivp_message("plan B activated.\n");
-	}
-
-
-#if 1
-        // appendices are too far away -> start plan B (solve problem with local constraints)
-        init_local_translation = 0;
-	int app_nr;
-	for(app_nr=0; app_nr < wheel_objects.len(); app_nr++){
-	    IVP_Constraint_Car_Object *app = wheel_objects.element_at(app_nr);
-	    
-	    IVP_U_Matrix m_core_f_object;
-	    body->real_object->calc_m_core_f_object(&m_core_f_object);
-	    const IVP_U_Matrix *pm_ws_f_Bcs;
-	    IVP_U_Matrix m_ws_f_Aos;
-	    pm_ws_f_Bcs = body->real_object->get_core()->get_m_world_f_core_PSI();
-	    app->real_object->get_m_world_f_object_AT(&m_ws_f_Aos);
-	    
-	    // fill in template
-	    IVP_U_Point anchorB_Bos, anchorB_ws, anchorB_Aos;
-	    anchorB_Bos.set(app->target_position_bs.get_position());
-	    pm_ws_f_Bcs->vmult4(&anchorB_Bos, &anchorB_ws);
-	    m_ws_f_Aos.vimult4(&anchorB_ws, &anchorB_Aos);
-	    IVP_U_Point anchorA_Aos; anchorA_Aos.set_to_zero();
-	    
-	    IVP_Template_Constraint templ;
-	    templ.set_ballsocket_tense_Ros(app->real_object, &anchorA_Aos, body->real_object, &anchorB_Aos);
-	    
-	    IVP_Environment *env = core_B->get_environment();
-	    this->c_local_ballsocket[app_nr] = env->create_constraint(&templ);
-	}
-	this->local_translation_in_use = IVP_TRUE;
-#endif
-    }
-
 
 #if 0
     {

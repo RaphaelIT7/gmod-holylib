@@ -183,6 +183,29 @@ void IVP_Rot_Inertia_Solver::find_center_given_xyz(IVP_U_BigVector<IVP_Compact_L
     }
 }
 
+static IVP_RETURN_TYPE localCalcGeomCenterAndRotInertia(
+	IVP_U_BigVector<IVP_Compact_Ledge>* all_ledges,
+	IVP_U_Point* mass_center_out,
+	IVP_U_Point* rotation_inertia_out)
+{
+    IVP_DOUBLE radius;
+    IVP_U_Point min_extents, max_extents;
+
+    IVP_CLS.calc_bounding_box(all_ledges->element_at(0), &min_extents, &max_extents);
+    for (int l = all_ledges->len()-1; l>0;l--){
+	IVP_U_Point mi, ma;
+	const IVP_Compact_Ledge *ledge = all_ledges->element_at(l);
+	IVP_CLS.calc_bounding_box(ledge, &mi, &ma);
+	min_extents.line_min( &mi );
+	max_extents.line_max( &ma );
+    }
+    mass_center_out->set_interpolate( &min_extents, &max_extents, 0.5f);
+    radius = 0.5f * IVP_Inline_Math::sqrtd( min_extents.quad_distance_to( &max_extents));
+    IVP_DOUBLE estimate_inertia = radius * radius * 0.5f;
+    rotation_inertia_out->set(estimate_inertia, estimate_inertia, estimate_inertia);
+    return IVP_OK;
+}
+
 static IVP_RETURN_TYPE localCalcMassCenterAndRotInertia(
 	IVP_U_BigVector<IVP_Compact_Ledge>* all_ledges,
 	IVP_U_Point* mass_center_out,
@@ -196,7 +219,7 @@ static IVP_RETURN_TYPE localCalcMassCenterAndRotInertia(
 
     // do not check the surface if height of object is very smally
     IVP_DOUBLE surface = IVP_Inline_Math::sqrtd( fmc.qsum_surface );
-    if( fmc.sum_det > surface * surface * surface * 1e-9f){
+    if( fmc.sum_det > fmc.qsum_surface * 1e-9f * surface){
 	transform.init();
 	transform.vv = fmc.get_mass_center();
 	mass_center_out->set(transform.get_position());
@@ -221,21 +244,7 @@ static IVP_RETURN_TYPE localCalcMassCenterAndRotInertia(
 	}
 	return IVP_OK;
     }else{	// no valid masses found, take geom center
-	IVP_DOUBLE radius;
-        IVP_U_Point min_extents, max_extents;
-
-	IVP_CLS.calc_bounding_box(all_ledges->element_at(0), &min_extents, &max_extents);
-	for (int l = all_ledges->len()-1; l>0;l--){
-            IVP_U_Point mi, ma;
-	    const IVP_Compact_Ledge *ledge = all_ledges->element_at(l);
-	    IVP_CLS.calc_bounding_box(ledge, &mi, &ma);
-	    min_extents.line_min( &mi );
-	    max_extents.line_max( &ma );
-	}
-	mass_center_out->set_interpolate( &min_extents, &max_extents, 0.5f);
-	radius = 0.5f * IVP_Inline_Math::sqrtd( min_extents.quad_distance_to( &max_extents));
-	IVP_DOUBLE estimate_inertia = radius * radius * 0.5f;
-	rotation_inertia_out->set(estimate_inertia, estimate_inertia, estimate_inertia);
+	localCalcGeomCenterAndRotInertia(all_ledges, mass_center_out, rotation_inertia_out);
 	return IVP_FAULT;
     }
 }

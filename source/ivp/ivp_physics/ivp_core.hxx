@@ -194,7 +194,7 @@ class IVP_Core: public IVP_Core_Fast {  //
     friend class IVP_Environment;
     
 protected:
-    void init(IVP_Real_Object *io);
+    void init(IVP_Real_Object *io, bool hasGravity);
     IVP_Core(IVP_Real_Object *io);
 public:
         

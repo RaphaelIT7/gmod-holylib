@@ -14,11 +14,22 @@ void IVP_Hull_Manager::check_hull_synapses(IVP_Environment* pEnv){
     // eventually throw hull limit exceeded event
     IVP_FLOAT syn_val;
     int maxcnt = get_synapse_check_count( pEnv );
+	int totalChecked = maxcnt;
     while ( (syn_val = sorted_synapses.find_min_value() - hull_value_next_psi) < 0.0f){ // no other synapses need to be checked
 	// syn hull event is to be fired
 	IVP_Listener_Hull *syn = (IVP_Listener_Hull *)sorted_synapses.find_min_elem(); // corresponding synapse
 	syn->hull_limit_exceeded_event(this,syn_val); // ATT: syn MUST update/remove itself/its peer from min_hash!
-	if (maxcnt-- <0) break;
+	if (--maxcnt < 0)
+	{
+		maxcnt += too_many_synapses_checked_error_get_additional(pEnv, totalChecked);
+
+		// JAY: This will cause penetration errors in favor of performance.
+		// UNDONE: Investigate: Can we sort these events in favor of static objects, so moveable objects will 
+		// be more likely to penetrate each other than fall through the world?
+		if ( maxcnt < 0 )
+			break;
+		totalChecked += maxcnt + 1;
+	}
     }
 }
 

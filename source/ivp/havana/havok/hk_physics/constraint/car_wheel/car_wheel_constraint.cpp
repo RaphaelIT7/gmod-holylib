@@ -26,7 +26,7 @@ struct hk_Car_Wheel_Constraint_Work
 		return addr;
 	}
 #else
-	static inline void *operator new (unsigned int size, void *addr){
+	static inline void *operator new (size_t size, void *addr){
 		return addr;
 	}
 
@@ -63,8 +63,8 @@ void hk_Car_Wheel_Constraint::init_car_wheel_constraint(const hk_Car_Wheel_BP* b
 
 	m_perp_hinge_axis_Aos = hk_Vector3_Util::perp_vec(m_hinge_axis_os[1]);
 
-	m_suspension_limit.init_limit( bp->m_suspension_limit, 1.0f);
-	m_wheel_limit.init_limit( bp->m_wheel_limit, 1.0f );
+	m_suspension_limit.init_limit( bp->m_suspension_limit );
+	m_wheel_limit.init_limit( bp->m_wheel_limit );
 
 	{
 		hk_Rigid_Body* b0 = get_rigid_body(0);

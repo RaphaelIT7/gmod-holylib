@@ -796,7 +796,7 @@ IVP_MRC_TYPE IVP_Mindist_Minimize_Solver::p_minimize_PP(const IVP_Compact_Edge *
 	    const IVP_U_Float_Point *tp_next_os = IVP_CLS.give_object_coords(e,m_cache_Pm);
 	    IVP_DOUBLE grad = Pm_P_Pmos.dot_product(tp_next_os) - dist;
 	    if (grad > 0) {
-		IVP_DOUBLE i_len = IVP_Inline_Math::isqrt_float( tp_next_os->quad_distance_to(Pm_Pmos));
+		IVP_DOUBLE i_len = IVP_Inline_Math::isqrt_float( tp_next_os->quad_distance_to(Pm_Pmos) + (IVP_DOUBLE)1e-18f );
 		grad *= i_len;
 		if(grad > s_grad_max){	// search for greatest step to walk
 			// now we found a new smax _value, check for espilon

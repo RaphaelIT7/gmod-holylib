@@ -6,7 +6,10 @@
  ********************************************************************************/
 
 
+class IVP_SurfaceBuilder_Ledge_Soup;
+
 class IVP_Compact_Recursive {
+	friend class IVP_SurfaceBuilder_Ledge_Soup;
   IVP_U_Vector<IVP_Compact_Ledge> ledges;
   IVP_Compact_Ledge *hull;
 

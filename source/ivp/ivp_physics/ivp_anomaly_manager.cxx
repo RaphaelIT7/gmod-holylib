@@ -83,7 +83,12 @@ void IVP_Anomaly_Manager::solve_inter_penetration_simple( IVP_Real_Object *obj0,
 
     if(IVP_MTIS_SIMULATED(core0->movement_state) && !core0->pinned){
 	IVP_U_Float_Point p0;
-	p0.set_multiple(&vec01, -speed_change * core0->get_mass());
+	float massFactor = core0->get_mass();
+	if (!core1->pinned)
+	{
+		massFactor = core1->get_mass() < massFactor ? core1->get_mass() : massFactor;
+	}
+	p0.set_multiple(&vec01, -speed_change * massFactor);
 	obj0->async_push_object_ws(&m_world_f_core0->vv, &p0);
 	IVP_U_Float_Point rot_speed_object(-d_time,0,0);
 	obj0->async_add_rot_speed_object_cs( &rot_speed_object);
@@ -91,7 +96,12 @@ void IVP_Anomaly_Manager::solve_inter_penetration_simple( IVP_Real_Object *obj0,
 		
     if(IVP_MTIS_SIMULATED(core1->movement_state) && !core1->pinned){
 	IVP_U_Float_Point p1;
-	p1.set_multiple(&vec01, speed_change * core1->get_mass());
+	float massFactor = core1->get_mass();
+	if (!core0->pinned)
+	{
+		massFactor = core0->get_mass() < massFactor ? core0->get_mass() : massFactor;
+	}
+	p1.set_multiple(&vec01, speed_change * massFactor);
 	obj1->async_push_object_ws(&m_world_f_core1->vv, &p1); // PiMoN: was m_world_f_core0, but this is a bug in Valve's code
 	IVP_U_Float_Point rot_speed_object(d_time,0,0);
 	obj1->async_add_rot_speed_object_cs( &rot_speed_object);
@@ -137,6 +147,10 @@ void IVP_Anomaly_Manager::inter_penetration(IVP_Mindist *mindist, IVP_Real_Objec
 
 	// now my_objects[swapped] is unmoveable and has a polygonal ledge
 	IVP_Real_Object *moving_obj=my_objects[1-swapped];
+	IVP_Core *moving_core=moving_obj->get_core();
+	if(!IVP_MTIS_SIMULATED(moving_core->movement_state))
+		return;
+
 	IVP_U_Point world_pos_moving;
 	const IVP_U_Matrix *world_mat;
 	world_mat=moving_obj->get_core()->get_m_world_f_core_PSI();
@@ -178,11 +192,17 @@ void IVP_Anomaly_Manager::inter_penetration(IVP_Mindist *mindist, IVP_Real_Objec
     IVP_U_Float_Point world_push_vec;
 	world_push_vec.set(&world_push_dir);
 
-	IVP_Core *moving_core=moving_obj->get_core();
-    if(IVP_MTIS_SIMULATED(moving_core->movement_state)){
+	// make sure this doesn't build up for objects with many convex pieces
+	// if the push will already move you in the desired direction then don't apply
+	// another one.
+	IVP_U_Float_Point destSpeed;
+	destSpeed.add_multiple( &moving_core->delta_world_f_core_psis, &moving_core->speed_change, 1.0f );
+	float currentSpeed = destSpeed.dot_product( &world_push_vec );
+	if ( currentSpeed < speed_change * 0.1f )
+	{
 		world_push_vec.mult( speed_change );
 		moving_obj->async_add_speed_object_ws( &world_push_vec );
-    }
+	}
 
     IVP_IF(1){
 	IVP_Environment *env = obj0->get_environment();
@@ -206,4 +226,15 @@ IVP_FLOAT IVP_Anomaly_Manager::get_push_speed_penetration( IVP_Real_Object *obj0
 
 IVP_BOOL IVP_Anomaly_Manager::max_collisions_exceeded_check_freezing(IVP_Anomaly_Limits *, IVP_Core *){
     return IVP_TRUE;
+}
+
+int IVP_Anomaly_Manager::max_collision_checks_exceeded(int)
+{
+	// stop checking by default
+	return 0;
+}
+
+IVP_BOOL IVP_Anomaly_Manager::max_contacts_exceeded_check_freezing(IVP_Core **, int)
+{
+	return IVP_TRUE;
 }

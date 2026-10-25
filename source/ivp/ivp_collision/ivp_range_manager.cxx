@@ -11,13 +11,13 @@ IVP_Range_Manager::IVP_Range_Manager(IVP_Environment *env, IVP_BOOL delete_this_
     look_ahead_max_radius_world = 5.0f;   // factor of object radius
     look_ahead_min_distance_world = 0.5f;	// [m]
     look_ahead_max_distance_world = 15.0f;	// [m]
-    look_ahead_min_seconds_world = 0.1f; // [s] this is real min assert(look_ahead_min_seconds > 2*environment->get_delta_PSI_time())
+    look_ahead_min_seconds_world = 0.06f; // [s] this is real min assert(look_ahead_min_seconds > 2*environment->get_delta_PSI_time())
 
     look_ahead_time_intra = 0.5f; 		 // seconds
     look_ahead_max_radius_intra = 0.9f;	 // additional radius as factor of object radius
     look_ahead_min_distance_intra = 0.8f;// [m]
     look_ahead_max_distance_intra = 10.0f;	 // [m]
-    look_ahead_min_seconds_intra = 0.1f; // [s] this is real min assert(look_ahead_min_seconds > 2*environment->get_delta_PSI_time())
+    look_ahead_min_seconds_intra = 0.06f; // [s] this is real min assert(look_ahead_min_seconds > 2*environment->get_delta_PSI_time())
 }
 
 void IVP_Range_Manager::environment_will_be_deleted(IVP_Environment *){

@@ -22,7 +22,7 @@ class hk_Constraint_Limit_BP
 
 		void set_limits(hk_real lower, hk_real upper)
 		{
-			m_limit_is_enabled = HK_TRUE;
+			m_limit_is_enabled = (hk_Math::fabs(lower + HK_PI) > 1e-4f) || (hk_Math::fabs(upper - HK_PI) > 1e-4f);
 			m_limit_min = lower;
 			m_limit_max = upper;
 		}
@@ -30,14 +30,14 @@ class hk_Constraint_Limit_BP
 		void set_friction( hk_real friction)
 		{
 			m_friction_is_enabled = (friction!=0.0f)?HK_TRUE: HK_FALSE;
-			m_joint_friction = friction;
+			m_joint_friction = hk_Math::fabs(friction);
 			m_desired_velocity = 0.0f;
 		}
 
 		void set_motor( hk_real desired_vel, hk_real max_force)
 		{
 			m_friction_is_enabled = (max_force!=0.0f)?HK_TRUE: HK_FALSE;
-			m_joint_friction = max_force;
+			m_joint_friction = hk_Math::fabs(max_force);
 			m_desired_velocity = desired_vel;
 		}
 
@@ -63,18 +63,18 @@ class hk_Constraint_Limit: public hk_Constraint_Limit_BP
 		{			
 		}
 
-		void init_limit(const hk_Constraint_Limit_BP &bp, hk_real eps)
+		void init_limit(const hk_Constraint_Limit_BP &bp)
 		{
 			m_limit_is_enabled = bp.m_limit_is_enabled;		
 			m_friction_is_enabled = bp.m_friction_is_enabled;		
 			m_limit_min = bp.m_limit_min;		
 			m_limit_max = bp.m_limit_max;		
 			m_limit_tau = bp.m_limit_tau;		
-			m_joint_friction = bp.m_joint_friction * eps;		
-			m_desired_velocity = bp.m_desired_velocity * eps;		
+			m_joint_friction = hk_Math::fabs(bp.m_joint_friction);
+			m_desired_velocity = bp.m_desired_velocity;
 		}
 
-		void init_angular_limit(const hk_Constraint_Limit_BP &bp, hk_real eps)
+		void init_angular_limit(const hk_Constraint_Limit_BP &bp)
 			//: limit for angular limits
 			// also checks, if limits make sense
 		{
@@ -83,9 +83,9 @@ class hk_Constraint_Limit: public hk_Constraint_Limit_BP
 			m_limit_min = bp.m_limit_min;		
 			m_limit_max = bp.m_limit_max;		
 			m_limit_tau = bp.m_limit_tau;		
-			m_joint_friction = bp.m_joint_friction * eps;		
-			m_desired_velocity = bp.m_desired_velocity * eps;		
-			if ( m_limit_max - m_limit_min > HK_PI * 2.0f){
+			m_joint_friction = hk_Math::fabs(bp.m_joint_friction);
+			m_desired_velocity = bp.m_desired_velocity;
+			if ( m_limit_max - m_limit_min >= HK_PI * 2.0f){
 				m_limit_is_enabled = HK_FALSE;
 			}
 		}

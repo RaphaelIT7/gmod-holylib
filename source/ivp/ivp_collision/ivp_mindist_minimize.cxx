@@ -92,15 +92,15 @@ IVP_BOOL IVP_Mindist_Minimize_Solver::check_loop_hash(IVP_SYNAPSE_POLYGON_STATUS
     IVP_ASSERT( i_s0 < 4);
     IVP_ASSERT( i_s1 < 4);
 
-    hk_intp x0 = hk_intp(i_e0) | i_s0;
-    hk_intp x1 = hk_intp(i_e1) | i_s1;
+    int x0 = int(reinterpret_cast<intptr_t>(i_e0)) | i_s0;
+    int x1 = int(reinterpret_cast<intptr_t>(i_e1)) | i_s1;
 
     if (x0 < x1) {
 	int h = x0; x0 = x1; x1 = h;
     }
 
-    IVP_MM_Loop_Hash_Struct *s = & loop_hash[loop_hash_size];
-    for(int i = loop_hash_size; i>=0; i--){
+    IVP_MM_Loop_Hash_Struct *s = & loop_hash[loop_hash_size-1];
+    for(int i = loop_hash_size-1; i>=0; i--){
 	if ( s->a == x0 && s->b == x1){
 	    return IVP_TRUE;
 	}
@@ -179,7 +179,8 @@ IVP_MRC_TYPE IVP_Mindist::recalc_invalid_mindist()
 
     IVP_Mindist_Minimize_Solver mms(this);
     mms.P_Finish_Counter = 0;   // create hash instantly
-    
+	int pierce_counter = 0;
+
     while(1){
 	IVP_MRC_TYPE res = mms.recalc_mindist_sub();
 	if (res == IVP_MRC_OK){  // fast return if ok
@@ -192,7 +193,12 @@ IVP_MRC_TYPE IVP_Mindist::recalc_invalid_mindist()
 	case IVP_MRC_BACKSIDE:{
 	    // find best triangle on opposite of convex object
 	    mms.pierce_mindist();
-	    // case ENDLESS must follow!
+		// try again if phantom, otherwise if the initial guess is bad (wrong side of object) we could
+		// touch a phantom for a few ticks when the phantom was just created
+		if (++pierce_counter < IVP_MAX_PIERCINGS)
+			continue;
+
+		// case ENDLESS must follow!
 		[[fallthrough]];
 	}
 	case IVP_MRC_ENDLESS_LOOP:{

@@ -106,6 +106,28 @@ void hk_Local_Constraint_System::constraint_deletion_event(hk_Constraint* constr
 }
 
 
+// This sorts the constraints in the container.  Generally the constraints at the end of the list will be
+// more effective than the constraints at the beginning because of the solver order in apply_effector_PSI
+// Because of this we generally want the constraints with fewer degrees of freedom to be solved last
+// For now use the heuristic of moving all 0-dof constraints to the end to make sure they are satisfied most
+void hk_Local_Constraint_System::sort_constraints()
+{
+	hk_Array<hk_Constraint*> movedToEnd;
+
+	for (int i = m_constraints.length() - 1; i >= 0; i--)
+	{
+		hk_Constraint* constraint = m_constraints.element_at(i);
+		if (constraint->get_constraint_dof() == 0)
+			movedToEnd.add_element(constraint);
+	}
+
+	for (int i = movedToEnd.length() - 1; i >= 0; i--)
+		m_constraints.search_and_remove_element(movedToEnd.element_at(i));
+
+	for (int i = movedToEnd.length() - 1; i >= 0; i--)
+		m_constraints.add_element(movedToEnd.element_at(i));
+}
+
 void hk_Local_Constraint_System::recalc_storage_size()
 {
 	m_size_of_all_vmq_storages = 0;
@@ -126,7 +148,9 @@ void hk_Local_Constraint_System::add_constraint(hk_Constraint* constraint, int s
 		deactivate();
 	}
 	m_constraints.add_element( constraint );
-	
+	// new constraint added, resort them before you step the constraints
+	m_needsSort = true;
+
 	int i = 1;
 	do 
 	{
@@ -241,9 +265,9 @@ void hk_Local_Constraint_System::get_effected_entities(hk_Array<hk_Entity*>& ent
 static IVP_DOUBLE GetMoveableMass(const IVP_Core* pCore)
 {
 	if ( pCore->physical_unmoveable || pCore->pinned )
-		return pCore->get_mass();
+		return 0.0;
 
-	return 0.0;
+	return pCore->get_mass();
 }
 
 void hk_Local_Constraint_System::apply_effector_PSI(hk_PSI_Info& pi, hk_Array<hk_Entity*>*)
@@ -251,8 +275,14 @@ void hk_Local_Constraint_System::apply_effector_PSI(hk_PSI_Info& pi, hk_Array<hk
 	constexpr int buffer_size = 150000;
 	constexpr int max_constraints = 1000;
 	void* vmq_buffers[max_constraints];
-	char buffer[buffer_size];
+	alignas(16) char buffer[buffer_size];
 	HK_ASSERT(m_size_of_all_vmq_storages < buffer_size);
+
+	if (m_needsSort)
+	{
+		sort_constraints();
+		m_needsSort = false;
+	}
 
 	m_errorThisTick = 0;
 
@@ -275,17 +305,13 @@ void hk_Local_Constraint_System::apply_effector_PSI(hk_PSI_Info& pi, hk_Array<hk
 		}
 	}
 
-	for (int i = 0; i < m_n_iterations; i++)
+	for (int i = 0; i < m_n_iterations && !(taus[i] == 0); i++)
 	{
-		// do the steps
-		for (int x = 0; x < 2 && !hk_Math::almost_zero(taus[x]); x++)
-		{
-			for (int ii = m_constraints.length() - 1; ii >= 0; ii--) {
-				m_constraints.element_at(ii)->step_constraint(pi, vmq_buffers[ii], taus[x], damps[x]);
-			}
-			for (int j = 0; j < m_constraints.length(); j++) {
-				m_constraints.element_at(j)->step_constraint(pi, vmq_buffers[j], taus[x], damps[x]);
-			}
+		for (int ii = m_constraints.length() - 1; ii >= 0; ii--) {
+			m_constraints.element_at(ii)->step_constraint(pi, vmq_buffers[ii], taus[i], damps[i]);
+		}
+		for (int j = 0; j < m_constraints.length(); j++) {
+			m_constraints.element_at(j)->step_constraint(pi, vmq_buffers[j], taus[i], damps[i]);
 		}
 	}
 
@@ -303,6 +329,11 @@ void hk_Local_Constraint_System::apply_effector_PSI(hk_PSI_Info& pi, hk_Array<hk
 			mass += GetMoveableMass(m_bodies.get_element(i)->get_core());
 		}
 
+		// these penetration solves must run after solving constraints so they are allowed to bypass those
+		// solutions to get out of the penetration condition
+
+		// NOTE: This is a copy of the simple penetration solver from the base anomaly manager
+		// The anomaly manager already got this penetration and sent it to us to solve
 		for (int i = 0; i < m_penetrationCount; i++)
 		{
 			IVP_Real_Object* obj0 = m_bodies.element_at(m_penetrationPairs[i].obj0);
@@ -323,6 +354,8 @@ void hk_Local_Constraint_System::apply_effector_PSI(hk_PSI_Info& pi, hk_Array<hk
 				vec01.set(1.0, 0.0, 0.0);
 			}
 
+			// scale by the ragdoll's total mass in case the penetration pair is underneath
+			// the rest of the ragdoll
 			IVP_U_Float_Point p0;
 			p0.set_multiple(&vec01, speed_change * mass);
 

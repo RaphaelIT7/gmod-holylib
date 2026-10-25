@@ -57,6 +57,12 @@ void hk_Hinge_Constraint::init_hinge_constraint(const hk_Hinge_BP* bp)
 	 * of body[0,1] in object space - its stored to avoid a normalize
 	 * and an 'if' which is needed to compute it on the fly */
 
+	hk_Rigid_Body* b0 = get_rigid_body(0);
+	hk_Rigid_Body* b1 = get_rigid_body(1);
+
+	const hk_Transform &t0 = b0->get_cached_transform();
+	const hk_Transform &t1 = b1->get_cached_transform();
+
 	for(int i=0; i<2; ++i)
 	{
 		if( bp->m_axis_perp_os[i].length() != 0.0f)
@@ -64,17 +70,20 @@ void hk_Hinge_Constraint::init_hinge_constraint(const hk_Hinge_BP* bp)
 			m_axis_perp_os[i] = bp->m_axis_perp_os[i];
 			m_axis_perp_os[i].normalize();
 		}
-		else
+		else if (i == 0)
 		{
 			m_axis_perp_os[i] = hk_Vector3_Util::perp_vec( m_axis_os[i].get_direction() );
 		}
+		else
+		{
+			// Don't recompute this per-body.  perp_vec has a discontinuity that will produce
+			// different object space vectors depending on the relative orientation of the
+			// bodies.  Instead, transform the body0 perp vec into the space of the other body
+			hk_Vector3 axis_perp_ws;
+			axis_perp_ws.set_rotated_dir( t0, m_axis_perp_os[0] ); // xform to world space
+			m_axis_perp_os[i].set_rotated_inv_dir( t1, axis_perp_ws ); // into space of body1
+		}
 	}
-
-	hk_Rigid_Body* b0 = get_rigid_body(0);
-	hk_Rigid_Body* b1 = get_rigid_body(1);
-
-	const hk_Transform &t0 = b0->get_cached_transform();
-	const hk_Transform &t1 = b1->get_cached_transform();
 
 	hk_Vector3 line_ws[2];
 	line_ws[0].set_rotated_dir( t0, m_axis_os[0].get_direction());
