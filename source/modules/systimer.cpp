@@ -319,6 +319,20 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(timer_IsPaused)
+{
+	const char* name = LUA->CheckString(1);
+	ILuaTimer* timer = FindTimer(LUA, name);
+	if (!timer)
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	LUA->PushBool(!timer->active);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(timer_Think)
 {
 	g_pSysTimerModule.LuaThink(LUA);
@@ -347,6 +361,7 @@ void CSysTimerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerI
 		Util::AddFunc(pLua, timer_TimeLeft, "TimeLeft");
 		Util::AddFunc(pLua, timer_Toggle, "Toggle");
 		Util::AddFunc(pLua, timer_UnPause, "UnPause");
+		Util::AddFunc(pLua, timer_IsPaused, "IsPaused");
 		Util::AddFunc(pLua, timer_Think, "Think");
 	Util::FinishTable(pLua, "systimer");
 }
