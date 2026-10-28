@@ -344,21 +344,14 @@ static int TraceRecord_TypeID(lua_TraceRecorder* rec)
 	if (tref_isudata(tr))
 	{
 		GCudata* ud = udataV((TValue*)lj_tr_getrtbase(rec, 0));
-		void* uddata = uddata(ud);
 		uint8_t type = ud->udtype;
 
-		lua_TraceEntry typetr = LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_U8, tr, TR_FIELD_UDATA_UDTYPE);
-		LJTR_EMIT(rec, TR_EQ, TR_TYPE_INT, typetr, lj_tr_kint(rec, ud->udtype));
+		LJTR_EMIT(rec, TR_GUARD_USERDATA_TYPE, TR_TYPE_U8, tr, type);
 
-		if (type == UDTYPE_USERDATA && uddata) // GMod Userdata
+		if (type == UDTYPE_USERDATA) // GMod Userdata
 		{
-			GMODudata* gmodUD = (GMODudata*)uddata;
-			lua_TraceEntry valuetr = LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_U8, tr, TR_FIELD_UDATA_UDTYPE);
-			LJTR_GEMIT(rec, (gmodUD ? TR_NE : TR_EQ), TR_TYPE_INT, valuetr, lj_tr_kint(rec, 0)); // We guard as safety
-			if (gmodUD) {
-				lj_tr_setbase(rec, 0, LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_U8, tr, TR_FIELD_GMOD_UDATA_TYPE));
-				return 1;
-			}
+			lj_tr_setbase(rec, 0, LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_U8, tr, TR_FIELD_GMOD_UDATA_TYPE_DIRECT));
+			return 1;
 		} else if (type > UDTYPE__MAX) { // HolyLib userdata
 			lj_tr_setbase(rec, 0, lj_tr_kint(rec, type)); // We just return the type since we already guard on it.
 			return 1;
