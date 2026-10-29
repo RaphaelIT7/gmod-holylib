@@ -301,9 +301,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
     with:
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_32x"
@@ -321,9 +321,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
     with:
       download-artifact: "gluatest_no_ghostinj_32x"
       no-checkout: "true"
@@ -367,9 +367,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          # - public
           - dev
-          - prerelease
+          #- prerelease
     with:
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_32x"
@@ -387,9 +387,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
     with:
       extra-startup-args: "-holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_no_ghostinj_32x"
@@ -435,9 +435,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
     with:
       extra-startup-args: "-usegh -holylib_enable_luajit 1 +holylib_module_debug 0"
       download-artifact: "gluatest_32x"
@@ -550,9 +550,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
         artifact:
           - name: gmod_tests_32x
             args: "-usegh"
@@ -600,9 +600,9 @@ jobs:
           - 21
           - 22
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
         artifact:
           - name: gmod_tests_32x
             args: "-usegh"
@@ -643,9 +643,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
         artifact:
           - name: gmod_tests_32x
             args: "-usegh"
@@ -686,9 +686,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
         artifact:
           - name: gmod_tests_32x
             args: "-usegh"
@@ -759,9 +759,9 @@ jobs:
           - soundscape
           - luajit
         branch:
-        #  - public
-        #  - dev
-          - prerelease
+          #- public
+          - dev
+          #- prerelease
         #extra:
         #  - 1
         #  - 2
@@ -861,9 +861,9 @@ jobs:
     strategy:
       matrix:
         branch:
-          - public
+          #- public
           - dev
-          - prerelease
+          #- prerelease
         artifact:
           - name: gluatest_exampledll_32x
             args: "-usegh"
