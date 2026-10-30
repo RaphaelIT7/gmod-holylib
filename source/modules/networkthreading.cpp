@@ -396,6 +396,11 @@ static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket, int type
 		return false;
 	}
 
+	// Hacky? Why? No idea... But sometimes a client gets stuck in a weird spam of back and forth and I feel like its us replying weirdly
+	// ToDo: Move A2S handling into here away from steam's blackbox.
+	if (challenge != INVALID_CHALLENGE)
+		return false;
+
 	if (g_pNetworkThreadingModule.InDebug())
 		Msg("Requesting challenge! (%s - %i)\n", pPacket->from.ToString(), type);
 	
