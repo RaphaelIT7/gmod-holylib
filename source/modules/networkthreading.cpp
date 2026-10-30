@@ -342,7 +342,9 @@ static inline bool IsValidChallenge(netadr_t &adr, int nChallengeValue)
 	CRC32_Init(&hash);
 	CRC32_ProcessBuffer(&hash, &challenge, sizeof(challenge));
 	CRC32_Final(&hash);
-	//Msg("g_nChallengeNr: %i == %i (%s)\n", (int)hash, nChallengeValue, adr.ToString());
+	if (g_pNetworkThreadingModule.InDebug())
+		Msg("g_nChallengeNr: %i == %i (%s)\n", (int)hash, nChallengeValue, adr.ToString());
+
 	if ((int)hash == nChallengeValue)
 		return true;
 
@@ -353,7 +355,9 @@ static inline bool IsValidChallenge(netadr_t &adr, int nChallengeValue)
 	CRC32_ProcessBuffer(&hash, &challenge, sizeof(challenge));
 	CRC32_Final(&hash);
 
-	//Msg("g_nLastChallengeNr: %i == %i (%s)\n", (int)hash, nChallengeValue, adr.ToString());
+	if (g_pNetworkThreadingModule.InDebug())
+		Msg("g_nLastChallengeNr: %i == %i (%s)\n", (int)hash, nChallengeValue, adr.ToString());
+
 	return (int)hash == nChallengeValue;
 }
 
@@ -381,7 +385,9 @@ static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket, int type
 	if (type != A2S_PLAYER && type != A2S_RULES && type != A2S_INFO)
 		return false;
 
-	//Msg("verifying challenge! (%s - %i)\n", pPacket->from.ToString(), type);
+	if (g_pNetworkThreadingModule.InDebug())
+		Msg("verifying challenge! (%s - %i)\n", pPacket->from.ToString(), type);
+	
 	// Now it can only be A2S_INFO, A2S_PLAYER, A2S_RULES
 	int challenge = (int)pPacket->message.ReadLong();
 	if (IsValidChallenge(pPacket->from, challenge))
@@ -390,7 +396,9 @@ static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket, int type
 		return false;
 	}
 
-	//Msg("Requesting challenge! (%s - %i)\n", pPacket->from.ToString(), type);
+	if (g_pNetworkThreadingModule.InDebug())
+		Msg("Requesting challenge! (%s - %i)\n", pPacket->from.ToString(), type);
+	
 	SendChallenge(pPacket);
 	return true;
 }
