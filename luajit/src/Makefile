@@ -542,7 +542,7 @@ LUAJIT_T= luajit
 
 ALL_T= $(LUAJIT_T) $(LUAJIT_A) $(LUAJIT_SO) $(HOST_T)
 ALL_HDRGEN= lj_bcdef.h lj_ffdef.h lj_libdef.h lj_recdef.h lj_folddef.h \
-	    host/buildvm_arch.h luajit.h
+	    lj_vmdefsrc.h host/buildvm_arch.h luajit.h
 ALL_GEN= $(LJVM_S) $(ALL_HDRGEN) luajit_relver.txt $(LIB_VMDEFP)
 WIN_RM= *.obj *.lib *.exp *.dll *.exe *.manifest *.pdb *.ilk
 ALL_RM= $(ALL_T) $(ALL_GEN) *.o host/*.o $(WIN_RM)
@@ -705,6 +705,10 @@ lj_recdef.h: $(BUILDVM_T) $(LJLIB_C)
 $(LIB_VMDEF): $(BUILDVM_T) $(LJLIB_C)
 	$(E) "BUILDVM   $@"
 	$(Q)$(BUILDVM_X) -m vmdef -o $(LIB_VMDEFP) $(LJLIB_C)
+
+lj_vmdefsrc.h: $(BUILDVM_T) $(LJLIB_C)
+	$(E) "BUILDVM   $@"
+	$(Q)$(BUILDVM_X) -m vmdefc -o $@ $(LJLIB_C)
 
 lj_folddef.h: $(BUILDVM_T) lj_opt_fold.c
 	$(E) "BUILDVM   $@"

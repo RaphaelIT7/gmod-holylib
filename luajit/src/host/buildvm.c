@@ -322,14 +322,15 @@ static void emit_bcdef(BuildCtx *ctx)
 }
 
 /* Emit VM definitions as Lua code for debug modules. */
-static void emit_vmdef(BuildCtx *ctx)
+static void emit_vmdef(BuildCtx *ctx, int vercheck)
 {
 #if LJ_HASJIT
   char buf[80];
 #endif
   int i;
   fprintf(ctx->fp, "-- This is a generated file. DO NOT EDIT!\n\n");
-  fprintf(ctx->fp, "assert(require(\"jit\").version == \"%s\", \"LuaJIT core/library version mismatch\")\n\n", LUAJIT_VERSION);
+  if (vercheck)
+    fprintf(ctx->fp, "assert(require(\"jit\").version == \"%s\", \"LuaJIT core/library version mismatch\")\n\n", LUAJIT_VERSION);
   fprintf(ctx->fp, "return {\n\n");
 
   fprintf(ctx->fp, "bcnames = \"");
@@ -366,6 +367,56 @@ static void emit_vmdef(BuildCtx *ctx)
     fprintf(ctx->fp, "\"%s\",\n", trace_errors[i]);
   fprintf(ctx->fp, "},\n\n");
 #endif
+}
+
+/* Emit jit/vmdef.lua. */
+static void emit_vmdeflua(BuildCtx *ctx, int vercheck)
+{
+  emit_vmdef(ctx, vercheck);
+  emit_lib(ctx);
+  fprintf(ctx->fp, "}\n\n");
+}
+
+/* Emit the text of jit/vmdef.lua as a C array. */
+static void emit_vmdefc(BuildCtx *ctx)
+{
+  FILE *out = ctx->fp, *tmp;
+  char *tmpname = (char *)malloc(strlen(ctx->outname) + 5);
+  int c, n = 0;
+  if (!tmpname)
+    exit(1);
+
+  sprintf(tmpname, "%s.tmp", ctx->outname);
+  tmp = fopen(tmpname, "w+");
+  if (!tmp) {
+    fprintf(stderr, "Error: cannot open temporary file '%s': %s\n", tmpname, strerror(errno));
+    exit(1);
+  }
+  ctx->fp = tmp;
+  ctx->mode = BUILD_vmdef;
+  emit_vmdeflua(ctx, 0); // We disable version checking here since require does not always exist!
+  if (fflush(tmp) != 0 || ferror(tmp)) {
+    fprintf(stderr, "Error: cannot write temporary file '%s': %s\n", tmpname, strerror(errno));
+    fclose(tmp);
+    remove(tmpname);
+    exit(1);
+  }
+
+  rewind(tmp);
+  ctx->fp = out;
+  ctx->mode = BUILD_vmdefc;
+  fprintf(out, "/* The text of jit/vmdef.lua. */\n");
+  fprintf(out, "static const char lj_vmdef_src[] = {\n");
+  while ((c = fgetc(tmp)) != EOF) {
+    fprintf(out, "%d,", c);
+    if (++n % 24 == 0)
+      fputc('\n', out);
+  }
+
+  fprintf(out, "0\n};\n");
+  fclose(tmp);
+  remove(tmpname);
+  free(tmpname);
 }
 
 /* -- Argument parsing ---------------------------------------------------- */
@@ -500,9 +551,7 @@ int main(int argc, char **argv)
     emit_lib(ctx);
     break;
   case BUILD_vmdef:
-    emit_vmdef(ctx);
-    emit_lib(ctx);
-    fprintf(ctx->fp, "}\n\n");
+    emit_vmdeflua(ctx, 1);
     break;
   case BUILD_ffdef:
   case BUILD_libdef:
@@ -511,6 +560,9 @@ int main(int argc, char **argv)
     break;
   case BUILD_folddef:
     emit_fold(ctx);
+    break;
+  case BUILD_vmdefc:
+    emit_vmdefc(ctx);
     break;
   default:
     break;

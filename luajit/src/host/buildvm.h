@@ -41,7 +41,7 @@ struct dasm_State;
 #define BUILDDEF(_) \
   _(elfasm) _(coffasm) _(machasm) _(peobj) _(raw) \
   _(bcdef) _(ffdef) _(libdef) _(recdef) _(vmdef) \
-  _(folddef)
+  _(folddef) _(vmdefc)
 
 typedef enum {
 #define BUILDENUM(name)		BUILD_##name,

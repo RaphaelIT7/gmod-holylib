@@ -97,6 +97,8 @@ buildvm -m recdef -o lj_recdef.h %ALL_LIB%
 @if errorlevel 1 goto :BAD
 buildvm -m vmdef -o jit\vmdef.lua %ALL_LIB%
 @if errorlevel 1 goto :BAD
+buildvm -m vmdefc -o lj_vmdefsrc.h %ALL_LIB%
+@if errorlevel 1 goto :BAD
 buildvm -m folddef -o lj_folddef.h lj_opt_fold.c
 @if errorlevel 1 goto :BAD
 
@@ -150,7 +152,7 @@ if exist luajit.exe.manifest^
 
 @del *.obj *.manifest minilua.exe buildvm.exe
 @del host\buildvm_arch.h
-@del lj_bcdef.h lj_ffdef.h lj_libdef.h lj_recdef.h lj_folddef.h
+@del lj_bcdef.h lj_ffdef.h lj_libdef.h lj_recdef.h lj_folddef.h lj_vmdefsrc.h
 @echo.
 @echo === Successfully built LuaJIT for Windows/%LJARCH% ===
 

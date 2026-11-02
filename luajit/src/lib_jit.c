@@ -441,6 +441,22 @@ int luaopen_jit_util(lua_State *L)
   return 1;
 }
 
+/* -- jit.vmdef module ---------------------------------------------------- */
+
+#ifndef LUAJIT_DISABLE_JITUTIL
+
+#include "lj_vmdefsrc.h"
+
+LUALIB_API int luaopen_jit_vmdef(lua_State *L)
+{
+  if (luaL_loadbuffer(L, lj_vmdef_src, sizeof(lj_vmdef_src) - 1, "=jit.vmdef"))
+    lua_error(L);
+  lua_call(L, 0, 1);
+  return 1;
+}
+
+#endif
+
 /* -- jit.opt module ------------------------------------------------------ */
 
 #if LJ_HASJIT
@@ -773,6 +789,7 @@ LUALIB_API int luaopen_jit(lua_State *L)
 #endif
 #ifndef LUAJIT_DISABLE_JITUTIL
   lj_lib_prereg(L, LUA_JITLIBNAME ".util", luaopen_jit_util, tabref(L->env));
+  lj_lib_prereg(L, LUA_JITLIBNAME ".vmdef", luaopen_jit_vmdef, tabref(L->env));
 #endif
 #if LJ_HASJIT
   LJ_LIB_REG(L, "jit.opt", jit_opt);
