@@ -773,78 +773,35 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	// Only called with areasplit enabled
 	void AddPVSEntity(CBaseEntity* pEntity)
 	{
-#if 0
-		int nArea = Util::engineserver->GetArea(pEntity->GetAbsOrigin());
-		if (nArea == 0)
-		{
-			// Pray that this fallback works
-			nArea = Util::engineserver->GetArea(pEntity->WorldSpaceCenter());
-		}
-#endif
-		const CCollisionProperty* pCollision = GetEntityCollisionProperty(pEntity);
-		if (!pCollision)
-		{
-			int nArea = Util::engineserver->GetArea(pEntity->GetAbsOrigin());
-			
-			if (nArea >= MAX_MAP_AREAS || nArea <= 0)
-			{
-				pPVSEntityList[++nPVSEdictCount] = pEntity;
-				return;
-			}
-
-			// We do -1 since nArea 0 is not actually an valid area
-			AreaCache& pArea = nAreaEntities[nArea-1];
-			if (pArea.nCount >= nMaxEntitiesPerArea)
-			{
-				pPVSEntityList[++nPVSEdictCount] = pEntity;
-				return;
-			}
-
-			pArea.pEntities[pArea.nCount++] = pEntity;
+		edict_t* pEdict = pEntity->edict();
+		if (!pEdict) // Server only... Should never happen
+		{ 
+			pPVSEntityList[++nPVSEdictCount] = pEntity;
 			return;
 		}
 
-		const Vector& mins = GetCollisionPropertyMins( pCollision );
-		const Vector& maxs = GetCollisionPropertyMaxs( pCollision );
-
-		Vector vecResult;
-		pCollision->CollisionToWorldSpace( mins, &vecResult );
-		int minsArea = Util::engineserver->GetArea(vecResult);
-		bool bMinsValid = minsArea < MAX_MAP_AREAS && minsArea > 0; // Area 0 is also invalid, thats why > 0
-
-		pCollision->CollisionToWorldSpace( maxs, &vecResult );
-		int maxsArea = Util::engineserver->GetArea(vecResult);
-		bool bMaxsValid = maxsArea < MAX_MAP_AREAS && maxsArea > 0;
-
-		if (!bMinsValid && !bMaxsValid)
-		{
-			Vector obbCenter;
-			VectorLerp( mins, maxs, 0.5f, obbCenter );
-
-			// Test center, in case you have things like a vent door where the mins/maxs may be out of bounds but not the center
-			pCollision->CollisionToWorldSpace( obbCenter, &vecResult );
-			minsArea = Util::engineserver->GetArea(vecResult);
-			bMinsValid = minsArea < MAX_MAP_AREAS && minsArea > 0;
+		CCServerNetworkProperty* pNetProp = static_cast<CCServerNetworkProperty*>(pEdict->GetNetworkable());
+		if (!pNetProp)
+		{ // ?? We have null checks often...
+			pPVSEntityList[++nPVSEdictCount] = pEntity;
+			return;
 		}
 
-		if (!bMinsValid && !bMaxsValid)
+		int nArea1 = pNetProp->AreaNum(); // Triggers RecomputePVSInformation to stay up to date :3
+		int nArea2 = pNetProp->m_PVSInfo.m_nAreaNum2;
+		bool bValid1 = nArea1 > 0 && nArea1 < MAX_MAP_AREAS;
+		bool bValid2 = nArea2 > 0 && nArea2 < MAX_MAP_AREAS;
+		if (!bValid1 && !bValid2)
 		{
 			pPVSEntityList[++nPVSEdictCount] = pEntity;
 			return;
 		}
 
-		if (bMinsValid)
-		{
-			AddEntityToArea(minsArea, pEntity);
-		}
+		if (bValid1)
+			AddEntityToArea(nArea1, pEntity);
 
-		// IMPORTANT: This entity stretches across to another area! Probably a door with an areaportal!
-		//            If it crosses more than two areas, GG. Not our problem
-		if (bMaxsValid && minsArea != maxsArea)
-		{
-			// We add them here too, an entity can be in two areas at once for our case
-			AddEntityToArea(maxsArea, pEntity);
-		}
+		if (bValid2 && nArea2 != nArea1)
+			AddEntityToArea(nArea2, pEntity);
 	}
 
 	inline void AddEntityToArea(int areaNum, CBaseEntity* pEntity)
