@@ -57,3 +57,13 @@ lua_State* GModLua::MainState(lua_State* L)
 {
     return mainthread(G(L));
 }
+
+const char* GModLua::GetGCStrData(GCstr* str)
+{
+  return strdata(str);
+}
+
+size_t GModLua::GetGCStrLength(GCstr* str)
+{
+  return str->len;
+}

@@ -36,6 +36,10 @@ namespace GModLua {
 	extern TValue* LuaBase(lua_State* L);
 	extern TValue* GlobalJITBase(lua_State* L);
 	extern lua_State* MainState(lua_State* L);
+
+	// These versions specifically are for GMod's LuaJIT version since the GCstr struct changed in versions!
+	extern const char* GetGCStrData(GCstr* str);
+	extern size_t GetGCStrLength(GCstr* str);
 }
 
 typedef void* LuaUserDataValue;
@@ -776,7 +780,7 @@ namespace Lua
 	inline const char* GetGCStrData(GCstr* str)
 	{
 		if (!Lua::g_bUsingLuaJIT && (Lua::bIsCallingASM && Lua::pExecutingInterface == g_Lua))
-			return strdata(str);
+			return GModLua::GetGCStrData(str);
 
 		return RawLua::GetGCStrData(str);
 	}
@@ -784,7 +788,7 @@ namespace Lua
 	inline size_t GetGCStrLength(GCstr* str)
 	{
 		if (!Lua::g_bUsingLuaJIT && (Lua::bIsCallingASM && Lua::pExecutingInterface == g_Lua))
-			return str->len;
+			return GModLua::GetGCStrLength(str);
 
 		return RawLua::GetGCStrLength(str);
 	}
