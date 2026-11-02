@@ -316,6 +316,10 @@ static void hook_luaL_openlibs(lua_State* L)
 		lua_pushcfunction(L, luaopen_jit_util);
 		lua_call(L, 0, 1);
 		lua_setfield(L, -2, "util");
+
+		lua_pushcfunction(L, luaopen_jit_vmdef);
+		lua_call(L, 0, 1);
+		lua_setfield(L, -2, "vmdef");
 	lua_pop(L, 1);
 
 	bOpenLibs = true;

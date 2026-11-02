@@ -43,9 +43,15 @@ function generate_trace()
     jit.opt.start("hotloop=1", "hotexit=1")
     jit.flush()
 
-    jit.attach(function(what, traceno, func, pc, exitno)
+    jit.attach(function(what, traceno, func, pc, exitno, exitreason)
         if not rec then return end
         if exitno ~= nil then what = "abort" end
+
+        -- GMod wiki says the argument exitreason exists yet I've never actually seen it actually work/push the reason :/
+        -- The LuaJIT code also shows such argument to not even be pushed so maybe this was never even a thing?
+        if what == "abort" and not exitreason and jit.vmdef then
+            exitreason = jit.vmdef.traceerr[exitno] -- luajit module pushes jit.vmdef so we can lookup the reason instead of guessing from the number
+        end
 
         local src = "<unknown>"
         if type(func) == "function" or type(func) == "proto" then
@@ -62,7 +68,7 @@ function generate_trace()
             tostring(traceno or "?"),
             tostring(src),
             tostring(pc or "-"),
-            tostring(exitno or "-")
+            tostring(exitreason and exitreason or "-")
         ))
     end, "trace")
 end
