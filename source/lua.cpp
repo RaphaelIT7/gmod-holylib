@@ -21,8 +21,6 @@ extern "C"
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-Symbols::lua_pushtracablecclosure Lua::func_lua_pushtracablecclosure = nullptr;
-Symbols::lua_settracablecclosure Lua::func_lua_settracablecclosure = nullptr;
 thread_local lua_String Lua::pTempStr;
 bool Lua::g_bUsingLuaJIT = false;
 thread_local GarrysMod::Lua::ILuaInterface* Lua::pExecutingInterface = nullptr;
@@ -545,6 +543,8 @@ static int hook_GMOD_LoadBinaryModule(lua_State* L, const char* pFileName)
 
 void Lua::AddDetour() // Our Lua Loader.
 {
+	GModLua::Init();
+
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_InitLuaClasses, "InitLuaClasses",
@@ -745,7 +745,7 @@ const char* Lua::TValueToString(TValue* pVal)
 // Should only be called by Default__index!
 bool Lua::FindOnObjectsMetaTable(lua_State* L, int nStackPos, int nKeyPos)
 {
-	if (Util::func_lj_tab_get)
+	if (Lua::HasInternals(L))
 	{
 		TValue* val = Lua::FastIndex2Addr(L, nStackPos);
 
@@ -755,7 +755,7 @@ bool Lua::FindOnObjectsMetaTable(lua_State* L, int nStackPos, int nKeyPos)
 			GCtab* meta = tabref(udata->GetMetaTable((GarrysMod::Lua::ILuaInterface*)L->luabase));
 			if (meta)
 			{
-				TValue* tabVal = (TValue*)Util::func_lj_tab_get(L, meta, Lua::LuaTop(L)-1);
+				TValue* tabVal = (TValue*)Lua::TabGet(L, meta, Lua::LuaTop(L)-1);
 				if (!tvisnil(tabVal))
 				{
 					copyTV(L, Lua::LuaIncrTop(L), tabVal);

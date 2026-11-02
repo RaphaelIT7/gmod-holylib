@@ -1110,8 +1110,8 @@ static void DoLuaCallback(bool bMainThreadCrash)
 	}
 
 	// We stop the GC in case a crash is related to an memory allocator or some bs
-	Util::func_lua_gc(pState, LUA_GCSTOP, 0);
-	Util::func_lua_setallocf(pState, LuaAlloc::alloc, &signalData->luaAlloc);
+	Lua::GC(pState, LUA_GCSTOP, 0);
+	Lua::SetAllocF(pState, LuaAlloc::alloc, &signalData->luaAlloc);
 
 	// We don't want to callback if were in a coroutine!
 	if (pMainState)

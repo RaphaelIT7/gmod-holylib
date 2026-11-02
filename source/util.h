@@ -278,24 +278,6 @@ namespace Util
 
 	extern void AddDTVarToLoad(DTVarByOffset* pVar);
 
-	// More Lua stuff for UserData (NEVER NULL)
-	extern Symbols::lua_setfenv func_lua_setfenv;
-	extern Symbols::lua_touserdata func_lua_touserdata;  // Unused for now
-	extern Symbols::lua_gc func_lua_gc;
-	extern Symbols::lua_setallocf func_lua_setallocf;
-	extern Symbols::lua_newuserdata func_lua_newuserdata;
-
-	extern Symbols::lua_call func_lua_call; // Unused for now
-	extern Symbols::lua_pcall func_lua_pcall;
-	extern Symbols::lua_cpcall func_lua_cpcall; // Unused for now
-	extern Symbols::lua_insert func_lua_insert; // Unused for now
-	extern Symbols::lua_toboolean func_lua_toboolean; // Unused for now
-
-	// These can be NULL. Why? Because on 64x all the names are mangled making shit far more difficult...
-	extern Symbols::lj_tab_new func_lj_tab_new;
-	extern Symbols::lj_gc_barrierf func_lj_gc_barrierf;
-	extern Symbols::lj_tab_get func_lj_tab_get;
-
 	extern IVEngineServer* engineserver;
 	extern IServerGameClients* servergameclients;
 	extern IServerGameEnts* servergameents;

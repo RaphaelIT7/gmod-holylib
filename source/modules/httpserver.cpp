@@ -678,7 +678,7 @@ void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpReq
 
 	Push_HttpRequest(pLua, request);
 
-	Util::func_lua_call(pLua->GetState(), 1, 1);
+	Lua::Call(pLua->GetState(), 1, 1);
 	if (!pLua->IsType(-1, GarrysMod::Lua::Type::Bool) || pLua->GetBool(-1))
 		request->MarkHandled();
 

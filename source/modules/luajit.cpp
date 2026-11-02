@@ -643,12 +643,6 @@ Override(luaopen_table);
 // Override(luaL_error);
 // Override(lua_pushfstring);
 
-using lua_error_t = decltype(&lua_error);
-static lua_error_t func_lua_error = nullptr;
-
-using lua_pushvfstring_t = decltype(&lua_pushvfstring);
-static lua_pushvfstring_t func_lua_pushvfstring = nullptr;
-
 static int hook_luaL_error(lua_State* L, const char* fmt, ...)
 {
 	va_list args;
@@ -661,15 +655,9 @@ static int hook_luaL_error(lua_State* L, const char* fmt, ...)
 		return lua_error(L);
 	}
 
-	if (!func_lua_pushvfstring)
-		Error("Missing lua_pushvfstring!\n");
-
-	if (!func_lua_error)
-		Error("Missing lua_erro!\n");
-
-	func_lua_pushvfstring(L, fmt, args);
+	GModLua::PushVFString(L, fmt, args);
 	va_end(args);
-	return func_lua_error(L);
+	return GModLua::LuaError(L);
 }
 
 static const char* hook_lua_pushfstring(lua_State* L, const char* fmt, ...)
@@ -684,10 +672,7 @@ static const char* hook_lua_pushfstring(lua_State* L, const char* fmt, ...)
 		return ret;
 	}
 
-	if (!func_lua_pushvfstring)
-		Error("Missing lua_pushvfstring!\n");
-
-	const char* ret = func_lua_pushvfstring(L, fmt, args);
+	const char* ret = GModLua::PushVFString(L, fmt, args);
 	va_end(args);
 	return ret;
 }
@@ -715,30 +700,6 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	SimpleOverride(luaL_newstate); // GMod uses this one actually
 	SimpleOverride(lua_newstate);
 
-	func_lua_pushvfstring = (lua_pushvfstring_t)Detour::GetFunction(lua_shared_loader.GetModule(), Symbol::FromName("lua_pushvfstring"));
-	Detour::CheckFunction((void*)func_lua_pushvfstring, "lua_pushvfstring");
-
-	func_lua_error = (lua_error_t)Detour::GetFunction(lua_shared_loader.GetModule(), Symbol::FromName("lua_error"));
-	Detour::CheckFunction((void*)func_lua_error, "lua_error");
-
-	// RaphaelIT7 (ToDo): I want all of these below to not be overwritten, we should always properly check Lua::IsHolyState(L)
-	// Util::func_lua_rawgeti = &lua_rawgeti;
-	// Util::func_lua_rawseti = &lua_rawseti;
-
-	Util::func_lj_tab_new = &lj_tab_new;
-	Util::func_lua_setfenv = &lua_setfenv;
-	Util::func_lua_touserdata = &lua_touserdata;
-	Util::func_lua_gc = &lua_gc;
-	Lua::func_luaL_checklstring = &luaL_checklstring;
-	Util::func_lua_pcall = &lua_pcall;
-	Util::func_lua_insert = &lua_insert;
-	Util::func_lua_toboolean = &lua_toboolean;
-	Util::func_lua_setallocf = &lua_setallocf;
-	Util::func_lua_newuserdata = &lua_newuserdata;
-	Util::func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)&lj_gc_barrierf;
-	Util::func_lj_tab_get = (Symbols::lj_tab_get)&lj_tab_get;
-	Lua::func_lua_pushtracablecclosure = (Symbols::lua_pushtracablecclosure)&lua_pushtracablecclosure;
-	Lua::func_lua_settracablecclosure = (Symbols::lua_settracablecclosure)&lua_settracablecclosure;
 	Lua::g_bUsingLuaJIT = true;
 
 	m_bIsEnabled = true;

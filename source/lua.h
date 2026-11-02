@@ -28,7 +28,12 @@ namespace GarrysMod::Lua
 	class ILuaShared;
 }
 
-namespace GModLua { 
+namespace GModLua {
+	// Previously we loaded the GMod lua_shared functions in Util::InitDetours
+	// But for a better split between Lua states we moved it here
+	// We should've moved it like a year ago when we created this namespace...
+	extern void Init();
+
 	extern TValue* index2adr(lua_State *L, int idx);
 	extern TValue* FastIndex2Addr(lua_State* L, int nStackPos);
 	extern TValue* LuaTop(lua_State* L);
@@ -40,6 +45,25 @@ namespace GModLua {
 	// These versions specifically are for GMod's LuaJIT version since the GCstr struct changed in versions!
 	extern const char* GetGCStrData(GCstr* str);
 	extern size_t GetGCStrLength(GCstr* str);
+
+	extern int PCall(lua_State* L, int nArgs, int nRets, int nErrorFunc);
+	extern void Call(lua_State* L, int nArgs, int nRets);
+	extern int GC(lua_State* L, int nWhat, int nData);
+	extern void SetAllocF(lua_State* L, Symbols::lua_allocf pAlloc, void* pUserData);
+	extern int SetFEnv(lua_State* L, int nStackPos);
+	extern int Type(lua_State* L, int nStackPos);
+	extern const char* CheckLString(lua_State* L, int nStackPos, size_t* nOutLength);
+	extern void RawSetI(lua_State* L, int nStackPos, int nValue);
+	extern void RawGetI(lua_State* L, int nStackPos, int nValue);
+	extern const char* PushVFString(lua_State* L, const char* pFormat, va_list pArgs);
+	extern int LuaError(lua_State* L);
+
+	// We have dependencies on these...
+	// And on x86-64 these are not exposed...
+	extern bool HasInternals();
+	extern GCtab* TabNew(lua_State* L, uint32_t nArray, uint32_t nRec);
+	extern void GCBarrierF(global_State* g, void* pObject, void* pValue);
+	extern void* TabGet(lua_State* L, void* pTable, void* pKey);
 }
 
 typedef void* LuaUserDataValue;
@@ -122,8 +146,10 @@ namespace RawLua {
 	extern TValue* LuaBase(lua_State* L);
 	extern TValue* GlobalJITBase(lua_State* L);
 	extern lua_State* MainState(lua_State* L);
-	extern Symbols::lj_tab_new GetTabNewFunc();
-	extern Symbols::lj_gc_barrierf GetGCBarrierF();
+
+	extern GCtab* TabNew(lua_State* L, uint32_t nArray, uint32_t nRec);
+	extern void GCBarrierF(global_State* g, void* pObject, void* pValue);
+	extern void* TabGet(lua_State* L, void* pTable, void* pKey);
 }
 
 struct LuaUserData;
@@ -233,6 +259,75 @@ namespace Lua
 			return GModLua::MainState(L);
 		else
 			return RawLua::MainState(L);
+	}
+
+	FORCEINLINE int PCall(lua_State* L, int nArgs, int nRets, int nErrorFunc)
+	{
+		if (IsGModState(L))
+			return GModLua::PCall(L, nArgs, nRets, nErrorFunc);
+		else
+			return lua_pcall(L, nArgs, nRets, nErrorFunc);
+	}
+
+	FORCEINLINE void Call(lua_State* L, int nArgs, int nRets)
+	{
+		if (IsGModState(L))
+			GModLua::Call(L, nArgs, nRets);
+		else
+			lua_call(L, nArgs, nRets);
+	}
+
+	FORCEINLINE int GC(lua_State* L, int nWhat, int nData)
+	{
+		if (IsGModState(L))
+			return GModLua::GC(L, nWhat, nData);
+		else
+			return lua_gc(L, nWhat, nData);
+	}
+
+	FORCEINLINE void SetAllocF(lua_State* L, Symbols::lua_allocf pAlloc, void* pUserData)
+	{
+		if (IsGModState(L))
+			GModLua::SetAllocF(L, pAlloc, pUserData);
+		else
+			lua_setallocf(L, pAlloc, pUserData);
+	}
+
+	FORCEINLINE int SetFEnv(lua_State* L, int nStackPos)
+	{
+		if (IsGModState(L))
+			return GModLua::SetFEnv(L, nStackPos);
+		else
+			return lua_setfenv(L, nStackPos);
+	}
+
+	FORCEINLINE bool HasInternals(lua_State* L)
+	{
+		return IsHolyState(L) || GModLua::HasInternals();
+	}
+
+	FORCEINLINE GCtab* TabNew(lua_State* L, uint32_t nArray, uint32_t nRec)
+	{
+		if (IsGModState(L))
+			return GModLua::TabNew(L, nArray, nRec);
+		else
+			return RawLua::TabNew(L, nArray, nRec);
+	}
+
+	FORCEINLINE void GCBarrierF(lua_State* L, void* pObject, void* pValue)
+	{
+		if (IsGModState(L))
+			GModLua::GCBarrierF(G(L), pObject, pValue);
+		else
+			RawLua::GCBarrierF(G(L), pObject, pValue);
+	}
+
+	FORCEINLINE void* TabGet(lua_State* L, void* pTable, void* pKey)
+	{
+		if (IsGModState(L))
+			return GModLua::TabGet(L, pTable, pKey);
+		else
+			return RawLua::TabGet(L, pTable, pKey);
 	}
 
 	// Each new metatable has this entry.
@@ -491,7 +586,7 @@ namespace Lua
 		inline bool FastPCall(int nArgs, int nRets, bool bShowError)
 		{
 			lua_State* L = pLua->GetState();
-			int nRet = Util::func_lua_pcall(L, nArgs, nRets, 0);
+			int nRet = Lua::PCall(L, nArgs, nRets, 0);
 			if (nRet > 0)
 			{
 				// We use the ILuaInterface here since on errors we really don't expect speed.
@@ -708,9 +803,6 @@ namespace Lua
 		~CriticalThreadAccess() { g_pThreadAccessMutex.unlock(); }
 	};
 
-	extern Symbols::lua_pushtracablecclosure func_lua_pushtracablecclosure;
-	extern Symbols::lua_settracablecclosure func_lua_settracablecclosure;
-
 	// BUG:
 	// This currently causes JIT to nuke something (CSE being funky) causing a crash as arguments are being screwed up - so only use this if the function has no arguments
 	// Of course, CSE probably wasn't intended for external function calls, but the possible improvement with it could be great.
@@ -725,10 +817,10 @@ namespace Lua
 		LUA->PushString(Name);
 
 #if MODULE_EXISTS_LUAJIT
-		if (func_lua_pushtracablecclosure) {
+		if (g_bUsingLuaJIT && IsHolyState(LUA->GetState())) {
 			info.func = Func;
 
-			func_lua_pushtracablecclosure(LUA->GetState(), (lua_CFunctionInfo*)&info);
+			lua_pushtracablecclosure(LUA->GetState(), &info);
 		} else
 #endif
 		{
@@ -745,9 +837,9 @@ namespace Lua
 		if (LUA->IsType(-1, GarrysMod::Lua::Type::Function))
 		{
 #if MODULE_EXISTS_LUAJIT
-		if (func_lua_settracablecclosure) {
+		if (g_bUsingLuaJIT && IsHolyState(LUA->GetState())) {
 			info.func = LUA->GetCFunction();
-			func_lua_settracablecclosure(LUA->GetState(), -1, (lua_CFunctionInfo*)&info);
+			lua_settracablecclosure(LUA->GetState(), -1, &info);
 		}
 #endif
 		}
@@ -1043,72 +1135,36 @@ static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2, T3 arg3)
 	/*
 	 * RawSetI & RawGetI are way faster but Gmod doesn't expose or even use them :(
 	 */
-	extern Symbols::lua_rawseti func_lua_rawseti;
 	inline void RawSetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
 		if (IsHolyState(LUA))
-		{
 			lua_rawseti(LUA->GetState(), iStackPos, iValue);
-			return;
-		}
-
-		if (func_lua_rawseti)
-		{
-			func_lua_rawseti(LUA->GetState(), iStackPos, iValue);
-		} else {
-			LUA->PushNumber(iValue);
-			LUA->Push(-2);
-			LUA->Remove(-3);
-			LUA->RawSet(SHIFT_STACK(iStackPos, 1));
-		}
+		else
+			GModLua::RawSetI(LUA->GetState(), iStackPos, iValue);
 	}
 
-	extern Symbols::lua_rawgeti func_lua_rawgeti;
 	inline void RawGetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
 		if (IsHolyState(LUA))
-		{
 			lua_rawgeti(LUA->GetState(), iStackPos, iValue);
-			return;
-		}
-
-		if (func_lua_rawgeti)
-		{
-			func_lua_rawgeti(LUA->GetState(), iStackPos, iValue);
-		} else {
-			LUA->PushNumber(iValue);
-			LUA->RawGet(SHIFT_STACK(iStackPos, 1));
-		}
+		else
+			GModLua::RawGetI(LUA->GetState(), iStackPos, iValue);
 	}
 
-	extern Symbols::luaL_checklstring func_luaL_checklstring;
 	inline const char* CheckLString(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, size_t* nOutLength)
 	{
 		if (IsHolyState(LUA))
 			return luaL_checklstring(LUA->GetState(), nStackPos, nOutLength);
 
-		if (func_luaL_checklstring)
-		{
-			return func_luaL_checklstring(LUA->GetState(), nStackPos, nOutLength);
-		} else {
-			const char* pStr = LUA->CheckString(nStackPos);
-			if (nOutLength)
-				*nOutLength = LUA->ObjLen(nStackPos);
-
-			return pStr;
-		}
+		return GModLua::CheckLString(LUA->GetState(), nStackPos, nOutLength);
 	}
 
-	extern Symbols::lua_type func_lua_type;
 	inline int lua_type(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos)
 	{
 		if (IsHolyState(LUA))
 			return lua_type(LUA->GetState(), nStackPos);
 
-		if (func_lua_type)
-			return func_lua_type(LUA->GetState(), nStackPos);
-		else
-			return LUA->GetType(nStackPos);
+		return GModLua::Type(LUA->GetState(), nStackPos);
 	}
 
 	/*
@@ -1120,17 +1176,9 @@ static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2, T3 arg3)
 	inline void ReferencePush(GarrysMod::Lua::ILuaInterface* LUA, int iReference)
 	{
 		if (IsHolyState(LUA))
-		{
 			lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
-			return;
-		}
-
-		if (func_lua_rawgeti)
-		{
-			func_lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
-		} else {
-			LUA->ReferencePush(iReference);
-		}
+		else
+			GModLua::RawGetI(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
 	}
 }
 
@@ -1361,9 +1409,9 @@ struct LuaUserData {
 		} else {
 			/*if (gcrefu(usertable) == 0)
 			{
-				if (Util::func_lj_tab_new)
+				if (Lua::HasInternals(L))
 				{
-					setgcref(usertable, obj2gco(Util::func_lj_tab_new(L, 0, 0)));
+					setgcref(usertable, obj2gco(Lua::TabNew(L, 0, 0)));
 				} else { // Slower on 64x though I won't deal with that shit for this improvement.
 					pLua->CreateTable();
 					setgcref(usertable, obj2gco(tabV(Lua::LuaTop(L)-1)));
@@ -1384,45 +1432,26 @@ struct LuaUserData {
 
 		lua_State* L = pLua->GetState();
 		GCRef& usertable = GetUserTable();
-		Symbols::lj_tab_new lj_tab_newfunc = Util::func_lj_tab_new;
-		Symbols::lj_gc_barrierf lj_gc_barrierfunc = Util::func_lj_gc_barrierf;
-		if (L->dummy_ffid != FF_C) // HolyLib state
-		{
-			lj_tab_newfunc = RawLua::GetTabNewFunc();
-			lj_gc_barrierfunc = RawLua::GetGCBarrierF();
-		}
-
-		if (lj_tab_newfunc && (bFresh || lj_gc_barrierfunc))
+		if (Lua::HasInternals(L))
 		{
 			// We cannot free it since the GC would kill itself... We also SHOULDN'T since the gc handles it already, so NO touching >:(
 			// Why does the GC kill itself? Because inside the GCHeader of the usertable, the next GC object is stored.
 			// Normally when we would delete it, we would adjust it and properly handle this by updating the "nextgc" of the previous gc object
 			// though it's not double linked / there is no "previousgc" variable so we do not know the next gc object.
 			// And lj_tab_free also doesn't take care of this, it just frees the memory, so this caused crashes, memory corruption and infinite loops.
-			// Util::func_lj_tab_free(G(L), gco2tab(gcref(usertable)));
-			setgcref(usertable, obj2gco(lj_tab_newfunc(L, 0, 0)));
-			
+			// lj_tab_free(G(L), gco2tab(gcref(usertable)));
+			setgcref(usertable, obj2gco(Lua::TabNew(L, 0, 0)));
+
 			if (!bFresh)
-			{ // lj_gc_objbarrier unwrapped since we need to change the call to lj_gc_barrierf -> Util::func_lj_gc_barrierf
+			{ // lj_gc_objbarrier unwrapped since we need to change the call to lj_gc_barrierf -> Lua::GCBarrierF
 				if (((((GCobj*)(gcref(usertable))))->gch.marked & (0x01 | 0x02)) && ((((GCobj*)(this)))->gch.marked & 0x04))
-							lj_gc_barrierfunc(G(L), ((GCobj*)(this)), ((GCobj*)(gcref(usertable))));
+							Lua::GCBarrierF(L, ((GCobj*)(this)), ((GCobj*)(gcref(usertable))));
 			}
 		} else {
 			pLua->CreateTable();
 			if (!bFresh)
 			{
-				if (lj_gc_barrierfunc)
-				{
-					setgcref(usertable, obj2gco(tabV(Lua::LuaTop(L)-1)));
-
-					{ // lj_gc_objbarrier unwrapped since we need to change the call to lj_gc_barrierf -> Util::func_lj_gc_barrierf
-						if (((((GCobj*)(gcref(usertable))))->gch.marked & (0x01 | 0x02)) && ((((GCobj*)(this)))->gch.marked & 0x04))
-							lj_gc_barrierfunc(G(L), ((GCobj*)(this)), ((GCobj*)(gcref(usertable))));
-					}
-					pLua->Pop(1);
-				} else {
-					Util::func_lua_setfenv(L, -2); // Internally has the gc barrier
-				}
+				Lua::SetFEnv(L, -2); // Internally has the gc barrier
 			} else {
 				setgcref(usertable, obj2gco(tabV(Lua::LuaTop(L)-1)));
 				pLua->Pop(1);
