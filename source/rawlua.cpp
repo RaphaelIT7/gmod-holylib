@@ -52,6 +52,16 @@ lua_State* RawLua::MainState(lua_State* L)
     return mainthread(G(L));
 }
 
+Symbols::lj_tab_new RawLua::GetTabNewFunc()
+{
+	return &lj_tab_new;
+}
+
+Symbols::lj_gc_barrierf RawLua::GetGCBarrierF()
+{
+	return (Symbols::lj_gc_barrierf)&lj_gc_barrierf;
+}
+
 TValue* RawLua::CopyTValue(lua_State* L, TValue* o)
 {
 	TValue* newO = new TValue;
