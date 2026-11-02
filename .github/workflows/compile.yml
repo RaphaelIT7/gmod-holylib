@@ -514,6 +514,7 @@ jobs:
           sparse-checkout: lua
           repository: 'RaphaelIT7/gmod_tests'
           path: 'gmod_tests'
+          ref: 'holylib'
 
       - uses: actions/download-artifact@v4
         name: "Download ${{ matrix.arch }} artifact"
