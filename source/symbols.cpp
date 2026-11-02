@@ -464,15 +464,15 @@ namespace Symbols
 	};
 
 	const std::vector<Symbol> Addon_FileSystem_ResolveFileSym = {
-		Symbol::FromName("_ZN5Addon10FileSystem11ResolveFileEPKc"),
+		Symbol::FromName("_ZN5Addon10FileSystem11ResolveFileB5cxx11EPKc"),
 	};
 
 	const std::vector<Symbol> Addon_FileSystem_GetFileSizeSym = {
-		Symbol::FromName("_ZN5Addon10FileSystem11GetFileSizeERKSs"),
+		Symbol::FromName("_ZN5Addon10FileSystem11GetFileSizeERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE"),
 	};
 
 	const std::vector<Symbol> Addon_FileSystem_IsDirectorySym = {
-		Symbol::FromName("_ZN5Addon10FileSystem11IsDirectoryESs"),
+		Symbol::FromName("_ZN5Addon10FileSystem11IsDirectoryENSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE"),
 	};
 
 	const std::vector<Symbol> Addon_FileHandle_SizeSym = {
@@ -1266,7 +1266,7 @@ namespace Symbols
 	// Purpose: AutoRefresh Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> GarrysMod_AutoRefresh_HandleChange_LuaSym = {
-		Symbol::FromName("_ZN9GarrysMod11AutoRefresh16HandleChange_LuaERKSsS2_S2_"),
+		Symbol::FromName("_ZN9GarrysMod11AutoRefresh16HandleChange_LuaERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_S8_"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x49\x89\xFD\x48\x89\xD7\x41\x54"),
 	};
 

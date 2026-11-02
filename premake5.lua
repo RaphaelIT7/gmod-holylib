@@ -71,6 +71,13 @@ prebuildCommand = basePath .. prebuildCommand -- We add this after execute since
 	Project setup
 ]]
 CreateWorkspace({name = "holylib", abi_compatible = true})
+	if not GMOD_X86_64 then -- X86_64 remains unchanged since they weren't moved yet to SteamRT4 (we probably will drop them soon anyways)
+		-- This define comes from the garrysmod_common but I can't remove it there yet as then I'll probably break a lot of other projects who target the public branch
+		filter("system:linux")
+			removedefines("_GLIBCXX_USE_CXX11_ABI=0")
+		filter({})
+	end
+
 	-- Serverside module (gmsv prefix)
 	-- Can define "source_path", where the source files are located
 	-- Can define "manual_files", which allows you to manually add files to the project,
