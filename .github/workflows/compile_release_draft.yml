@@ -1,7 +1,7 @@
 # ToDo: Update https://github.com/RaphaelIT7/gmod-common-module-base/blob/workflow/.github/workflows/compile-release.yml once I made up my mind how to handle win dedicated servers
 name: Build Release Draft
 
-on: 
+on:
   workflow_dispatch:
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
 
   build_holylib_windows_dedicated:
     name: "Build Plugin (Dedicated)"
-    uses: polepie/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
       PROJECT_NAME: "holylib"
       BUILD_64x: "true"
