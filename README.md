@@ -52,6 +52,9 @@ You can fork this repository and use the `Build Custom Version` to create a cust
 I heard from some that they don't want a huge DLL of which they only use a few functions of,<br>
 so by making a custom build, anyone can include just the stuff they actually want and need, nothing else.<br>
 
+Custom builds are still supported and you can still report bugs using it.<br>
+If you encounter crashes you may want to include your build file in the report too with a crash log.<br>
+
 ## Dev Builds
 Every commit triggers a compile workflow, resulting in a dev build<br>
 All of those can be found under the `Actions` tab -> https://github.com/RaphaelIT7/gmod-holylib/actions<br>
@@ -59,6 +62,8 @@ All of those can be found under the `Actions` tab -> https://github.com/RaphaelI
 > [!IMPORTANT]
 > These builds focus on the GMod `dev` branch currently.<br>
 > If you attempt to use a build on a server running on the `public` branch you **may** experience issues or even crashes.<br>
+> I recommend updating GMod together with HolyLib as most of the time the dev builds will work with the newest `dev` branch just fine.<br>
+> If you report a crash using a dev build yet not using the `dev` branch then depending if the crash happened **in GMod/outside holylib** the report will most likely be invalid<br>
 
 ## How to update
 
