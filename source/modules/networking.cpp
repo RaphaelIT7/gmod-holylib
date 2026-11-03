@@ -492,7 +492,7 @@ static inline const Vector& GetCollisionPropertyMaxs(const void* pCollisionProp)
 static ConVar networking_bind_gmodhands_to_player("holylib_networking_bind_gmodhands_to_player", "1", 0, "If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
 static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_viewmodels_to_player", "1", 0, "If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
 static ConVar networking_cachedump("holylib_networking_cachedump", "0", 0, "Debug. You wouldn't need this...");
-static ConVar networking_areasplit("holylib_networking_areasplit", "0", 0, "PVS entities are split into areas");
+static ConVar networking_areasplit("holylib_networking_areasplit", "1", 0, "PVS entities are split into areas");
 static ConVar networking_fastcharactertransmit("holylib_networking_fastcharactertransmit", "1", 0, "Experimental");
 struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, though its a good foundation now.
 {
