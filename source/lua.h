@@ -1346,14 +1346,14 @@ struct LuaUserData {
 			GMod.metatable = pMetaEntry.metatable;
 
 		if (pMetaEntry.iType == UCHAR_MAX)
-		{
 			Warning(PROJECT_NAME ": Tried to push userdata of HolyLib Lua Type %i but it was never registered! (Is the module missing/disabled?)", pMetaEntry.iLuaType);
-		}
+		else if (gcrefu(pMetaEntry.metatable) == 0)
+			Warning(PROJECT_NAME ": Pushing userdata of HolyLib Lua Type %i with a NULL metatable! This can crash when JIT hits!\n", pMetaEntry.iLuaType);
 
 		if (bNoUserTable)
 		{
 			HolyLib.flags |= (int)udataFlags::UDATA_NO_USERTABLE;
-			// setgcrefnull(usertable); // Verify: Do we need to always have a valid usertable? iirc the gc is missing a null check
+			setgcrefr(GetUserTable(), LUA->GetState()->env); // Else it may crash when JIT tries to trace an access...
 		} else {
 			ClearLuaTable(LUA, true);
 		}

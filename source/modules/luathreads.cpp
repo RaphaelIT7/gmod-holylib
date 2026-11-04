@@ -169,6 +169,9 @@ public:
 			// Execute any module's think code
 			g_pModuleManager.LuaThink(m_pInterface);
 			m_pInterface->Cycle();
+		} else {
+			for (auto& task : pTasks)
+				delete task;
 		}
 	}
 
@@ -332,6 +335,12 @@ LUA_FUNCTION_STATIC(LuaInterface_RunTasks)
 LUA_FUNCTION_STATIC(LuaInterface_Destroy)
 {
 	LuaInterface* pData = Get_LuaInterface(LUA, 1, true);
+	if (pData->GetInterface() == LUA)
+		LUA->ThrowError("Thou shall not delete its current state!");
+
+	if (pLuaThreadPool)
+		pLuaThreadPool->ExecuteAll();
+
 	DeleteGlobal_LuaInterface(pData);
 
 	delete pData;
@@ -420,6 +429,7 @@ void CLuaThreadsModule::Shutdown()
 {
 	if (pLuaThreadPool)
 	{
+		pLuaThreadPool->ExecuteAll();
 		Util::DestroyThreadPool(pLuaThreadPool);
 		pLuaThreadPool = nullptr;
 	}

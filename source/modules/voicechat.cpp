@@ -640,6 +640,14 @@ struct WavAudioFile {
 		return currentPos;
 	}
 
+	unsigned int RemainingBytes()
+	{
+		if (currentPos >= dataSize)
+			return 0;
+
+		return dataSize - currentPos;
+	}
+
 private:
 	char* data = nullptr;
 	unsigned int dataSize = 0;
@@ -738,7 +746,13 @@ struct VoiceStream {
 			g_pFullFileSystem->Read(&tickRate, sizeof(int), fh);
 
 			int serverTickRate = (int)std::ceil(1 / gpGlobals->interval_per_tick);
-			scaleRate = (int)std::ceil(serverTickRate / tickRate);
+			if (tickRate <= 0)
+			{
+				delete pStream;
+				return nullptr;
+			}
+
+			scaleRate = (double)serverTickRate / tickRate;
 
 			count = 0;
 			g_pFullFileSystem->Read(&count, sizeof(int), fh);
@@ -875,6 +889,7 @@ struct VoiceStream {
 		double scale = static_cast<double>(outRate) / inRate;
 		size_t outCount = static_cast<size_t>(in.size() * scale);
 		if (outCount < 2) outCount = 2;
+		if (outCount > (size_t)1 << 28) return {};
 
 		std::vector<int16_t> out(outCount);
 
@@ -1005,11 +1020,25 @@ struct VoiceStream {
 		const int inputBitsPerSample = header.bitsPerSample;
 		const int inputBytesPerSample = inputBitsPerSample / 8;
 		int sampleRate = header.sampleRate;
-		if (inputBitsPerSample % 8 != 0 || inputBitsPerSample > 64 || inputChannels < 1 || inputChannels > 2) {
+		if (inputBitsPerSample < 8 || inputBitsPerSample % 8 != 0 || inputBitsPerSample > 64 || inputChannels < 1 || inputChannels > 2) {
 			if (g_pVoiceChatModule.InDebug() == 1)
 			{
 				Warning(PROJECT_NAME " - voicechat - LoadWave: invalid sampleRate or channels! (%i, %i)\n", inputBitsPerSample, inputChannels);
 			}
+			return nullptr;
+		}
+
+		int64_t nBytesAvailable = 0;
+		if (fh)
+			nBytesAvailable = (int64_t)g_pFullFileSystem->Size(fh) - (int64_t)g_pFullFileSystem->Tell(fh);
+		else
+			nBytesAvailable = pWav->RemainingBytes();
+
+		if ((int64_t)header.dataSize > nBytesAvailable)
+		{
+			if (g_pVoiceChatModule.InDebug() == 1)
+				Warning(PROJECT_NAME " - voicechat - LoadWave: data size is bigger than the file!\n");
+
 			return nullptr;
 		}
 

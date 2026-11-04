@@ -1749,8 +1749,19 @@ void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 	}
 }
 
+// ToDo: Maybe backport or load GMods file whitelist/blacklist?
+static void CheckDataPathOnly(GarrysMod::Lua::ILuaInterface* LUA, int iArg, const char* pPath)
+{
+	if (g_pModuleManager.IsUnsafeCodeEnabled())
+		return;
+
+	if (V_IsAbsolutePath(pPath) || V_strstr(pPath, "..") != nullptr)
+		LUA->ArgError(iArg, "absolute paths and \"..\" are only allowed when unsafe code is enabled");
+}
+
 LUA_FUNCTION_STATIC(filesystem_CreateDir)
 {
+	CheckDataPathOnly(LUA, 1, LUA->CheckString(1));
 	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), 
 		g_pModuleManager.IsUnsafeCodeEnabled() ? LUA->CheckStringOpt(2, "DATA") : "DATA" // Force "DATA" path if unsafe is disabled
 	);
@@ -1760,6 +1771,7 @@ LUA_FUNCTION_STATIC(filesystem_CreateDir)
 
 LUA_FUNCTION_STATIC(filesystem_Delete)
 {
+	CheckDataPathOnly(LUA, 1, LUA->CheckString(1));
 	g_pFullFileSystem->RemoveFile(LUA->CheckString(1),
 		g_pModuleManager.IsUnsafeCodeEnabled() ? LUA->CheckStringOpt(2, "DATA") : "DATA" // Force "DATA" path if unsafe is disabled
 	);
@@ -1906,6 +1918,9 @@ LUA_FUNCTION_STATIC(filesystem_Rename)
 
 	if (!g_pModuleManager.IsUnsafeCodeEnabled())
 		gamePath = "DATA"; // Force "DATA" path if unsafe is disabled
+
+	CheckDataPathOnly(LUA, 1, original);
+	CheckDataPathOnly(LUA, 2, newname);
 
 	LUA->PushBool(g_pFullFileSystem->RenameFile(original, newname, gamePath));
 
@@ -2133,7 +2148,11 @@ LUA_FUNCTION_STATIC(addonsystem_Subscribe)
 	const char* pszWSID = LUA->CheckString(1);
 	uint64_t wsid = strtoull(pszWSID, nullptr, 0);
 
-	SteamUGC()->SubscribeItem(wsid);
+	ISteamUGC* pSteamUGC = SteamUGC();
+	if (!pSteamUGC)
+		LUA->ThrowError("Failed to get SteamUGC!");
+
+	pSteamUGC->SubscribeItem(wsid);
 	GetAddonFilesystem()->AddUnloadedSubscription(wsid);
 
 	if (Util::server)

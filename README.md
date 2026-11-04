@@ -522,7 +522,7 @@ This is useful when you handle execution yourself - though if you want to let co
 This module contains additional functions for the gameevent library.<br>
 With the Add/Get/RemoveClient* functions you can control the gameevents that are networked to a client which can be useful.<br>
 
-Supports: Linux32 | LINUX64<br>
+Supports: Linux32 | LINUX64 | Windows64<br>
 
 ### Functions
 
@@ -947,7 +947,7 @@ If you want to create stringtables outside this hook, use `stringtable.AllowCrea
 
 ## pvs
 This adds a bunch of PVS related functions.<br>
-Supports: Linux32<br>
+Supports: Linux32 | Linux64 | Windows32 | Windows64<br>
 
 ### Functions
 
@@ -1126,7 +1126,7 @@ entity ply - The player that everything is transmitted to.<br>
 ## surffix
 This module ports over [Momentum Mod's](https://github.com/momentum-mod/game/blob/develop/mp/src/game/shared/momentum/mom_gamemovement.cpp#L2393-L2993) surf fixes.<br>
 
-Supports: Linux32<br>
+Supports: Linux32 | Windows64<br>
 
 ### ConVars
 

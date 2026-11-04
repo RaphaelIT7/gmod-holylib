@@ -44,6 +44,15 @@ LuaUserData* Push_bf_write(GarrysMod::Lua::ILuaInterface* LUA, bf_write* tbl, bo
 	return pUserData;
 }
 
+static inline int CheckBitCount(GarrysMod::Lua::ILuaInterface* LUA, int iArg, int nMaxBits = 32)
+{
+	int nBits = (int)LUA->CheckNumber(iArg);
+	if (nBits < 1 || nBits > nMaxBits)
+		LUA->ArgError(iArg, nMaxBits == 32 ? "bit count must be between 1 and 32" : "bit count must be between 1 and 31");
+
+	return nBits;
+}
+
 LUA_FUNCTION_STATIC(bf_read__tostring)
 {
 	bf_read* bf = Get_bf_read(LUA, 1, false);
@@ -140,7 +149,7 @@ LUA_FUNCTION_STATIC(bf_read_PeekUBitLong)
 {
 	bf_read* bf = Get_bf_read(LUA, 1, true);
 
-	int numbits = (int)LUA->CheckNumber(2);
+	int numbits = CheckBitCount(LUA, 2);
 	LUA->PushNumber(bf->PeekUBitLong(numbits));
 	return 1;
 }
@@ -149,7 +158,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitAngle)
 {
 	bf_read* bf = Get_bf_read(LUA, 1, true);
 
-	int numbits = (int)LUA->CheckNumber(2);
+	int numbits = CheckBitCount(LUA, 2, 31);
 	LUA->PushNumber(bf->ReadBitAngle(numbits));
 	return 1;
 }
@@ -242,7 +251,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitLong)
 #if ARCHITECTURE_IS_X86_64
 	LUA->ThrowError("This is 32x only.");
 #else
-	int numBits = (int)LUA->CheckNumber(2);
+	int numBits = CheckBitCount(LUA, 2);
 	bool bSigned = LUA->GetBool(3);
 	LUA->PushNumber(bf->ReadBitLong(numBits, bSigned));
 #endif
@@ -263,11 +272,15 @@ LUA_FUNCTION_STATIC(bf_read_ReadBits)
 	bf_read* bf = Get_bf_read(LUA, 1, true);
 
 	int numBits = (int)LUA->CheckNumber(2);
+	if (numBits < 0)
+		LUA->ArgError(2, "bit count cannot be negative");
+
 	int size = PAD_NUMBER( Bits2Bytes(numBits), 4);
 	if (!holylib_canstackalloc(size))
 		LUA->ThrowError("Cannot stackalloc at this size!");
 
 	byte* buffer = (byte*)stackalloc( size );
+	memset(buffer, 0, size);
 	bf->ReadBits(buffer, numBits);
 	LUA->PushString((const char*)buffer, size);
 
@@ -363,7 +376,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadSBitLong)
 {
 	bf_read* bf = Get_bf_read(LUA, 1, true);
 
-	int numBits = (int)LUA->CheckNumber(2);
+	int numBits = CheckBitCount(LUA, 2);
 	LUA->PushNumber(bf->ReadSBitLong(numBits));
 	return 1;
 }
@@ -424,7 +437,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadUBitLong)
 {
 	bf_read* bf = Get_bf_read(LUA, 1, true);
 
-	int numBits = (int)LUA->CheckNumber(2);
+	int numBits = CheckBitCount(LUA, 2);
 	LUA->PushNumber(bf->ReadUBitLong(numBits));
 	return 1;
 }
@@ -615,7 +628,11 @@ LUA_FUNCTION_STATIC(bf_write_SeekToBit)
 {
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
-	pBF->SeekToBit((int)LUA->CheckNumber(2));
+	int iBit = (int)LUA->CheckNumber(2);
+	if (iBit < 0 || iBit > pBF->GetMaxNumBits())
+		LUA->ArgError(2, "bit position out of range");
+
+	pBF->SeekToBit(iBit);
 	return 0;
 }
 
@@ -686,7 +703,11 @@ LUA_FUNCTION_STATIC(bf_write_WriteOneBitAt)
 {
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
-	pBF->WriteOneBitAt((int)LUA->CheckNumber(2), LUA->GetBool(3));
+	int iBit = (int)LUA->CheckNumber(2);
+	if (iBit < 0)
+		LUA->ArgError(2, "bit position cannot be negative");
+
+	pBF->WriteOneBitAt(iBit, LUA->GetBool(3));
 	return 0;
 }
 
@@ -750,7 +771,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteUBitLong)
 {
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
-	pBF->WriteUBitLong((unsigned int)LUA->CheckNumber(2), (int)LUA->CheckNumber(3), LUA->GetBool(4));
+	pBF->WriteUBitLong((unsigned int)LUA->CheckNumber(2), CheckBitCount(LUA, 3), LUA->GetBool(4));
 	return 0;
 }
 
@@ -758,7 +779,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitAngle)
 {
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
-	pBF->WriteBitAngle((float)LUA->CheckNumber(2), (int)LUA->CheckNumber(3));
+	pBF->WriteBitAngle((float)LUA->CheckNumber(2), CheckBitCount(LUA, 3, 31));
 	return 0;
 }
 
@@ -793,8 +814,12 @@ LUA_FUNCTION_STATIC(bf_write_WriteBits)
 {
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
-	const char* pData = LUA->CheckString(2);
+	size_t iLength;
+	const char* pData = Lua::CheckLString(LUA, 2, &iLength);
 	int iBits = (int)LUA->CheckNumber(3);
+	if (iBits < 0 || (size_t)iBits > iLength * 8)
+		LUA->ArgError(3, "bit count out of range of the given data");
+
 	LUA->PushBool(pBF->WriteBits(pData, iBits));
 	return 1;
 }
@@ -821,7 +846,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitLong)
 {
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
-	pBF->WriteBitLong((unsigned int)LUA->CheckNumber(2), (int)LUA->CheckNumber(3), LUA->GetBool(4));
+	pBF->WriteBitLong((unsigned int)LUA->CheckNumber(2), CheckBitCount(LUA, 3), LUA->GetBool(4));
 	return 0;
 }
 
@@ -881,7 +906,7 @@ LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 	int iSize = pBf->GetNumBytesRead() + pBf->GetNumBytesLeft();
 	int iNewSize = CLAMP_BF(iSize);
 
-	unsigned char* cData = (unsigned char*)malloc(iNewSize);
+	unsigned char* cData = (unsigned char*)calloc(1, iNewSize);
 	if (!cData)
 		LUA->ThrowError("Failed to allocate data for buffer!");
 
@@ -905,8 +930,11 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 	
 	// The buffer is part of the userdata, appended after the bf_read
 	void* bufferData = (void*)((char*)pNewBF + sizeof(bf_read));
-	if (iLength > 0)
-		memcpy(bufferData, pData, MIN(iLength, (size_t)iNewLength));
+	size_t nCopy = MIN(iLength, (size_t)iNewLength);
+	if (nCopy > 0)
+		memcpy(bufferData, pData, nCopy);
+
+	memset((char*)bufferData + nCopy, 0, iNewLength - nCopy);
 
 	pNewBF->StartReading(bufferData, iNewLength);
 

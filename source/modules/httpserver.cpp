@@ -279,7 +279,7 @@ public:
 		m_pPreparedResponses.erase(it);
 	}
 
-	inline std::string GetAddressFromRequest(httplib::Request pRequest)
+	inline std::string GetAddressFromRequest(const httplib::Request& pRequest)
 	{
 		auto it = m_pAllowedProxies.find(pRequest.remote_addr);
 		if (it != m_pAllowedProxies.end())
@@ -1155,13 +1155,10 @@ LUA_FUNCTION_STATIC(HttpServer_AddPreparedResponse)
 	LUA->Push(5);
 	LUA->PushNil();
 	while (LUA->Next(-2)) {
-		LUA->Push(-2);
+		if (LUA->IsType(-2, GarrysMod::Lua::Type::String) && LUA->IsType(-1, GarrysMod::Lua::Type::String))
+			pResponse->m_pRequiredHeaders[LUA->GetString(-2)] = LUA->GetString(-1);
 
-		const char* key = LUA->GetString(-1);
-		const char* value = LUA->GetString(-2);
-		pResponse->m_pRequiredHeaders[key] = value;
-
-		LUA->Pop(2);
+		LUA->Pop(1);
 	}
 	LUA->Pop(1);
 

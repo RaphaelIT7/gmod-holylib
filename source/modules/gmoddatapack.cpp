@@ -947,6 +947,9 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 
 			if (!bInvalid)
 			{
+				if (pNewTokens.empty() || pNewTokens.back().type != TK_EOF)
+					pNewTokens.push_back({TK_EOF, ""});
+
 				tokens.clear();
 				tokens = std::move(pNewTokens);
 			}
@@ -983,7 +986,11 @@ public:
 			std::vector<unsigned char> pHash = HashString((const char*)content.data(), content.length() + 1);
 			compressed.Write(pHash.data(), pHash.size());
 
-			return Bootil::Compression::LZMA::Compress(content.data(), content.length() + 1, compressed, 9);
+			bool bSuccess = Bootil::Compression::LZMA::Compress(content.data(), content.length() + 1, compressed, 9);
+			if (!bSuccess)
+				compressed.Clear();
+
+			return bSuccess;
 		}
 
 		inline void Clear()
@@ -1323,12 +1330,18 @@ static void hook_GModDataPack_AddOrUpdateFile(GModDataPack* pDataPack, GarrysMod
 
 static void SendLuaFile(int clientIdx, int fileID, LuaDataPack::LuaPackEntry* pEntry)
 {
-	char pBuffer[1 << 16];
-	bf_write msg(pBuffer, sizeof(pBuffer));
+	size_t nBytes = 3 + pEntry->compressed.GetWritten() + 12; // + 12 just for extra space
+	std::vector<uint32_t> pBuffer(nBytes / sizeof(uint32_t));
+	bf_write msg(pBuffer.data(), (int)nBytes);
 
 	msg.WriteByte(GarrysMod::NetworkMessage::LuaFileDownload);
 	msg.WriteUBitLong(fileID, 16);
 	msg.WriteBytes(pEntry->compressed.GetBase(), pEntry->compressed.GetWritten());
+	if (msg.IsOverflowed())
+	{
+		Warning(PROJECT_NAME " - gmoddatapack: Failed to write FileID %i into the message buffer!\n", fileID);
+		return;
+	}
 
 	Util::engineserver->GMOD_SendToClient( clientIdx, msg.GetData(), msg.GetNumBitsWritten() );
 
@@ -1412,7 +1425,7 @@ LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 		lua_close(L);
 		return 2;
 	} else {
-		std::string strContent = pContent;
+		std::string strContent(pContent, nLength);
 		std::vector<Token> tokens = TokenizeContent(strContent);
 		if (LUA->IsType(4, GarrysMod::Lua::Type::Function))
 		{
@@ -1512,8 +1525,17 @@ static double g_nLastSend = 0;
 void CGModDataPackModule::Think(bool bSimulating)
 {
 	// We do this since SetStringUserData isn't thread safe and may crash in very rare race conditions
-	std::lock_guard<std::mutex> lock(g_pLuaDataPack.m_pStringTableUpdateQueueMutex);
-	for (int fileID : g_pLuaDataPack.m_pStringTableUpdateQueue)
+	std::vector<int> pUpdateQueue;
+	{
+		std::lock_guard<std::mutex> lock(g_pLuaDataPack.m_pStringTableUpdateQueueMutex);
+		pUpdateQueue = std::move(g_pLuaDataPack.m_pStringTableUpdateQueue);
+		g_pLuaDataPack.m_pStringTableUpdateQueue.clear();
+	}
+
+	if (!g_pDataPack || !g_pDataPack->m_pClientLuaFiles)
+		return;
+
+	for (int fileID : pUpdateQueue)
 	{
 		LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
 		if (!pEntry)
@@ -1524,8 +1546,6 @@ void CGModDataPackModule::Think(bool bSimulating)
 		std::vector<unsigned char> pHash = HashString(pEntry->content.c_str(), pEntry->content.length() + 1);
 		g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data());
 	}
-
-	g_pLuaDataPack.m_pStringTableUpdateQueue.clear();
 }
 
 /*

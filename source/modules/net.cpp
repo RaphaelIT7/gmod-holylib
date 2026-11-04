@@ -34,6 +34,9 @@ LUA_FUNCTION_STATIC(net_WriteSeek)
 	if (!pBF || !*bStarted)
 		LUA->ThrowError("Tried to use net.WriteSeek with no active net message!");
 
+	if (iPos > pBF->GetMaxNumBits() - 24)
+		LUA->ArgError(1, "Number is out of range of the net message buffer!");
+
 	pBF->SeekToBit(24 + iPos); // Why not working :<
 	return 0;
 }
