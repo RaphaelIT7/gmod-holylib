@@ -37,65 +37,126 @@ public:
 
 static ConVar gmoddatapack_removeserverif("holylib_gmoddatapack_removeserverif", "0", 0, "If enabled, \"if SERVER then\" code blocks are removed from client files");
 static ConVar gmoddatapack_removecomments("holylib_gmoddatapack_removecomments", "0", 0, "If enabled, comments are removed from client files");
+static ConVar gmoddatapack_minify("holylib_gmoddatapack_minify", "0", 0, "If enabled, code is minified without changing line count");
 
 static CGModDataPackModule g_pGModDataPackModule;
 IModule* pGModDataPackModule = &g_pGModDataPackModule;
 
-#define TK_LIST \
-	TK(TK_INVALID) \
-	TK(TK_IF) \
-	TK(TK_FUNCTION) \
-	TK(TK_RETURN) \
-	TK(TK_THEN) \
-	TK(TK_END) \
-	TK(TK_DO) \
-	TK(TK_OR) \
-	TK(TK_AND) \
-	TK(TK_NOT) \
-	TK(TK_EQUAL) \
-	TK(TK_NOT_EQUAL) \
-	TK(TK_GREATER_OR_EQUAL) \
-	TK(TK_GREATER) \
-	TK(TK_LESS_OR_EQUAL) \
-	TK(TK_PARENTHESIS) \
-	TK(TK_LESS) \
-	TK(TK_ELSE) \
-	TK(TK_ELSEIF) \
-	TK(TK_COMMENT) \
-	TK(TK_STRING) \
-	TK(TK_NUMBER) \
-	TK(TK_TRUE) \
-	TK(TK_FALSE) \
-	TK(TK_SOMETHING) \
-	TK(TK_ADD) \
-	TK(TK_SUB) \
-	TK(TK_DIV) \
-	TK(TK_MUL) \
-	TK(TK_LOCAL) \
-	TK(TK_LINEEND) \
-	TK(TK_EOF)
-
-enum TokenType
+// Used to decide if the left, right or both sides of a token need a space (used for minify)
+enum class TokenSpace : unsigned char
 {
-#define TK(token) token,
+	NONE,
+	LEFT,
+	LEFT_PARENTHESIS, // Space or paranthesis work
+	RIGHT,
+	RIGHT_PARENTHESIS,
+	BOTH,
+	BOTH_PARENTHESIS,
+};
+
+#define TK_LIST \
+	TK(TK_INVALID, TokenSpace::NONE) \
+	TK(TK_IF, TokenSpace::BOTH) \
+	TK(TK_FUNCTION, TokenSpace::BOTH) \
+	TK(TK_RETURN, TokenSpace::BOTH) \
+	TK(TK_THEN, TokenSpace::BOTH) \
+	TK(TK_BREAK, TokenSpace::BOTH) \
+	TK(TK_FOR, TokenSpace::BOTH) \
+	TK(TK_IN, TokenSpace::BOTH) \
+	TK(TK_WHILE, TokenSpace::BOTH) \
+	TK(TK_REPEAT, TokenSpace::BOTH) \
+	TK(TK_UNTIL, TokenSpace::BOTH) \
+	TK(TK_GOTO, TokenSpace::BOTH) \
+	TK(TK_LABEL, TokenSpace::BOTH) /* Will have TK_DOUBLE_COLON before & after this token */ \
+	TK(TK_END, TokenSpace::BOTH) \
+	TK(TK_DO, TokenSpace::BOTH) \
+	TK(TK_OR, TokenSpace::BOTH) \
+	TK(TK_AND, TokenSpace::BOTH) \
+	TK(TK_NOT, TokenSpace::BOTH) \
+	TK(TK_EQUAL, TokenSpace::NONE) \
+	TK(TK_NOT_EQUAL, TokenSpace::NONE) \
+	TK(TK_GREATER_OR_EQUAL, TokenSpace::NONE) \
+	TK(TK_GREATER, TokenSpace::NONE) \
+	TK(TK_LESS_OR_EQUAL, TokenSpace::NONE) \
+	TK(TK_LPARENTHESIS, TokenSpace::NONE) \
+	TK(TK_RPARENTHESIS, TokenSpace::NONE) \
+	TK(TK_LESS, TokenSpace::NONE) \
+	TK(TK_ELSE, TokenSpace::BOTH) \
+	TK(TK_ELSEIF, TokenSpace::BOTH) \
+	TK(TK_COMMENT, TokenSpace::LEFT) \
+	TK(TK_STRING, TokenSpace::LEFT) \
+	TK(TK_NUMBER, TokenSpace::BOTH) \
+	TK(TK_TRUE, TokenSpace::BOTH) \
+	TK(TK_FALSE, TokenSpace::BOTH) \
+	TK(TK_NIL, TokenSpace::BOTH) \
+	TK(TK_SOMETHING, TokenSpace::BOTH) \
+	TK(TK_ADD, TokenSpace::NONE) \
+	TK(TK_SUB, TokenSpace::BOTH) \
+	TK(TK_DIV, TokenSpace::RIGHT) \
+	TK(TK_MUL, TokenSpace::NONE) \
+	TK(TK_MOD, TokenSpace::NONE) \
+	TK(TK_POW, TokenSpace::NONE) \
+	TK(TK_LOCAL, TokenSpace::BOTH) \
+	TK(TK_ASSIGN, TokenSpace::NONE) /* variable = value */ \
+	TK(TK_VARARG, TokenSpace::LEFT) \
+	TK(TK_CONCAT, TokenSpace::BOTH) \
+	TK(TK_LENGTH, TokenSpace::NONE) \
+	TK(TK_LBRACE, TokenSpace::NONE) \
+	TK(TK_RBRACE, TokenSpace::NONE) \
+	TK(TK_LBRACKET, TokenSpace::RIGHT) \
+	TK(TK_RBRACKET, TokenSpace::NONE) \
+	TK(TK_COMMA, TokenSpace::NONE) \
+	TK(TK_SEMICOLON, TokenSpace::NONE) \
+	TK(TK_COLON, TokenSpace::NONE) \
+	TK(TK_DOUBLE_COLON, TokenSpace::NONE) \
+	TK(TK_DOT, TokenSpace::BOTH) \
+	TK(TK_LINEEND, TokenSpace::NONE) \
+	TK(TK_EOF, TokenSpace::NONE)
+
+enum TokenType : unsigned char
+{
+#define TK(token, space) token,
 	TK_LIST
 #undef TK
 };
 
 static const char* g_TokenNames[] =
 {
-#define TK(token) #token,
+#define TK(token, space) #token,
 	TK_LIST
 #undef TK
 };
 
-struct Token {
-	TokenType type;
-	std::string content;
-	bool isSpace = false;
+static const TokenSpace g_TokenSpaces[] =
+{
+#define TK(token, space) space,
+	TK_LIST
+#undef TK
 };
 
-static inline TokenType KeywordType(const std::string& strWord)
+enum class TokenFlag : unsigned char
+{
+	NONE,
+	SPACE,
+	PARENTHESIS
+};
+
+struct Token {
+	Token() {};
+	Token(TokenType type, std::string_view content) : type(type), content(content) {};
+	Token(TokenType type, std::string_view content, TokenFlag flag) : type(type), flag(flag), content(content) {};
+
+	bool IsSpace() const { return flag == TokenFlag::SPACE; }
+	bool IsParenthesis() const { return flag == TokenFlag::PARENTHESIS; }
+	bool IsEmpty() const { return content.empty() && lineBreaks == 0; }
+
+	TokenType type;
+	TokenFlag flag = TokenFlag::NONE;
+	unsigned short lineBreaks = 0; // We apply these when writing out since we no longer store a copy of the contents
+	std::string_view content;
+};
+
+static inline TokenType KeywordType(std::string_view strWord)
 {
 	if (strWord == "if") return TK_IF;
 	if (strWord == "function") return TK_FUNCTION;
@@ -110,14 +171,23 @@ static inline TokenType KeywordType(const std::string& strWord)
 	if (strWord == "else") return TK_ELSE;
 	if (strWord == "true") return TK_TRUE;
 	if (strWord == "false") return TK_FALSE;
+	if (strWord == "nil") return TK_NIL;
 	if (strWord == "local") return TK_LOCAL;
+	if (strWord == "break") return TK_BREAK;
+	if (strWord == "for") return TK_FOR;
+	if (strWord == "in") return TK_IN;
+	if (strWord == "while") return TK_WHILE;
+	if (strWord == "repeat") return TK_REPEAT;
+	if (strWord == "until") return TK_UNTIL;
+	if (strWord == "goto") return TK_GOTO;
 	return TK_SOMETHING;
 }
 
 // NOTE: I kinda want to keep this function synconized with HolyScript's Tokenizer
-static std::vector<Token> TokenizeContent(const std::string& content)
+static std::vector<Token> TokenizeContent(std::string_view content)
 {
 	std::vector<Token> tokens;
+	tokens.reserve(content.size() / 4);
 
 	size_t i = 0;
 	while (i < content.size())
@@ -125,21 +195,21 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		unsigned char c = (unsigned char)content[i];
 		if (c == '\n')
 		{
-			tokens.push_back({TK_LINEEND, std::string(1, c), true});
+			tokens.push_back({TK_LINEEND, content.substr(i, 1), TokenFlag::SPACE});
 			++i;
 			continue;
 		}
 
 		if (c == ' ' || c == '\t' || c == '\r')
 		{
-			tokens.push_back({TK_SOMETHING, std::string(1, c), true});
+			tokens.push_back({TK_SOMETHING, content.substr(i, 1), TokenFlag::SPACE});
 			++i;
 			continue;
 		}
 
 		if (c == '(' || c == ')')
 		{
-			tokens.push_back({TK_PARENTHESIS, std::string(1, c)});
+			tokens.push_back({c == '(' ? TK_LPARENTHESIS : TK_RPARENTHESIS, content.substr(i, 1), TokenFlag::PARENTHESIS});
 			++i;
 			continue;
 		}
@@ -153,7 +223,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 		if (c == '>')
 		{
-			tokens.push_back({TK_GREATER, std::string(1, c)});
+			tokens.push_back({TK_GREATER, content.substr(i, 1)});
 			++i;
 			continue;
 		}
@@ -167,7 +237,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 		if (c == '<')
 		{
-			tokens.push_back({TK_LESS, std::string(1, c)});
+			tokens.push_back({TK_LESS, content.substr(i, 1)});
 			++i;
 			continue;
 		}
@@ -202,14 +272,14 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 		if (c == '+')
 		{
-			tokens.push_back({TK_ADD, std::string(1, c)});
+			tokens.push_back({TK_ADD, content.substr(i, 1)});
 			++i;
 			continue;
 		}
 
 		if (c == '*')
 		{
-			tokens.push_back({TK_MUL, std::string(1, c)});
+			tokens.push_back({TK_MUL, content.substr(i, 1)});
 			++i;
 			continue;
 		}
@@ -247,7 +317,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 								nextCount++;
 							}
 
-							if (nextCount == count && content[i] == ']')
+							if (nextCount == count && i < content.size() && content[i] == ']')
 								break;
 
 							i--;
@@ -339,7 +409,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 							nextCount++;
 						}
 
-						if (nextCount == count && content[i] == ']')
+						if (nextCount == count && i < content.size() && content[i] == ']')
 							break;
 
 						i--;
@@ -367,7 +437,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			while (i < content.size() && std::isdigit((unsigned char)content[i]))
 				++i;
 
-			std::string strWord = content.substr(start, i - start);
+			std::string_view strWord = content.substr(start, i - start);
 			tokens.push_back({TK_NUMBER, strWord});
 			continue;
 		}
@@ -378,34 +448,154 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			while (i < content.size() && (std::isalnum((unsigned char)content[i]) || content[i]=='_'))
 				++i;
 
-			std::string strWord = content.substr(start, i - start);
-			tokens.push_back({KeywordType(strWord), strWord});
+			std::string_view strWord = content.substr(start, i - start);
+			TokenType type = KeywordType(strWord);
+			if (type == TK_SOMETHING)
+			{
+				size_t prev = tokens.size();
+				while (prev > 0 && tokens[prev-1].IsSpace())
+					--prev;
+
+				size_t next = i;
+				while (next < content.size() && (content[next] == ' ' || content[next] == '\t' || content[next] == '\r' || content[next] == '\n'))
+					++next;
+
+				if (prev > 0 && tokens[prev-1].type == TK_DOUBLE_COLON && next+1 < content.size() && content[next] == ':' && content[next+1] == ':')
+					type = TK_LABEL;
+			}
+
+			tokens.push_back({type, strWord});
 			continue;
 		}
 
 		// NOTE: We check - and / down here since they may else conflict with -- or //
 		if (c == '-')
 		{
-			tokens.push_back({TK_SUB, std::string(1, c)});
+			tokens.push_back({TK_SUB, content.substr(i, 1)});
 			++i;
 			continue;
 		}
 
 		if (c == '/')
 		{
-			tokens.push_back({TK_DIV, std::string(1, c)});
+			tokens.push_back({TK_DIV, content.substr(i, 1)});
 			++i;
 			continue;
 		}
 
 		if (c == '!')
 		{
-			tokens.push_back({TK_NOT, std::string(1, c)});
+			tokens.push_back({TK_NOT, content.substr(i, 1)});
 			++i;
 			continue;
 		}
 
-		tokens.push_back({TK_SOMETHING, std::string(1, c)});
+		if (c == '=')
+		{
+			tokens.push_back({TK_ASSIGN, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == '%')
+		{
+			tokens.push_back({TK_MOD, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == '^')
+		{
+			tokens.push_back({TK_POW, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == '#')
+		{
+			tokens.push_back({TK_LENGTH, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == '{')
+		{
+			tokens.push_back({TK_LBRACE, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == '}')
+		{
+			tokens.push_back({TK_RBRACE, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == '[')
+		{
+			tokens.push_back({TK_LBRACKET, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == ']')
+		{
+			tokens.push_back({TK_RBRACKET, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == ',')
+		{
+			tokens.push_back({TK_COMMA, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == ';')
+		{
+			tokens.push_back({TK_SEMICOLON, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == ':' && i+1 < content.size() && content[i+1] == ':')
+		{
+			tokens.push_back({TK_DOUBLE_COLON, content.substr(i, 2)});
+			i += 2;
+			continue;
+		}
+
+		if (c == ':')
+		{
+			tokens.push_back({TK_COLON, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		if (c == '.' && i+2 < content.size() && content[i+1] == '.' && content[i+2] == '.')
+		{
+			tokens.push_back({TK_VARARG, content.substr(i, 3)});
+			i += 3;
+			continue;
+		}
+
+		if (c == '.' && i+1 < content.size() && content[i+1] == '.')
+		{
+			tokens.push_back({TK_CONCAT, content.substr(i, 2)});
+			i += 2;
+			continue;
+		}
+
+		if (c == '.')
+		{
+			tokens.push_back({TK_DOT, content.substr(i, 1)});
+			++i;
+			continue;
+		}
+
+		tokens.push_back({TK_SOMETHING, content.substr(i, 1)});
 		++i;
 	}
 
@@ -421,7 +611,7 @@ static bool IsNotTK(const std::vector<Token>& tokens, size_t i)
 		while (i > 0)
 		{
 			--i;
-			if (tokens[i].isSpace)
+			if (tokens[i].IsSpace())
 				continue;
 
 			if (tokens[i].type != TK_NOT)
@@ -446,10 +636,11 @@ struct ScopeEvalInfo
 {
 	bool isEmpty = true;
 	TokenType evalToken = TokenType::TK_INVALID;
+	ScopeFlags flag = ScopeFlags::SCOPE_NONE;
+	ScopeFlags folded = ScopeFlags::SCOPE_SERVER; // if we got an or we must check every side
+	ScopeFlags operand = ScopeFlags::SCOPE_NONE; // Needed to figure out if an condition could ever be true/false
 	size_t start;
 	size_t end;
-	std::vector<ScopeFlags> flags = {ScopeFlags()}; // if we got an or we must check every side
-	ScopeFlags operand = ScopeFlags::SCOPE_NONE; // Needed to figure out if an condition could ever be true/false
 };
 
 static inline void SetScopeFlag(ScopeFlags& flag, ScopeFlags value)
@@ -457,24 +648,20 @@ static inline void SetScopeFlag(ScopeFlags& flag, ScopeFlags value)
 	flag = (flag == ScopeFlags::SCOPE_NONE || flag == value) ? value : ScopeFlags::SCOPE_UNCERTAIN;
 }
 
-static ScopeFlags CombineFlags(const std::vector<ScopeFlags>& flags)
+static ScopeFlags CombineFlags(const ScopeEvalInfo& info)
 {
-	ScopeFlags result = ScopeFlags::SCOPE_SERVER;
-	for (ScopeFlags nFlags : flags)
-	{
-		if (nFlags == ScopeFlags::SCOPE_CLIENT)
-			return ScopeFlags::SCOPE_CLIENT;
+	if (info.folded == ScopeFlags::SCOPE_CLIENT || info.flag == ScopeFlags::SCOPE_CLIENT)
+		return ScopeFlags::SCOPE_CLIENT;
 
-		if (nFlags != ScopeFlags::SCOPE_SERVER)
-			result = ScopeFlags::SCOPE_UNCERTAIN;
-	}
+	if (info.folded != ScopeFlags::SCOPE_SERVER || info.flag != ScopeFlags::SCOPE_SERVER)
+		return ScopeFlags::SCOPE_UNCERTAIN;
 
-	return result;
+	return ScopeFlags::SCOPE_SERVER;
 }
 
 static void FoldOperand(ScopeEvalInfo& info)
 {
-	ScopeFlags& flag = info.flags.back();
+	ScopeFlags& flag = info.flag;
 	ScopeFlags operand = info.operand;
 	info.operand = ScopeFlags::SCOPE_NONE;
 
@@ -490,78 +677,78 @@ static void FoldOperand(ScopeEvalInfo& info)
 // We expect that the start argument was moved to the TK_THEN or TK_DO when were done!
 static ScopeFlags CanConditionBeRemoved(const std::vector<Token> &tokens, size_t& start)
 {
-	std::deque<size_t> pScopeIDs;
-	std::vector<ScopeEvalInfo> pScopes;
-	pScopes.emplace_back();
+	ScopeEvalInfo pScopes[32];
+	size_t nScopes = 1;
 	pScopes[0].start = start;
-	pScopeIDs.push_back(0);
 
 	size_t lastNonEmpty = 0; // To avoid backtracking! (Now it just is a very small save in backtracking I guess)
 	while (start < tokens.size() && tokens[start].type != TK_THEN && tokens[start].type != TK_DO)
 	{
-		if (!tokens[start].isSpace && tokens[start].type != TK_PARENTHESIS)
-			pScopes[pScopeIDs.back()].isEmpty = false;
+		ScopeEvalInfo& scope = pScopes[nScopes-1];
+		if (!tokens[start].IsSpace() && !tokens[start].IsParenthesis())
+			scope.isEmpty = false;
 
-		ScopeFlags& curFlag = pScopes[pScopeIDs.back()].operand;
+		ScopeFlags& curFlag = scope.operand;
 		if (tokens[start].type == TK_SOMETHING && tokens[start].content == "SERVER")
 			SetScopeFlag(curFlag, !IsNotTK(tokens, lastNonEmpty) ? ScopeFlags::SCOPE_SERVER : ScopeFlags::SCOPE_CLIENT);
 		else if (tokens[start].type == TK_SOMETHING && tokens[start].content == "CLIENT")
 			SetScopeFlag(curFlag, IsNotTK(tokens, lastNonEmpty) ? ScopeFlags::SCOPE_SERVER : ScopeFlags::SCOPE_CLIENT);
-		else if (!tokens[start].isSpace && tokens[start].type != TK_PARENTHESIS && tokens[start].type != TK_NOT &&
+		else if (!tokens[start].IsSpace() && !tokens[start].IsParenthesis() && tokens[start].type != TK_NOT &&
 			tokens[start].type != TK_AND && tokens[start].type != TK_OR && tokens[start].type != TK_COMMENT)
 			curFlag = ScopeFlags::SCOPE_UNCERTAIN; // Annoying... (ToDo: Clean this up to proper evaluate conditions / figure out if their constant & server/client only)
 
 		if (tokens[start].type == TK_AND)
-			FoldOperand(pScopes[pScopeIDs.back()]);
+			FoldOperand(scope);
 
 		if (tokens[start].type == TK_OR)
 		{
-			FoldOperand(pScopes[pScopeIDs.back()]);
-			pScopes[pScopeIDs.back()].flags.push_back(ScopeFlags::SCOPE_NONE);
+			FoldOperand(scope);
+			scope.folded = CombineFlags(scope);
+			scope.flag = ScopeFlags::SCOPE_NONE;
 		}
 
-		if (tokens[start].type == TK_PARENTHESIS)
+		if (tokens[start].type == TK_LPARENTHESIS)
 		{
-			if (tokens[start].content == "(") {
-				pScopes.emplace_back();
-				pScopeIDs.push_back(pScopes.size()-1);
-				pScopes[pScopeIDs.back()].start = start;
+			if (nScopes >= std::size(pScopes))
+				return ScopeFlags::SCOPE_NONE;
 
-				pScopes[pScopeIDs.back()].evalToken = IsNotTK(tokens, lastNonEmpty) ? TK_NOT : TK_INVALID;
-			} else {
-				size_t prevID = pScopeIDs.back();
-				pScopes[prevID].end = start;
+			pScopes[nScopes] = ScopeEvalInfo();
+			pScopes[nScopes].start = start;
+			pScopes[nScopes].evalToken = IsNotTK(tokens, lastNonEmpty) ? TK_NOT : TK_INVALID;
+			nScopes++;
+		} else if (tokens[start].type == TK_RPARENTHESIS)
+		{
+			scope.end = start;
 
-				FoldOperand(pScopes[prevID]);
-				ScopeFlags wasServer = CombineFlags(pScopes[prevID].flags);
-				if (pScopes[prevID].evalToken == TK_NOT && wasServer != ScopeFlags::SCOPE_UNCERTAIN)
-					wasServer = wasServer == ScopeFlags::SCOPE_SERVER ? ScopeFlags::SCOPE_CLIENT : ScopeFlags::SCOPE_SERVER;
+			FoldOperand(scope);
+			ScopeFlags wasServer = CombineFlags(scope);
+			if (scope.evalToken == TK_NOT && wasServer != ScopeFlags::SCOPE_UNCERTAIN)
+				wasServer = wasServer == ScopeFlags::SCOPE_SERVER ? ScopeFlags::SCOPE_CLIENT : ScopeFlags::SCOPE_SERVER;
 
-				pScopeIDs.pop_back();
-				if (pScopeIDs.empty())
-					return ScopeFlags::SCOPE_NONE;
+			nScopes--;
+			if (nScopes == 0)
+				return ScopeFlags::SCOPE_NONE;
 
-				SetScopeFlag(pScopes[pScopeIDs.back()].operand, wasServer);
-			}
+			SetScopeFlag(pScopes[nScopes-1].operand, wasServer);
 		}
 
-		if (!tokens[start].isSpace)
+		if (!tokens[start].IsSpace())
 			lastNonEmpty = start;
 
 		start++;
 	}
 	pScopes[0].end = start;
-	pScopeIDs.pop_back();
 
 	FoldOperand(pScopes[0]);
-	ScopeFlags result = CombineFlags(pScopes[0].flags);
+	ScopeFlags result = CombineFlags(pScopes[0]);
 	return result == ScopeFlags::SCOPE_UNCERTAIN ? ScopeFlags::SCOPE_NONE : result;
 }
 
 static inline void NukeToken(Token& tok)
 {
 	tok.content = "";
-	tok.isSpace = true;
+	tok.lineBreaks = 0;
+	tok.flag = TokenFlag::SPACE;
 	tok.type = TK_SOMETHING;
 }
 
@@ -603,8 +790,7 @@ static size_t RemoveScoped(size_t i, std::vector<Token>& tokens, TokenType tok, 
 				if (c=='\n') ++lineBreaks;
 
 			NukeToken(curTok);
-			for (int j=0; j<lineBreaks; ++j)
-				curTok.content.append("\n");
+			curTok.lineBreaks = lineBreaks;
 		}
 		else if (curTok.type == TK_ELSE && depth == 1)
 		{
@@ -621,7 +807,7 @@ static size_t RemoveScoped(size_t i, std::vector<Token>& tokens, TokenType tok, 
 			}
 		}
 
-		if (!curTok.isSpace)
+		if (!curTok.IsSpace())
 			NukeToken(curTok);
 
 		++i;
@@ -665,7 +851,7 @@ static size_t RemoveServerScoped(size_t start, size_t j, std::vector<Token> &tok
 	}
 
 	// If we had for example "elseif xx then" we want to restore the space before it.
-	while (hasLineBreaks && i-1 > 0 && tokens[i-1].isSpace && tokens[i-1].type != TK_LINEEND)
+	while (hasLineBreaks && i-1 > 0 && tokens[i-1].IsSpace() && tokens[i-1].type != TK_LINEEND)
 		i--;
 
 	return i;
@@ -729,9 +915,50 @@ static void RemoveClientScoped(size_t start, size_t j, std::vector<Token> &token
 		RemoveScoped(end, tokens, TokenType::TK_ELSEIF, hasLineBreaks, hasElseIf);
 }
 
-std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bool bRemoveComments)
+static inline bool NeedsLeftSpace(TokenSpace space)
 {
-	std::stringstream ss;
+	return space == TokenSpace::LEFT || space == TokenSpace::LEFT_PARENTHESIS || space == TokenSpace::BOTH || space == TokenSpace::BOTH_PARENTHESIS;
+}
+
+static inline bool NeedsRightSpace(TokenSpace space)
+{
+	return space == TokenSpace::RIGHT || space == TokenSpace::RIGHT_PARENTHESIS || space == TokenSpace::BOTH || space == TokenSpace::BOTH_PARENTHESIS;
+}
+
+// We have one rule: The lines still must remain matching.
+void MinifyContents(std::vector<Token> &tokens)
+{
+	size_t last = tokens.size();
+	size_t space = tokens.size();
+	for (size_t i=0; i<tokens.size(); ++i)
+	{
+		Token& tok = tokens[i];
+		if (tok.type == TK_EOF || tok.type == TK_LINEEND || tok.lineBreaks > 0 || tok.content == "\r")
+		{
+			last = tokens.size();
+			space = tokens.size();
+			continue;
+		}
+
+		if (tok.IsSpace() || tok.IsEmpty())
+		{
+			if (space == tokens.size())
+				space = i;
+
+			tok.content = "";
+			continue;
+		}
+
+		if (last < tokens.size() && space < tokens.size() && NeedsRightSpace(g_TokenSpaces[tokens[last].type]) && NeedsLeftSpace(g_TokenSpaces[tok.type]))
+			tokens[space].content = " ";
+
+		last = i;
+		space = tokens.size();
+	}
+}
+
+static void ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bool bRemoveComments, bool bMinify)
+{
 	size_t i = 0;
 	while (i < tokens.size())
 	{
@@ -743,8 +970,7 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 				if (c=='\n') ++lineBreaks;
 
 			tok.content = "";
-			for (int j=0; j<lineBreaks; ++j)
-				tok.content.append("\n");
+			tok.lineBreaks = lineBreaks;
 
 			++i;
 			continue;
@@ -768,6 +994,9 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 		++i;
 	}
 
+	if (bMinify)
+		MinifyContents(tokens);
+
 	// Let's nuke empty lines, it always annoyed me that we keep spaces of nuked lines
 	// this also removes any trailing spaces from any line
 	size_t lineStart = 0;
@@ -786,7 +1015,7 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 			continue;
 		}
 
-		if (tok.isSpace || tok.content.empty())
+		if (tok.IsSpace() || tok.IsEmpty())
 		{
 			if (lineStart >= tokens.size())
 				lineStart = i;
@@ -818,7 +1047,7 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 	// And we can nuke empty lines at the end
 	for (size_t endPos = tokens.size()-1; endPos > 0; --endPos)
 	{
-		if (!tokens[endPos].isSpace && !tokens[endPos].content.empty() && tokens[endPos].type != TokenType::TK_EOF)
+		if (!tokens[endPos].IsSpace() && !tokens[endPos].IsEmpty() && tokens[endPos].type != TokenType::TK_EOF)
 		{
 			if (endPos+1 < tokens.size())
 				tokens[endPos+1].type = TokenType::TK_EOF;
@@ -826,16 +1055,30 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 			break;
 		}
 	}
+}
 
+static std::string BuildContents(std::vector<Token>& tokens)
+{
+	size_t nSize = 0;
 	for (auto& tok : tokens)
 	{
 		if (tok.type == TokenType::TK_EOF)
 			break;
 
-		ss << tok.content;
+		nSize += tok.content.size() + tok.lineBreaks;
 	}
 
-	std::string pCode = ss.str();
+	std::string pCode;
+	pCode.reserve(nSize);
+	for (auto& tok : tokens)
+	{
+		if (tok.type == TokenType::TK_EOF)
+			break;
+
+		pCode.append(tok.content);
+		pCode.append(tok.lineBreaks, '\n');
+	}
+
 	bool bHasCode = false;
 	for (char c : pCode)
 	{
@@ -873,8 +1116,12 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 	{
 		LUA->PreCreateTable(0, 3);
 
-		LUA->PushString("isSpace");
-		LUA->PushBool(tok.isSpace);
+		LUA->PushString("flag");
+		LUA->PushNumber((int)tok.flag);
+		LUA->RawSet(-3);
+
+		LUA->PushString("lineBreaks");
+		LUA->PushNumber(tok.lineBreaks);
 		LUA->RawSet(-3);
 
 		LUA->PushString("type");
@@ -882,7 +1129,7 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 		LUA->RawSet(-3);
 
 		LUA->PushString("content");
-		LUA->PushString(tok.content.c_str(), tok.content.length());
+		LUA->PushString(tok.content.data(), tok.content.length());
 		LUA->RawSet(-3);
 
 		Lua::RawSetI(LUA, -2, ++idx);
@@ -910,9 +1157,14 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 
 				Token newToken;
 
-				LUA->PushString("isSpace");
+				LUA->PushString("flag");
 				LUA->RawGet(-2);
-				newToken.isSpace = LUA->GetBool(-1);
+				newToken.flag = (TokenFlag)LUA->GetNumber(-1);
+				LUA->Pop(1);
+
+				LUA->PushString("lineBreaks");
+				LUA->RawGet(-2);
+				newToken.lineBreaks = (unsigned short)LUA->GetNumber(-1);
 				LUA->Pop(1);
 
 				LUA->PushString("type");
@@ -953,7 +1205,12 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 				tokens.clear();
 				tokens = std::move(pNewTokens);
 			}
+		} else if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
+			tokens.clear();
+			// Fear... I doubt my tokenizer can handle garbage input well...
+			tokens = TokenizeContent(LUA->GetString(-1));
 		}
+
 		LUA->Pop(1);
 	}
 }
@@ -1012,6 +1269,7 @@ public:
 		bool processed = false;
 		bool removeServerCode = false;
 		bool removeComments = false;
+		bool minify = false;
 	};
 
 	void Initialize();
@@ -1043,8 +1301,9 @@ public:
 		std::lock_guard<std::shared_mutex> lock(pEntry.mutex);
 		bool bRemoveServerCode = gmoddatapack_removeserverif.GetBool();
 		bool bRemoveComments = gmoddatapack_removecomments.GetBool();
+		bool bMinify = gmoddatapack_minify.GetBool();
 		bool bSameSource = pEntry.hasSourceContent && pEntry.sourceContent == content;
-		bool bSameProcessConfig = pEntry.removeServerCode == bRemoveServerCode && pEntry.removeComments == bRemoveComments;
+		bool bSameProcessConfig = pEntry.removeServerCode == bRemoveServerCode && pEntry.removeComments == bRemoveComments && pEntry.minify == bMinify;
 		if (bSameSource && pEntry.IsContentReady() && bSameProcessConfig) // Nothing changed
 		{
 			std::vector<unsigned char> pHash = HashString(pEntry.content.c_str(), pEntry.content.length() + 1);
@@ -1059,6 +1318,7 @@ public:
 		pEntry.content = content;
 		pEntry.removeServerCode = bRemoveServerCode;
 		pEntry.removeComments = bRemoveComments;
+		pEntry.minify = bMinify;
 		pEntry.processed = false;
 
 		if (g_pGModDataPackModule.InDebug())
@@ -1068,12 +1328,19 @@ public:
 		m_pCompressQueue.push_back(fileID);
 	}
 
-	// We only strip it, if it's valid lua (yes my token stuff is highly sensitive!)
-	std::string StripContent(std::string content, bool* bError, int fileID, bool bRemoveServerCode, bool bRemoveComments)
+	enum class StripError
 	{
-		*bError = false;
+		NONE,
+		CONTENT_ERROR, // Initial content was garbage
+		PROCESS_ERROR, // We fked up the contents
+	};
+
+	// We only strip it, if it's valid lua (yes my token stuff is highly sensitive!)
+	std::string StripContent(std::string content, StripError* eError, int fileID, bool bRemoveServerCode, bool bRemoveComments, bool bMinify)
+	{
+		*eError = StripError::NONE;
 		lua_State* L = luaL_newstate();
-		if (luaL_loadbuffer(L, content.c_str(), content.length(), "StripContent") != LUA_OK)
+		if (luaL_loadbuffer(L, content.c_str(), content.length(), "PreStripContent") != LUA_OK)
 		{
 			std::string pError = "";
 			size_t nLength;
@@ -1083,37 +1350,86 @@ public:
 
 			lua_close(L);
 
-			*bError = true;
+			*eError = StripError::CONTENT_ERROR;
 			return pError;
 		}
-		lua_close(L);
+
 
 		std::vector<Token> tokens = TokenizeContent(content);
 
-		Lua::ScopedThreadAccess pThreadScope;
-		auto LUA = pInterface.GetLua();
-		if (LUA)
 		{
-			Lua::StateAccess pScope(LUA);
-			if (pScope.IsValid() && Lua::PushHook("HolyLib:OnTokenizeContent", LUA))
+			Lua::ScopedThreadAccess pThreadScope;
+			auto LUA = pInterface.GetLua();
+			if (LUA)
 			{
-				CallLuaTokenizeContent(LUA, tokens, fileID, true);
+				Lua::StateAccess pScope(LUA);
+				if (pScope.IsValid() && Lua::PushHook("HolyLib:OnPreTokenizeContent", LUA))
+					CallLuaTokenizeContent(LUA, tokens, fileID, true);
 			}
 		}
 
-		return ProcessTokens(tokens, bRemoveServerCode, bRemoveComments);
+		ProcessTokens(tokens, bRemoveServerCode, bRemoveComments, bMinify);
+
+		{ // ToDo: Maybe allow one to only register on demand? I think it could hurt a lot of you make the target state be the main state
+			Lua::ScopedThreadAccess pThreadScope;
+			auto LUA = pInterface.GetLua();
+			if (LUA)
+			{
+				Lua::StateAccess pScope(LUA);
+				if (pScope.IsValid() && Lua::PushHook("HolyLib:OnPostTokenizeContent", LUA))
+					CallLuaTokenizeContent(LUA, tokens, fileID, true);
+			}
+		}
+
+		// ToDo: benchmark if this is expensive though I pray that it may not be
+		if (luaL_loadbuffer(L, content.c_str(), content.length(), "PostStripContent") != LUA_OK)
+		{
+			std::string pError = "";
+			size_t nLength;
+			const char* err = lua_tolstring(L, -1, &nLength);
+			if (err)
+				pError = std::string(err, nLength);
+
+			lua_close(L);
+
+			{ // For the sake of debugging issues since broken content is no longer sent
+				Lua::ScopedThreadAccess pThreadScope;
+				auto LUA = pInterface.GetLua();
+				if (LUA)
+				{
+					Lua::StateAccess pScope(LUA);
+					if (pScope.IsValid() && Lua::PushHook("HolyLib:OnTokenizeContentFailed", LUA))
+					{
+						LUA->PushString(pError.c_str(), pError.length());
+						LUA->PushString(content.c_str(), content.length());
+						LUA->PushNumber(fileID);
+						LUA->CallFunctionProtected(4, 0, true);
+					}
+				}
+			}
+
+			*eError = StripError::PROCESS_ERROR;
+			return pError;
+		}
+
+		lua_close(L);
+
+		return BuildContents(tokens);
 	}
 
 	void ProcessContent(LuaPackEntry* pEntry, int fileID)
 	{
-		bool bError;
-		std::string strippedContent = StripContent(pEntry->content, &bError, fileID, pEntry->removeServerCode, pEntry->removeComments);
-		if (bError)
+		StripError eError;
+		std::string strippedContent = StripContent(pEntry->content, &eError, fileID, pEntry->removeServerCode, pEntry->removeComments, pEntry->minify);
+		if (eError != StripError::NONE)
 		{
-			Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to lua errors! (%s)", fileID, strippedContent.c_str());
-		} else {
+			if (eError == StripError::CONTENT_ERROR)
+				Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to lua errors! (%s)", fileID, strippedContent.c_str());
+			else
+				Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to the result having syntax errors! (%s)", fileID, strippedContent.c_str());
+		} else
 			pEntry->content = strippedContent;
-		}
+
 		pEntry->processed = true;
 
 		if (ThreadInMainThread()) // SetStringUserData is NOT thread safe!
@@ -1415,30 +1731,21 @@ LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 	const char* pContent = Lua::CheckLString(LUA, 1, &nLength);
 	bool bRemoveServerCode = Util::CheckBoolOpt(LUA, 2, gmoddatapack_removeserverif.GetBool());
 	bool bRemoveComments = Util::CheckBoolOpt(LUA, 3, gmoddatapack_removecomments.GetBool());
+	bool bMinify = Util::CheckBoolOpt(LUA, 4, gmoddatapack_minify.GetBool());
 
-
-	lua_State* L = luaL_newstate();
-	if (luaL_loadbuffer(L, pContent, nLength, "gmoddatapack.StripCode") != LUA_OK)
+	LuaDataPack::StripError eError;
+	std::string strContent(pContent, nLength);
+	std::string finalCode = g_pLuaDataPack.StripContent(strContent, &eError, -1, bRemoveServerCode, bRemoveComments, bMinify);
+	if (eError != LuaDataPack::StripError::NONE)
+	{
+		LUA->PushString(finalCode.c_str(), finalCode.length());
+		return 1;
+	} else
 	{
 		LUA->PushNil();
-		LUA->PushString(lua_tolstring(L, -1, nullptr));
-		lua_close(L);
-		return 2;
-	} else {
-		std::string strContent(pContent, nLength);
-		std::vector<Token> tokens = TokenizeContent(strContent);
-		if (LUA->IsType(4, GarrysMod::Lua::Type::Function))
-		{
-			LUA->Push(4);
-			CallLuaTokenizeContent(LUA, tokens, -1, false);
-		}
-
-		std::string finalCode = ProcessTokens(tokens, bRemoveServerCode, bRemoveComments);
 		LUA->PushString(finalCode.c_str(), finalCode.length());
+		return 2;
 	}
-	lua_close(L);
-
-	return 1;
 }
 
 LUA_FUNCTION_STATIC(gmoddatapack_GetStoredCode)
@@ -1518,6 +1825,15 @@ LUA_FUNCTION_STATIC(gmoddatapack_MarkAsTokenizeThread)
 		Lua::RemoveLuaInterfaceReference(&g_pLuaDataPack.pInterface);
 
 	Lua::AddLuaInterfaceReference(LUA, &g_pLuaDataPack.pInterface);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(gmoddatapack_ClearTokenizeThread)
+{
+	Lua::ScopedThreadAccess pThreadScope;
+	if (g_pLuaDataPack.pInterface.GetLua())
+		Lua::RemoveLuaInterfaceReference(&g_pLuaDataPack.pInterface);
+
 	return 0;
 }
 
@@ -1604,9 +1920,19 @@ void CGModDataPackModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 		Util::AddFunc(pLua, gmoddatapack_GetStoredCode, "GetStoredCode");
 		Util::AddFunc(pLua, gmoddatapack_GetCompressedSize, "GetCompressedSize");
 		Util::AddFunc(pLua, gmoddatapack_MarkAsTokenizeThread, "MarkAsTokenizeThread");
+		Util::AddFunc(pLua, gmoddatapack_ClearTokenizeThread, "ClearTokenizeThread");
 
+		Util::StartTable(pLua);
 		for (size_t i=0; i<(size_t)TK_EOF; ++i)
-			Util::AddValue(pLua, (double)i, g_TokenNames[i]);
+			Util::AddEnum(pLua, (double)i, g_TokenNames[i]);
+
+		Util::FinishTable(pLua, "tokens");
+
+		Util::StartTable(pLua);
+			Util::AddEnum(pLua, (int)TokenFlag::NONE, "NONE");
+			Util::AddEnum(pLua, (int)TokenFlag::PARENTHESIS, "PARENTHESIS");
+			Util::AddEnum(pLua, (int)TokenFlag::SPACE, "SPACE");
+		Util::FinishTable(pLua, "flags");
 
 	Util::FinishTable(pLua, "gmoddatapack");
 }

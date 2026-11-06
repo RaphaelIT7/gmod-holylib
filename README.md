@@ -5487,12 +5487,16 @@ Additionally using the <page>holylib_gmoddatapack_removeserverif</page> and <pag
 
 ### Functions
 
-#### string gmoddatapack.StripCode(string code, bool removeServerCode = (ConVar Setting), bool removeComments = (ConVar Setting), function tokenizeContent = nil)
+#### string gmoddatapack.StripCode(string code, bool removeServerCode = (ConVar Setting), bool removeComments = (ConVar Setting), bool minify = (ConVar Setting))
 `removeServerCode` fallback value is the convar value `holylib_gmoddatapack_removeserverif`<br>
 `removeComments` fallback value is the convar value `holylib_gmoddatapack_removecomments`<br>
-`tokenizeContent` if given a function it is called exactly like `HolyLib:OnTokenizeContent` allowing you to modify the tokens.<br>
+`minify` fallback value is the convar value `holylib_gmoddatapack_minify`<br>
 
 Strips the code based off the settings and returns the new stripped code.<br>
+
+> [!NOTE]
+> The previous `tokenizeContent` argument was removed due to it adding unessesary complexity.<br>
+> If you want to test around use `gmoddatapack.MarkAsTokenizeThread()` and later clear it with `gmoddatapack.ClearTokenizeThread()`<br>
 
 #### string gmoddatapack.GetStoredCode(string fileName)
 Returns the processed code that is stored, this will be the code that is sent to clients.<br>
@@ -5503,24 +5507,52 @@ Returns the compressed size of the code, this is the size that is sent to the cl
 Returns `nil` if it didn't find the file or something else went wrong.<br>
 
 ### gmoddatapack.MarkAsTokenizeThread()
-Marks **this** lua state to be the one called for the `HolyLib:OnTokenizeContent` hook.<br>
+Marks **this** lua state to be the one called for the `HolyLib:On[Pre/Post]TokenizeContent` hooks.<br>
+
+### gmoddatapack.ClearTokenizeThread()
+Removes the currently set lua state to be called for the `HolyLib:On[Pre/Post]TokenizeContent` hooks.<br>
 
 ### Enums
-Inside the `gmoddatapack` table you can find all `TK_` enums like `TK_INVALID = 0`, `TK_FUNCTION = 2` and such.<br>
+Inside the `gmoddatapack` table you can find two tables.<br>
+
+`gmoddatapack.tokens` = contains all token types in both directions (`number = name` & `name = number`)<br>
+You can find the full list at https://github.com/RaphaelIT7/gmod-holylib/blob/main/source/modules/gmoddatapack.cpp#L46
+
+`gmoddatapack.flags` = contains all token flags in both directions<br>
+These flags exist because these cases a two or more token types basically mean the same thing.<br>
+`SPACE` = This flag is set when a token is empty (including new lines)<br>
+`PARENTHESIS` = Exists because `TK_LPARENTHESIS` & `TK_RPARENTHESIS` / sometimes you don't want to know which one it is<br>
 
 ### Hooks
 
-#### table HolyLib:OnTokenizeContent(table tokens, number fileID)
-This hook is called while the contents of a Lua file are being processed.<br>
+#### table/string HolyLib:OnPreTokenizeContent(table tokens, number fileID)
+This hook is called while the contents of a Lua file have been tokenized yet not processed yet.<br>
 Table entries are sequential - each entry is a table with the following fields:<br>
-\- bool isSpace<br>
-\- number type<br>
-\- string content<br>
+\- number flag (See `gmoddatapack.flags` enums)<br>
+\- number type (See `gmoddatapack.tokens` enums)<br>
+\- number lineBreaks - How many empty new lines this token should append after the contents<br>
+\- string content - The contents of this token<br>
 
 Return value can be a new table of tokens, which will be used as the new contents, or return nil for no change<br>
+You can also return a string that will be tokenized again<br>
 
 > [!NOTE]
-> This hook is called by the worker thread, and only one lua state can be marked for calling it!
+> This hook is called by the worker thread, and only one lua state can be marked for calling it!<br>
+> This was previously named `HolyLib:OnTokenizeContent`<br>
+
+#### table HolyLib:OnPostTokenizeContent(table tokens, number fileID)
+This hook is called while the contents of a Lua file have been processed.<br>
+This is the same as `HolyLib:OnPreTokenizeContent` allowing you to apply changes after the internals applied the changes from the `gmoddatapack_` convars.<br>
+
+#### HolyLib:OnTokenizeContentFailed(string errMsg, string contents, number fileID)
+This hook is called when the processing of the tokens resulted in an invalid lua file.<br>
+It is **NOT** fired when the Lua file was broken from the very beginning.<br>
+The `errMsg` will be the Lua error and the `contents` will be the broken lua file<br>
+In case of such failure, the contents are **NOT** applied.<br>
+
+> [!NOTE]
+> Just like the other two hooks above this one is only ran on the worker thread.<br>
+> If you need to debug a failure you can call `gmoddatapack.MarkAsTokenizeThread()` on the main state for this hook and the others to be ran.<br>
 
 ### ConVars
 
@@ -5531,12 +5563,8 @@ Currently this only works for `if SERVER then` or `elseif SERVER then`, yes you 
 #### holylib_gmoddatapack_removecomments = 0
 If enabled, comments from lua files will be removed before they are sent to clients.<br>
 
-#### holylib_gmoddatapack_fastnetworking = 0
-(Very Experimental)<br>
-If enabled, it'll attempt a faster method of sending lua files to the client.<br>
-
-> [!NOTE]
-> This internally depends on the `gameserver` module being enabled!<br>
+#### holylib_gmoddatapack_minify = 0
+If enabled, code is minified without changing line count<br>
 
 ## unholylib
 This is an unsafe library with the purpose of providing different ways to mess with the engine for fun.<br>

@@ -125,6 +125,18 @@ namespace Util
 		LUA->RawSet(-3);
 	}
 
+	// Adds both key = value but also value = key for easier API use
+	inline void AddEnum(GarrysMod::Lua::ILuaInterface* LUA, double value, const char* Name)
+	{
+		LUA->PushString(Name);
+		LUA->PushNumber(value);
+		LUA->RawSet(-3);
+
+		LUA->PushNumber(value);
+		LUA->PushString(Name);
+		LUA->RawSet(-3);
+	}
+
 	inline void FinishTable(GarrysMod::Lua::ILuaInterface* LUA, const char* Name) {
 		LUA->SetField(LUA_GLOBALSINDEX, Name);
 	}
