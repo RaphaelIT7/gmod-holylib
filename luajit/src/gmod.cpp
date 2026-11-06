@@ -244,6 +244,7 @@ extern "C" void GMOD_LuaCreateEmptyUserdata(lua_State* L)
 		return;
 	}
 	
+	LuaStateToInterface(L)->SetState(L);
 	LuaStateToInterface(L)->PushUserType(NULL, 7);
 }
 
