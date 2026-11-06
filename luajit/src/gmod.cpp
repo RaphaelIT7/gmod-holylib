@@ -194,6 +194,13 @@ namespace GarrysMod
     }
 }
 
+// Matching GMod (See Linux lua_shared_srv.so)
+// Though it was inlined into many functions apparently
+extern "C" GarrysMod::Lua::ILuaInterface* LuaStateToInterface(lua_State* L)
+{
+	return (GarrysMod::Lua::ILuaInterface*)L->luabase;
+}
+
 using namespace GarrysMod::Lua;
 extern "C" void lua_init_stack_gmod(lua_State* L1, lua_State* L)
 {
@@ -201,7 +208,7 @@ extern "C" void lua_init_stack_gmod(lua_State* L1, lua_State* L)
 	{
 		L1->luabase = L->luabase;
 		if (L->luabase)
-			((ILuaBase*)L->luabase)->SetState(L);
+			LuaStateToInterface(L)->SetState(L);
 	}
 }
 
@@ -213,7 +220,7 @@ extern "C" void GMOD_LuaPrint(const char* str, lua_State* L) // Should be how gm
 		return;
 	}
 
-	((ILuaInterface*)L->luabase)->Msg("%s", str);
+	LuaStateToInterface(L)->Msg("%s", str);
 }
 
 struct UserData {
@@ -237,6 +244,10 @@ extern "C" void GMOD_LuaCreateEmptyUserdata(lua_State* L)
 		return;
 	}
 	
+	LuaStateToInterface(L)->PushUserType(NULL, 7);
+}
 
-	((ILuaBase*)L->luabase)->PushUserType(NULL, 7);
+extern "C" int GMOD_UserdataSize()
+{
+	return sizeof(UserData);
 }

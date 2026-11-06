@@ -183,6 +183,9 @@ static void stack_init(lua_State *L1, lua_State *L)
   L1->base = L1->top = st;
   while (st < stend)  /* Clear new slots. */
     setnilV(st++);
+	
+  if (L) // GMOD
+    lua_init_stack_gmod(L1, L);
 }
 
 /* -- State handling ------------------------------------------------------ */
@@ -194,7 +197,6 @@ static TValue *cpluaopen(lua_State *L, lua_CFunction dummy, void *ud)
   UNUSED(dummy);
   UNUSED(ud);
   stack_init(L, L);
-  lua_init_stack_gmod(L, L);
   /* NOBARRIER: State initialization, all objects are white. */
   setgcref(L->env, obj2gco(lj_tab_new(L, 0, LJ_MIN_GLOBAL)));
   settabV(L, registry(L), lj_tab_new(L, 0, LJ_MIN_REGISTRY));
@@ -377,7 +379,6 @@ lua_State *lj_state_new(lua_State *L)
   setgcrefr(L1->env, L->env);
   stack_init(L1, L);  /* init stack */
   lj_assertL(iswhite(obj2gco(L1)), "new thread object is not white");
-  lua_init_stack_gmod(L1, L);
   return L1;
 }
 
