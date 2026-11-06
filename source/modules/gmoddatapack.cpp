@@ -1138,7 +1138,7 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 	LUA->PushNumber(fileID);
 	LUA->PushString(contents.c_str(), contents.length());
 
-	if (LUA->CallFunctionProtected(2 + (bIsHook ? 1 : 0), 1, true))
+	if (LUA->CallFunctionProtected(3 + (bIsHook ? 1 : 0), 1, true))
 	{
 		if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
 		{
@@ -1740,7 +1740,7 @@ LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 	LuaDataPack::StripError eError;
 	std::string strContent(pContent, nLength);
 	std::string finalCode = g_pLuaDataPack.StripContent(strContent, &eError, -1, bRemoveServerCode, bRemoveComments, bMinify);
-	if (eError != LuaDataPack::StripError::NONE)
+	if (eError == LuaDataPack::StripError::NONE)
 	{
 		LUA->PushString(finalCode.c_str(), finalCode.length());
 		return 1;
