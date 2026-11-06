@@ -5525,7 +5525,7 @@ These flags exist because these cases a two or more token types basically mean t
 
 ### Hooks
 
-#### table/string HolyLib:OnPreTokenizeContent(table tokens, number fileID)
+#### table/string HolyLib:OnPreTokenizeContent(table tokens, number fileID, string contents)
 This hook is called while the contents of a Lua file have been tokenized yet not processed yet.<br>
 Table entries are sequential - each entry is a table with the following fields:<br>
 \- number flag (See `gmoddatapack.flags` enums)<br>
@@ -5540,7 +5540,7 @@ You can also return a string that will be tokenized again<br>
 > This hook is called by the worker thread, and only one lua state can be marked for calling it!<br>
 > This was previously named `HolyLib:OnTokenizeContent`<br>
 
-#### table HolyLib:OnPostTokenizeContent(table tokens, number fileID)
+#### table HolyLib:OnPostTokenizeContent(table tokens, number fileID, string contents)
 This hook is called while the contents of a Lua file have been processed.<br>
 This is the same as `HolyLib:OnPreTokenizeContent` allowing you to apply changes after the internals applied the changes from the `gmoddatapack_` convars.<br>
 

@@ -1108,7 +1108,7 @@ static std::vector<unsigned char> HashString(const char* pData, unsigned int nLe
 	return hash;
 }
 
-static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, std::vector<Token>& tokens, int fileID, bool bIsHook)
+static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, std::vector<Token>& tokens, int fileID, std::string contents, bool bIsHook)
 {
 	LUA->PreCreateTable(tokens.size(), 0);
 	int idx = 0;
@@ -1136,6 +1136,7 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 	}
 
 	LUA->PushNumber(fileID);
+	LUA->PushString(contents.c_str(), contents.length());
 
 	if (LUA->CallFunctionProtected(2 + (bIsHook ? 1 : 0), 1, true))
 	{
@@ -1364,7 +1365,7 @@ public:
 			{
 				Lua::StateAccess pScope(LUA);
 				if (pScope.IsValid() && Lua::PushHook("HolyLib:OnPreTokenizeContent", LUA))
-					CallLuaTokenizeContent(LUA, tokens, fileID, true);
+					CallLuaTokenizeContent(LUA, tokens, fileID, content, true);
 			}
 		}
 
@@ -1377,7 +1378,10 @@ public:
 			{
 				Lua::StateAccess pScope(LUA);
 				if (pScope.IsValid() && Lua::PushHook("HolyLib:OnPostTokenizeContent", LUA))
-					CallLuaTokenizeContent(LUA, tokens, fileID, true);
+				{
+					std::string contents = BuildContents(tokens);
+					CallLuaTokenizeContent(LUA, tokens, fileID, contents, true);
+				}
 			}
 		}
 
