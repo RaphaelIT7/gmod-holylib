@@ -156,6 +156,42 @@ struct Token {
 	std::string_view content;
 };
 
+struct Tokenizer
+{
+	std::vector<Token> tokens;
+	int nLuaRef = -1; // Lua reference we must hold as tokens point at memory, they do not hold it!
+	Lua::ILuaInterfaceReference& m_pLua;
+
+	Tokenizer(Lua::ILuaInterfaceReference& pLua) : m_pLua(pLua) {}
+
+	~Tokenizer()
+	{
+		SetRef(-1);
+	}
+
+	void SetRef(int nReference)
+	{
+		if (nLuaRef > 0)
+		{ // ToDo: Maybe allow one to only register on demand? I think it could hurt a lot of you make the target state be the main state
+			Lua::ScopedThreadAccess pThreadScope;
+			auto LUA = m_pLua.GetLua();
+			if (LUA)
+			{
+				Lua::StateAccess pScope(LUA);
+				if (pScope.IsValid())
+				{
+					Util::ReferenceFree(LUA, nLuaRef, "Finished Processing");
+					nLuaRef = -1;
+				}
+			}
+		}
+
+		nLuaRef = nReference;
+	}
+
+	operator std::vector<Token>&() noexcept { return tokens; }
+};
+
 static inline TokenType KeywordType(std::string_view strWord)
 {
 	if (strWord == "if") return TK_IF;
@@ -1108,13 +1144,13 @@ static std::vector<unsigned char> HashString(const char* pData, unsigned int nLe
 	return hash;
 }
 
-static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, std::vector<Token>& tokens, int fileID, std::string contents, bool bIsHook)
+static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, Tokenizer& state, int fileID, std::string contents, bool bIsHook)
 {
-	LUA->PreCreateTable(tokens.size(), 0);
+	LUA->PreCreateTable(state.tokens.size(), 0);
 	int idx = 0;
-	for (const Token& tok : tokens)
+	for (const Token& tok : state.tokens)
 	{
-		LUA->PreCreateTable(0, 3);
+		LUA->PreCreateTable(0, 4);
 
 		LUA->PushString("flag");
 		LUA->PushNumber((int)tok.flag);
@@ -1184,17 +1220,16 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 
 				unsigned int nLength;
 				const char* pContent = LUA->GetString(-1, &nLength);
-				LUA->Pop(1);
 				if (!pContent)
 				{
 					bInvalid = true;
-					LUA->Pop(2);
+					LUA->Pop(3);
 					break;
 				}
 
-				newToken.content = std::string(pContent, nLength);
+				newToken.content = std::string_view(pContent, nLength);
 				pNewTokens.push_back(newToken);
-				LUA->Pop(1);
+				LUA->Pop(2);
 			}
 			LUA->Pop(1);
 
@@ -1203,16 +1238,18 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 				if (pNewTokens.empty() || pNewTokens.back().type != TK_EOF)
 					pNewTokens.push_back({TK_EOF, ""});
 
-				tokens.clear();
-				tokens = std::move(pNewTokens);
-			}
+				state.tokens.clear();
+				state.tokens = std::move(pNewTokens);
+				state.SetRef(Util::ReferenceCreate(LUA, "LuaTokenizeContent - Table"));
+			} else
+				LUA->Pop(1);
 		} else if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-			tokens.clear();
+			state.tokens.clear();
 			// Fear... I doubt my tokenizer can handle garbage input well...
-			tokens = TokenizeContent(LUA->GetString(-1));
-		}
-
-		LUA->Pop(1);
+			state.tokens = TokenizeContent(LUA->GetString(-1));
+			state.SetRef(Util::ReferenceCreate(LUA, "LuaTokenizeContent - String"));
+		} else
+			LUA->Pop(1);
 	}
 }
 
@@ -1356,7 +1393,8 @@ public:
 		}
 
 
-		std::vector<Token> tokens = TokenizeContent(content);
+		Tokenizer tokenizer(pInterface);
+		tokenizer.tokens = TokenizeContent(content);
 
 		{
 			Lua::ScopedThreadAccess pThreadScope;
@@ -1365,11 +1403,11 @@ public:
 			{
 				Lua::StateAccess pScope(LUA);
 				if (pScope.IsValid() && Lua::PushHook("HolyLib:OnPreTokenizeContent", LUA))
-					CallLuaTokenizeContent(LUA, tokens, fileID, content, true);
+					CallLuaTokenizeContent(LUA, tokenizer, fileID, content, true);
 			}
 		}
 
-		ProcessTokens(tokens, bRemoveServerCode, bRemoveComments, bMinify);
+		ProcessTokens(tokenizer, bRemoveServerCode, bRemoveComments, bMinify);
 
 		{ // ToDo: Maybe allow one to only register on demand? I think it could hurt a lot of you make the target state be the main state
 			Lua::ScopedThreadAccess pThreadScope;
@@ -1379,8 +1417,8 @@ public:
 				Lua::StateAccess pScope(LUA);
 				if (pScope.IsValid() && Lua::PushHook("HolyLib:OnPostTokenizeContent", LUA))
 				{
-					std::string contents = BuildContents(tokens);
-					CallLuaTokenizeContent(LUA, tokens, fileID, contents, true);
+					std::string contents = BuildContents(tokenizer);
+					CallLuaTokenizeContent(LUA, tokenizer, fileID, contents, true);
 				}
 			}
 		}
@@ -1418,7 +1456,7 @@ public:
 
 		lua_close(L);
 
-		return BuildContents(tokens);
+		return BuildContents(tokenizer);
 	}
 
 	void ProcessContent(LuaPackEntry* pEntry, int fileID)
