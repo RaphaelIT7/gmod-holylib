@@ -1121,3 +1121,19 @@ int Lua::TraceRecord_UserData_GetEnv(lua_TraceRecorder* rec)
 	lj_tr_setbase(rec, 0, env ? envLoad : lj_tr_refnil(rec));
 	return 1;
 }
+
+static void InitOnClient(const CCommand &args)
+{
+	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(GarrysMod::Lua::State::CLIENT);
+	if (!LUA)
+	{
+		Warning(PROJECT_NAME ": No client state found!\n");
+		return;
+	}
+
+	Lua::CreateLuaData(LUA, true);
+	g_pModuleManager.LuaInit(LUA, false);
+	// Do we clean up? Naah. This is just for testing anyways.
+	// I wanna use the vprof module and visualize clientside the scopes
+}
+static ConCommand initclient("holylib_initclient", InitOnClient, "Defines all HolyLib functions into the client realm", 0);
