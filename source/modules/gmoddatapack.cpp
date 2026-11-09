@@ -70,9 +70,9 @@ enum class TokenSpace : unsigned char
 	TK(TK_LABEL, TokenSpace::BOTH) /* Will have TK_DOUBLE_COLON before & after this token */ \
 	TK(TK_END, TokenSpace::BOTH) \
 	TK(TK_DO, TokenSpace::BOTH) \
-	TK(TK_OR, TokenSpace::BOTH) \
-	TK(TK_AND, TokenSpace::BOTH) \
-	TK(TK_NOT, TokenSpace::BOTH) \
+	TK(TK_OR, TokenSpace::NONE) \
+	TK(TK_AND, TokenSpace::NONE) \
+	TK(TK_NOT, TokenSpace::NONE) \
 	TK(TK_EQUAL, TokenSpace::NONE) \
 	TK(TK_NOT_EQUAL, TokenSpace::NONE) \
 	TK(TK_GREATER_OR_EQUAL, TokenSpace::NONE) \
@@ -985,6 +985,16 @@ void MinifyContents(std::vector<Token> &tokens)
 			continue;
 		}
 
+		// We use GMod's aliases since those do not require spaces :D
+		if (tok.type == TK_AND && tok.content == "and")
+			tok.content = "&&";
+
+		if (tok.type == TK_OR && tok.content == "or")
+			tok.content = "||";
+
+		if (tok.type == TK_NOT && tok.content == "not")
+			tok.content = "!";
+
 		if (last < tokens.size() && space < tokens.size() && NeedsRightSpace(g_TokenSpaces[tokens[last].type]) && NeedsLeftSpace(g_TokenSpaces[tok.type]))
 			tokens[space].content = " ";
 
@@ -1144,7 +1154,7 @@ static std::vector<unsigned char> HashString(const char* pData, unsigned int nLe
 	return hash;
 }
 
-static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, Tokenizer& state, int fileID, std::string contents, bool bIsHook)
+static inline bool CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, Tokenizer& state, int fileID, std::string contents, bool bIsHook)
 {
 	LUA->PreCreateTable(state.tokens.size(), 0);
 	int idx = 0;
@@ -1174,6 +1184,7 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, To
 	LUA->PushNumber(fileID);
 	LUA->PushString(contents.c_str(), contents.length());
 
+	bool bDidLuaModify = false;
 	if (LUA->CallFunctionProtected(3 + (bIsHook ? 1 : 0), 1, true))
 	{
 		if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
@@ -1241,6 +1252,7 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, To
 				state.tokens.clear();
 				state.tokens = std::move(pNewTokens);
 				state.SetRef(Util::ReferenceCreate(LUA, "LuaTokenizeContent - Table"));
+				bDidLuaModify = true;
 			} else
 				LUA->Pop(1);
 		} else if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
@@ -1248,9 +1260,12 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, To
 			// Fear... I doubt my tokenizer can handle garbage input well...
 			state.tokens = TokenizeContent(LUA->GetString(-1));
 			state.SetRef(Util::ReferenceCreate(LUA, "LuaTokenizeContent - String"));
+			bDidLuaModify = true;
 		} else
 			LUA->Pop(1);
 	}
+
+	return bDidLuaModify;
 }
 
 /*
@@ -1409,6 +1424,8 @@ public:
 
 		ProcessTokens(tokenizer, bRemoveServerCode, bRemoveComments, bMinify);
 
+		std::string finalContents = BuildContents(tokenizer);
+
 		{ // ToDo: Maybe allow one to only register on demand? I think it could hurt a lot of you make the target state be the main state
 			Lua::ScopedThreadAccess pThreadScope;
 			auto LUA = pInterface.GetLua();
@@ -1417,14 +1434,14 @@ public:
 				Lua::StateAccess pScope(LUA);
 				if (pScope.IsValid() && Lua::PushHook("HolyLib:OnPostTokenizeContent", LUA))
 				{
-					std::string contents = BuildContents(tokenizer);
-					CallLuaTokenizeContent(LUA, tokenizer, fileID, contents, true);
+					if (CallLuaTokenizeContent(LUA, tokenizer, fileID, finalContents, true))
+						finalContents = BuildContents(tokenizer); // Rebuild...
 				}
 			}
 		}
 
 		// ToDo: benchmark if this is expensive though I pray that it may not be
-		if (luaL_loadbuffer(L, content.c_str(), content.length(), "PostStripContent") != LUA_OK)
+		if (luaL_loadbuffer(L, finalContents.c_str(), finalContents.length(), "PostStripContent") != LUA_OK)
 		{
 			std::string pError = "";
 			size_t nLength;
@@ -1456,7 +1473,7 @@ public:
 
 		lua_close(L);
 
-		return BuildContents(tokenizer);
+		return finalContents;
 	}
 
 	void ProcessContent(LuaPackEntry* pEntry, int fileID)
