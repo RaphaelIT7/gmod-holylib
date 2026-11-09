@@ -35,7 +35,7 @@ public:
 };
 
 static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", FCVAR_ARCHIVE, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
-static ConVar holylib_vprof_trackscripts("holylib_vprof_trackscripts", "0", FCVAR_ARCHIVE, "If enabled, vprof will create a scope for all lua scripts GMod calls directly into");
+static ConVar holylib_vprof_trackscripts("holylib_vprof_trackscripts", "0", FCVAR_ARCHIVE, "If enabled, vprof will create a scope for all lua scripts GMod calls directly into (Calls always originate from CLuaInterface::CallFunctionProtected)");
 //static ConVar holylib_vprof_profilecfunc("holylib_vprof_profilecfunc", "0", 0, "If enabled, Lua->C calls will also be profiled.");
 
 static CVProfModule g_pVProfModule;
@@ -177,7 +177,26 @@ static void hook_CVProfile_OutputReport(void* pProfile, int type, const tchar* p
 				auto it = CallFunctionProtected_labels.find(id);
 				if (it != CallFunctionProtected_labels.end())
 				{
-					str.replace(pos, 9, it->second);
+					int spaces = 9;
+					for (int i=(pos + spaces); i<str.length(); ++i)
+					{
+						if (str[i] != ' ')
+						{
+							if (spaces > 9)
+								--spaces;
+
+							break;
+						}
+
+						++spaces;
+					}
+
+					// Will probably always be true anyways
+					// We are trying to keep the hierarchy print nice xd
+					if (spaces > it->second.length())
+						spaces = it->second.length();
+
+					str.replace(pos, spaces, it->second);
 					pos += it->second.size();
 				}
 				else
@@ -431,20 +450,40 @@ static bool hook_CLuaInterface_CallFunctionProtected(GarrysMod::Lua::ILuaInterfa
 
 		// RaphaelIT7 (Verify):
 		// I think using snprintf can probably perform better, but I doubt we even create that many scopes
-		std::string full = "CLuaInterface::CallFunctionProtected(";
-		full += (ar.linedefined > 0) ? std::to_string(ar.linedefined) : "?";
-		full += "@";
-		full += src;
-		full += ")";
+		std::string full;
+		if (holylib_vprof_trackscripts.GetInt() == 1)
+		{ // A shorter version by default, convar description says already where they're coming from
+			full += (ar.linedefined > 0) ? std::to_string(ar.linedefined) : "?";
+			full += "@";
+			full += src;
+		} else
+		{
+			full += "CLuaInterface::CallFunctionProtected(";
+			full += (ar.linedefined > 0) ? std::to_string(ar.linedefined) : "?";
+			full += "@";
+			full += src;
+			full += ")";
+		}
 
-		static int cfp_counter = 0;
-		int id = ++cfp_counter;
+		if (full.length() < 52)
+		{
+			// RaphaelIT7:
+			// We can avoid storing a new Lua label since it fits nicely into VProfs 52 character limit
+			// This also results in a far nicer output when dumping
+			CallFunctionProtected_ids[key] = full;
+		} else {
+			static int cfp_counter = 0;
+			int id = ++cfp_counter;
 
-		char idLabel[16];
-		snprintf(idLabel, sizeof(idLabel), "LUA#%05d", id);
+			// RaphaelIT7:
+			// Its 52 in length so that the vprof result is nicer even if its too long
+			char idLabel[53];
+			snprintf(idLabel, sizeof(idLabel), "LUA#%05d%-43s", id, "");
 
-		CallFunctionProtected_ids[key] = idLabel;
-		CallFunctionProtected_labels[id] = std::move(full);
+			CallFunctionProtected_ids[key] = idLabel;
+			CallFunctionProtected_labels[id] = std::move(full);
+		}
+
 		it = CallFunctionProtected_ids.find(key);
 	}
 
