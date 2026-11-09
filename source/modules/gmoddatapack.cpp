@@ -790,12 +790,12 @@ static inline void NukeToken(Token& tok)
 
 static inline bool OpensBlock(const Token& tok)
 {
-	return tok.type == TK_THEN || tok.type == TK_DO || tok.type == TK_FUNCTION || (tok.type == TK_SOMETHING && tok.content == "repeat");
+	return tok.type == TK_THEN || tok.type == TK_DO || tok.type == TK_FUNCTION || tok.type == TK_REPEAT;
 }
 
 static inline bool ClosesBlock(const Token& tok)
 {
-	return tok.type == TK_END || (tok.type == TK_SOMETHING && tok.content == "until");
+	return tok.type == TK_END || tok.type == TK_UNTIL;
 }
 
 // The goal is to remove parts of a Lua script without changing the line number (so that errors remain easy to debug!)
