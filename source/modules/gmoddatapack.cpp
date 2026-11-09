@@ -136,9 +136,14 @@ static const TokenSpace g_TokenSpaces[] =
 
 enum class TokenFlag : unsigned char
 {
-	NONE,
-	SPACE,
-	PARENTHESIS
+	NONE = 0,
+	SPACE = 1 << 1,
+	VALUE = 1 << 2,
+	OPERATOR = 1 << 3,
+
+	// Only these two can be set at the same time
+	PARENTHESIS = 1 << 4,
+	PARENTHESIS_MARKED = 1 << 5,
 };
 
 struct Token {
@@ -146,9 +151,15 @@ struct Token {
 	Token(TokenType type, std::string_view content) : type(type), content(content) {};
 	Token(TokenType type, std::string_view content, TokenFlag flag) : type(type), flag(flag), content(content) {};
 
-	bool IsSpace() const { return flag == TokenFlag::SPACE; }
-	bool IsParenthesis() const { return flag == TokenFlag::PARENTHESIS; }
+	bool IsSpace() const { return (unsigned char)flag & (unsigned char)TokenFlag::SPACE; }
+	bool IsParenthesis() const { return (unsigned char)flag & (unsigned char)TokenFlag::PARENTHESIS; }
 	bool IsEmpty() const { return content.empty() && lineBreaks == 0; }
+	bool IsValue() const { return (unsigned char)flag & (unsigned char)TokenFlag::VALUE; }
+	bool IsOperator() const { return (unsigned char)flag & (unsigned char)TokenFlag::OPERATOR; }
+
+	// ToDo: Too lazy to rename (AGAIN)
+	bool IsParenthesisMarked() const { return (unsigned char)flag & (unsigned char)TokenFlag::PARENTHESIS_MARKED; }
+	void MarkParenthesis() { flag = (TokenFlag)((unsigned char)flag | (unsigned char)TokenFlag::PARENTHESIS_MARKED); }
 
 	TokenType type;
 	TokenFlag flag = TokenFlag::NONE;
@@ -252,70 +263,70 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 
 		if (c == '>' && i+1 < content.size() && content[i+1] == '=')
 		{
-			tokens.push_back({TK_GREATER_OR_EQUAL, content.substr(i, 2)});
+			tokens.push_back({TK_GREATER_OR_EQUAL, content.substr(i, 2), TokenFlag::OPERATOR});
 			i += 2;
 			continue;
 		}
 
 		if (c == '>')
 		{
-			tokens.push_back({TK_GREATER, content.substr(i, 1)});
+			tokens.push_back({TK_GREATER, content.substr(i, 1), TokenFlag::OPERATOR});
 			++i;
 			continue;
 		}
 
 		if (c == '<' && i+1 < content.size() && content[i+1] == '=')
 		{
-			tokens.push_back({TK_LESS_OR_EQUAL, content.substr(i, 2)});
+			tokens.push_back({TK_LESS_OR_EQUAL, content.substr(i, 2), TokenFlag::OPERATOR});
 			i += 2;
 			continue;
 		}
 
 		if (c == '<')
 		{
-			tokens.push_back({TK_LESS, content.substr(i, 1)});
+			tokens.push_back({TK_LESS, content.substr(i, 1), TokenFlag::OPERATOR});
 			++i;
 			continue;
 		}
 
 		if (i+1 < content.size() && c == '|' && content[i+1] == '|')
 		{
-			tokens.push_back({TK_OR, content.substr(i, 2)});
+			tokens.push_back({TK_OR, content.substr(i, 2), TokenFlag::OPERATOR});
 			i += 2;
 			continue;
 		}
 
 		if (i+1 < content.size() && ((c == '!' && content[i+1] == '=') || (c == '~' && content[i+1] == '=')))
 		{
-			tokens.push_back({TK_NOT_EQUAL, content.substr(i, 2)});
+			tokens.push_back({TK_NOT_EQUAL, content.substr(i, 2), TokenFlag::OPERATOR});
 			i += 2;
 			continue;
 		}
 
 		if (i+1 < content.size() && ((c == '=' && content[i+1] == '=')))
 		{
-			tokens.push_back({TK_EQUAL, content.substr(i, 2)});
+			tokens.push_back({TK_EQUAL, content.substr(i, 2), TokenFlag::OPERATOR});
 			i += 2;
 			continue;
 		}
 
 		if (i+1 < content.size() && c == '&' && content[i+1] == '&')
 		{
-			tokens.push_back({TK_AND, content.substr(i, 2)});
+			tokens.push_back({TK_AND, content.substr(i, 2), TokenFlag::OPERATOR});
 			i += 2;
 			continue;
 		}
 
 		if (c == '+')
 		{
-			tokens.push_back({TK_ADD, content.substr(i, 1)});
+			tokens.push_back({TK_ADD, content.substr(i, 1), TokenFlag::OPERATOR});
 			++i;
 			continue;
 		}
 
 		if (c == '*')
 		{
-			tokens.push_back({TK_MUL, content.substr(i, 1)});
+			tokens.push_back({TK_MUL, content.substr(i, 1), TokenFlag::OPERATOR});
 			++i;
 			continue;
 		}
@@ -377,7 +388,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 					++i;
 			}
 
-			tokens.push_back({TK_COMMENT, content.substr(start, i-start)});
+			tokens.push_back({TK_COMMENT, content.substr(start, i-start), TokenFlag::SPACE});
 			continue;
 		}
 
@@ -399,7 +410,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 					i += 2;
 			}
 
-			tokens.push_back({TK_COMMENT, content.substr(start, i-start)});
+			tokens.push_back({TK_COMMENT, content.substr(start, i-start), TokenFlag::SPACE});
 			continue;
 		}
 
@@ -412,7 +423,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 
 			// String
 			++i;
-			tokens.push_back({TK_STRING, content.substr(start, i-start)});
+			tokens.push_back({TK_STRING, content.substr(start, i-start), TokenFlag::VALUE});
 			continue;
 		}
 
@@ -460,7 +471,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 				}
 
 				// Long String
-				tokens.push_back({TK_STRING, content.substr(start, i-start)});
+				tokens.push_back({TK_STRING, content.substr(start, i-start), TokenFlag::VALUE});
 				continue;
 			}
 			i = start;
@@ -474,7 +485,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 				++i;
 
 			std::string_view strWord = content.substr(start, i - start);
-			tokens.push_back({TK_NUMBER, strWord});
+			tokens.push_back({TK_NUMBER, strWord, TokenFlag::VALUE});
 			continue;
 		}
 
@@ -507,14 +518,14 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 		// NOTE: We check - and / down here since they may else conflict with -- or //
 		if (c == '-')
 		{
-			tokens.push_back({TK_SUB, content.substr(i, 1)});
+			tokens.push_back({TK_SUB, content.substr(i, 1), TokenFlag::OPERATOR});
 			++i;
 			continue;
 		}
 
 		if (c == '/')
 		{
-			tokens.push_back({TK_DIV, content.substr(i, 1)});
+			tokens.push_back({TK_DIV, content.substr(i, 1), TokenFlag::OPERATOR});
 			++i;
 			continue;
 		}
@@ -535,14 +546,14 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 
 		if (c == '%')
 		{
-			tokens.push_back({TK_MOD, content.substr(i, 1)});
+			tokens.push_back({TK_MOD, content.substr(i, 1), TokenFlag::OPERATOR});
 			++i;
 			continue;
 		}
 
 		if (c == '^')
 		{
-			tokens.push_back({TK_POW, content.substr(i, 1)});
+			tokens.push_back({TK_POW, content.substr(i, 1), TokenFlag::OPERATOR});
 			++i;
 			continue;
 		}
@@ -591,7 +602,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 
 		if (c == ';')
 		{
-			tokens.push_back({TK_SEMICOLON, content.substr(i, 1)});
+			tokens.push_back({TK_SEMICOLON, content.substr(i, 1), TokenFlag::SPACE});
 			++i;
 			continue;
 		}
@@ -619,7 +630,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 
 		if (c == '.' && i+1 < content.size() && content[i+1] == '.')
 		{
-			tokens.push_back({TK_CONCAT, content.substr(i, 2)});
+			tokens.push_back({TK_CONCAT, content.substr(i, 2), TokenFlag::OPERATOR});
 			i += 2;
 			continue;
 		}
@@ -780,9 +791,9 @@ static ScopeFlags CanConditionBeRemoved(const std::vector<Token> &tokens, size_t
 	return result == ScopeFlags::SCOPE_UNCERTAIN ? ScopeFlags::SCOPE_NONE : result;
 }
 
-static inline void NukeToken(Token& tok)
+static inline void NukeToken(Token& tok, bool bSpace = false)
 {
-	tok.content = "";
+	tok.content = bSpace ? " " : "";
 	tok.lineBreaks = 0;
 	tok.flag = TokenFlag::SPACE;
 	tok.type = TK_SOMETHING;
@@ -962,10 +973,13 @@ static inline bool NeedsRightSpace(TokenSpace space)
 }
 
 // We have one rule: The lines still must remain matching.
-void MinifyContents(std::vector<Token> &tokens)
+static void MinifyContents(std::vector<Token> &tokens)
 {
 	size_t last = tokens.size();
 	size_t space = tokens.size();
+	size_t ifStart = 0;
+	int parenthesesDepth = 0;
+	int markedDepth = 0;
 	for (size_t i=0; i<tokens.size(); ++i)
 	{
 		Token& tok = tokens[i];
@@ -985,6 +999,14 @@ void MinifyContents(std::vector<Token> &tokens)
 			continue;
 		}
 
+		if (tok.type == TK_SEMICOLON)
+		{
+			if (i+1 < tokens.size() && tokens[i+1].IsSpace())
+				NukeToken(tok);
+
+			continue;
+		}
+
 		// We use GMod's aliases since those do not require spaces :D
 		if (tok.type == TK_AND && tok.content == "and")
 			tok.content = "&&";
@@ -997,6 +1019,116 @@ void MinifyContents(std::vector<Token> &tokens)
 
 		if (last < tokens.size() && space < tokens.size() && NeedsRightSpace(g_TokenSpaces[tokens[last].type]) && NeedsLeftSpace(g_TokenSpaces[tok.type]))
 			tokens[space].content = " ";
+
+		if (tok.type == TK_IF || tok.type == TK_WHILE)
+		{
+			ifStart = i; // Since we always modify ahead and not the past, we can store it safely (for now...)
+			parenthesesDepth = 0; // Reset just in case
+		}
+
+		if (tok.type == TK_LPARENTHESIS)
+		{
+			bool mustMark = false;
+			for (size_t j=i; j>ifStart; --j)
+			{
+				Token& backTok = tokens[j];
+				if (backTok.IsOperator())
+				{
+					// We have something like if test + (123) then
+					mustMark = true;
+					break;
+				}
+			}
+
+			// TK_SOMETHING in this case is a variable! So we may be a function getting called!
+			bool needsParentheses = tokens[last].type == TK_SOMETHING;
+			// We need this as sometimes we have if(value)then and if we remove ( ) it would become an invalid ifvaluethen
+			bool startingParentheses = tokens[last].type == TK_IF;
+
+			if (mustMark || needsParentheses || startingParentheses)
+			{
+				int trackDepth = parenthesesDepth;
+				for (size_t j=i; j<tokens.size(); ++j)
+				{
+					Token& nextTok = tokens[j];
+					if (nextTok.type == TK_RPARENTHESIS)
+						--trackDepth;
+					else if (nextTok.type == TK_LPARENTHESIS)
+						++trackDepth;
+					else if (nextTok.IsOperator())
+						needsParentheses = true;
+					else if (startingParentheses && (nextTok.IsValue() || nextTok.type == TK_SOMETHING))
+						needsParentheses = true;
+
+					if (trackDepth < parenthesesDepth)
+					{
+						// We only actually mark it as in a case like (value123) the parentheses are useless
+						if (needsParentheses)
+						{
+							if (startingParentheses)
+							{ // Turn "if(value)then" to "if value then"
+								NukeToken(tok, true);
+								NukeToken(nextTok, true);
+							} else {
+								tok.MarkParenthesis();
+								nextTok.MarkParenthesis();
+							}
+						}
+
+						break;
+					}
+				}
+			}
+
+			++parenthesesDepth;
+		}
+
+		if (tok.type == TK_RPARENTHESIS)
+			--parenthesesDepth;
+
+		if (tok.type == TK_THEN || tok.type == TK_DO)
+		{
+			// Since we marked all Parenthesis correctly (hopefully) we can nuke unmarked ones
+			for (int j=ifStart; j<i; ++j)
+			{
+				if (tokens[j].IsParenthesis() && !tokens[j].IsParenthesisMarked())
+					NukeToken(tokens[j]);
+			}
+
+			ifStart = 0;
+		} else if (tok.IsOperator() && ifStart != 0 && parenthesesDepth != markedDepth)
+		{
+			// We backtrack to mark the ( & ) parentheses
+			int backtrackDepth = parenthesesDepth;
+			// Only once we hit the first ) we can trust the depth comparison
+			bool hadHit = false;
+			for (size_t j=i; j>ifStart; --j)
+			{
+				Token& backTok = tokens[j];
+				if (backTok.type == TK_RPARENTHESIS)
+				{
+					++backtrackDepth;
+					if (!hadHit)
+					{
+						backTok.MarkParenthesis();
+						hadHit = true;
+					}
+				} else if (backTok.type == TK_LPARENTHESIS)
+					--backtrackDepth;
+
+				if (hadHit && backtrackDepth == parenthesesDepth)
+				{
+					backTok.MarkParenthesis();
+					break;
+				}
+			}
+
+			markedDepth = parenthesesDepth;
+		}
+
+		// RaphaelIT7: Note for myself
+		// Parenthesis can be used around a function to limit its return values to just the first one
+		// like print((unpack({"Hello", "World"}))) fives only "Hello"
 
 		last = i;
 		space = tokens.size();
@@ -1460,7 +1592,7 @@ public:
 					if (pScope.IsValid() && Lua::PushHook("HolyLib:OnTokenizeContentFailed", LUA))
 					{
 						LUA->PushString(pError.c_str(), pError.length());
-						LUA->PushString(content.c_str(), content.length());
+						LUA->PushString(finalContents.c_str(), finalContents.length());
 						LUA->PushNumber(fileID);
 						LUA->CallFunctionProtected(4, 0, true);
 					}
