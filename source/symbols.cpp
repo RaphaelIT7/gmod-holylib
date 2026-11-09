@@ -637,6 +637,10 @@ namespace Symbols
 		Symbol::FromName("_Z25VProfRecord_IsPlayingBackv"),
 	};
 
+	const std::vector<Symbol> CLuaInterface_CallFunctionProtectedSym = {
+		Symbol::FromName("_ZN13CLuaInterface21CallFunctionProtectedEiib"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	// NOTE: This is just optimizations, having CGMOD_Player_CreateViewModelSym on Windows would be good but all the other things are probably best for Linux only.

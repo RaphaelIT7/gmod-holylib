@@ -35,6 +35,7 @@ public:
 };
 
 static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", FCVAR_ARCHIVE, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
+static ConVar holylib_vprof_trackscripts("holylib_vprof_trackscripts", "0", FCVAR_ARCHIVE, "If enabled, vprof will create a scope for all lua scripts GMod calls directly into");
 //static ConVar holylib_vprof_profilecfunc("holylib_vprof_profilecfunc", "0", 0, "If enabled, Lua->C calls will also be profiled.");
 
 static CVProfModule g_pVProfModule;
@@ -119,6 +120,8 @@ static void FinishSpew()
 }
 #endif
 
+static unordered_map<std::string, std::string, StringHash, StringEq> CallFunctionProtected_ids;  // key -> short id
+static unordered_map<int, std::string> CallFunctionProtected_labels; // short id -> full label
 static Detouring::Hook detour_CVProfile_OutputReport;
 static void hook_CVProfile_OutputReport(void* pProfile, int type, const tchar* pszStartMode, int budgetGroupID)
 {
@@ -151,6 +154,37 @@ static void hook_CVProfile_OutputReport(void* pProfile, int type, const tchar* p
 	if (fh)
 	{
 		std::string str = ss.str();
+
+		if (holylib_vprof_trackscripts.GetBool())
+		{
+			// Replace short IDs (e.g. LUA#00001) with their full labels
+			size_t pos = 0;
+			while ((pos = str.find("LUA#", pos)) != std::string::npos)
+			{
+				if (pos + 9 > str.size())
+				{
+					pos += 4;
+					continue;
+				}
+
+				int id = 0;
+				if (sscanf(str.c_str() + pos + 4, "%5d", &id) != 1)
+				{
+					pos += 4;
+					continue;
+				}
+
+				auto it = CallFunctionProtected_labels.find(id);
+				if (it != CallFunctionProtected_labels.end())
+				{
+					str.replace(pos, 9, it->second);
+					pos += it->second.size();
+				}
+				else
+					pos += 9;
+			}
+		}
+
 		g_pFullFileSystem->Write(str.c_str(), str.length(), fh);  
 		Msg(PROJECT_NAME ": Wrote vprof report into %s\n", filename.c_str());
 
@@ -366,6 +400,59 @@ static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool, bool _
 	return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool, _bool);
 }
 
+static Detouring::Hook detour_CLuaInterface_CallFunctionProtected;
+static bool hook_CLuaInterface_CallFunctionProtected(GarrysMod::Lua::ILuaInterface* _this, int iArgs, int iRets, bool bShowErrors)
+{
+	if (!holylib_vprof_trackscripts.GetBool())
+		return detour_CLuaInterface_CallFunctionProtected.GetTrampoline<Symbols::CLuaInterface_CallFunctionProtected>()(_this, iArgs, iRets, bShowErrors);
+
+
+	lua_Debug ar = {};
+	_this->Push(-(iArgs + 1));
+	_this->GetInfo(">Sn", &ar);
+
+	// RaphaelIT7 (ToDo): I am pretty sure this can avoid a heap allocation if it hits performance
+	//std::string key(ar.short_src);
+	//key += ":";
+	//key += std::to_string(ar.linedefined);
+
+	char idBuffer[134];
+	size_t srcLen = strlen(ar.short_src);
+	memcpy(idBuffer, ar.short_src, srcLen);
+	memcpy(idBuffer + srcLen, &ar.linedefined, sizeof(ar.linedefined));
+	std::string_view key(idBuffer, srcLen + sizeof(ar.linedefined));
+
+	auto it = CallFunctionProtected_ids.find(key);
+	if (it == CallFunctionProtected_ids.end())
+	{
+		const char* src = ar.short_src[0] ? ar.short_src : "?";
+		if (strncmp(src, "addons/", 7) == 0)
+			src += 7;
+
+		// RaphaelIT7 (Verify):
+		// I think using snprintf can probably perform better, but I doubt we even create that many scopes
+		std::string full = "CLuaInterface::CallFunctionProtected(";
+		full += (ar.linedefined > 0) ? std::to_string(ar.linedefined) : "?";
+		full += "@";
+		full += src;
+		full += ")";
+
+		static int cfp_counter = 0;
+		int id = ++cfp_counter;
+
+		char idLabel[16];
+		snprintf(idLabel, sizeof(idLabel), "LUA#%05d", id);
+
+		CallFunctionProtected_ids[key] = idLabel;
+		CallFunctionProtected_labels[id] = std::move(full);
+		it = CallFunctionProtected_ids.find(key);
+	}
+
+	VPROF_BUDGET( it->second.c_str(), "GMOD" );
+
+	return detour_CLuaInterface_CallFunctionProtected.GetTrampoline<Symbols::CLuaInterface_CallFunctionProtected>()(_this, iArgs, iRets, bShowErrors);
+}
+
 #if SYSTEM_WINDOWS
 DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC3( hook_CVProfile_OutputReport, OutputReport, void*, int, const tchar*, int );
@@ -379,6 +466,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CScriptedEntity_Call, void*, ScriptedCall, void*, int, int );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CScriptedEntity_CallFunctionStr, void*, CallFunctionStr, void*, const char*, bool );
 	DETOUR_THISCALL_ADDRETFUNC2( hook_CScriptedEntity_CallFunction, void*, CallFunctionInt, void*, int, bool );
+	DETOUR_THISCALL_ADDRETFUNC3( hook_CLuaInterface_CallFunctionProtected, bool, CallFunctionProtected, GarrysMod::Lua::ILuaInterface*, int, int, bool );
 DETOUR_THISCALL_FINISH();
 #endif
 
@@ -738,6 +826,13 @@ void CVProfModule::InitDetour(bool bPreServer)
 		&detour_CVProfile_OutputReport, "CVProfile::OutputReport",
 		tier0_loader.GetModule(), Symbols::CVProfile_OutputReportSym,
 		(void*)DETOUR_THISCALL( hook_CVProfile_OutputReport, OutputReport ), m_pID
+	);
+
+	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
+	Detour::Create(
+		&detour_CLuaInterface_CallFunctionProtected, "CLuaInterface::CallFunctionProtected",
+		lua_shared_loader.GetModule(), Symbols::CLuaInterface_CallFunctionProtectedSym,
+		(void*)DETOUR_THISCALL( hook_CLuaInterface_CallFunctionProtected, CallFunctionProtected ), m_pID
 	);
 	
 	SourceSDK::ModuleLoader server_loader("server");

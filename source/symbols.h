@@ -524,6 +524,9 @@ namespace Symbols
 	using VProfRecord_IsPlayingBack = bool (*)();
 	extern const std::vector<Symbol> VProfRecord_IsPlayingBackSym;
 
+	using CLuaInterface_CallFunctionProtected = bool (GMCOMMON_CALLING_CONVENTION*)(void*, int, int, bool);
+	extern const std::vector<Symbol> CLuaInterface_CallFunctionProtectedSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	//---------------------------------------------------------------------------------
