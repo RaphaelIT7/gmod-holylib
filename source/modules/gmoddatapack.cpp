@@ -975,11 +975,74 @@ static inline bool NeedsRightSpace(TokenSpace space)
 // We have one rule: The lines still must remain matching.
 static void MinifyContents(std::vector<Token> &tokens)
 {
+	for (size_t i=tokens.size(); i-- > 0;)
+	{
+		if (tokens[i].type != TK_RPARENTHESIS)
+			continue;
+
+		int depth = 1;
+		int top = 0;
+		size_t open = i;
+		size_t inner = i;
+		bool sameLine = true;
+		// We backtrack to find the ( that belongs to this )
+		while (open > 0 && depth > 0)
+		{
+			Token& backTok = tokens[--open];
+			if (backTok.type == TK_RPARENTHESIS)
+				++depth;
+			else if (backTok.type == TK_LPARENTHESIS)
+				--depth;
+
+			if (depth > 0 && !backTok.IsSpace())
+			{
+				inner = open;
+				if (depth == 1)
+					++top;
+			} else if (inner == i && (backTok.type == TK_LINEEND || backTok.lineBreaks > 0))
+				sameLine = false;
+		}
+
+		if (depth > 0 || !sameLine)
+			continue;
+
+		TokenType beforeType = TK_INVALID;
+		for (size_t j=open; j>0; --j)
+		{
+			if (!tokens[j-1].IsSpace())
+			{
+				beforeType = tokens[j-1].type;
+				break;
+			}
+		}
+
+		// TK_SOMETHING in this case is a variable! So we may be a function getting called!
+		if (beforeType == TK_SOMETHING || beforeType == TK_RPARENTHESIS || beforeType == TK_RBRACKET || beforeType == TK_RBRACE || beforeType == TK_STRING || beforeType == TK_FUNCTION)
+			continue;
+
+		TokenType afterType = TK_INVALID;
+		for (size_t j=i+1; j<tokens.size(); ++j)
+		{
+			if (!tokens[j].IsSpace() && tokens[j].type != TK_RPARENTHESIS)
+			{
+				afterType = tokens[j].type;
+				break;
+			}
+		}
+
+		// Turn "if(value)then" to "if value then"
+		bool isCondition = (beforeType == TK_IF || beforeType == TK_ELSEIF || beforeType == TK_WHILE) && (afterType == TK_THEN || afterType == TK_DO);
+		// In a case like (value123) the parentheses are useless
+		bool isSingle = top == 1 && (tokens[inner].type == TK_SOMETHING || tokens[inner].type == TK_LPARENTHESIS);
+		if (isCondition || isSingle)
+		{
+			NukeToken(tokens[open]);
+			NukeToken(tokens[i]);
+		}
+	}
+
 	size_t last = tokens.size();
 	size_t space = tokens.size();
-	size_t ifStart = 0;
-	int parenthesesDepth = 0;
-	int markedDepth = 0;
 	for (size_t i=0; i<tokens.size(); ++i)
 	{
 		Token& tok = tokens[i];
@@ -1019,112 +1082,6 @@ static void MinifyContents(std::vector<Token> &tokens)
 
 		if (last < tokens.size() && space < tokens.size() && NeedsRightSpace(g_TokenSpaces[tokens[last].type]) && NeedsLeftSpace(g_TokenSpaces[tok.type]))
 			tokens[space].content = " ";
-
-		if (tok.type == TK_IF || tok.type == TK_WHILE)
-		{
-			ifStart = i; // Since we always modify ahead and not the past, we can store it safely (for now...)
-			parenthesesDepth = 0; // Reset just in case
-		}
-
-		if (tok.type == TK_LPARENTHESIS)
-		{
-			bool mustMark = false;
-			for (size_t j=i; j>ifStart; --j)
-			{
-				Token& backTok = tokens[j];
-				if (backTok.IsOperator())
-				{
-					// We have something like if test + (123) then
-					mustMark = true;
-					break;
-				}
-			}
-
-			// TK_SOMETHING in this case is a variable! So we may be a function getting called!
-			bool needsParentheses = tokens[last].type == TK_SOMETHING;
-			// We need this as sometimes we have if(value)then and if we remove ( ) it would become an invalid ifvaluethen
-			bool startingParentheses = tokens[last].type == TK_IF;
-
-			if (mustMark || needsParentheses || startingParentheses)
-			{
-				int trackDepth = parenthesesDepth;
-				for (size_t j=i; j<tokens.size(); ++j)
-				{
-					Token& nextTok = tokens[j];
-					if (nextTok.type == TK_RPARENTHESIS)
-						--trackDepth;
-					else if (nextTok.type == TK_LPARENTHESIS)
-						++trackDepth;
-					else if (nextTok.IsOperator())
-						needsParentheses = true;
-					else if (startingParentheses && (nextTok.IsValue() || nextTok.type == TK_SOMETHING))
-						needsParentheses = true;
-
-					if (trackDepth < parenthesesDepth)
-					{
-						// We only actually mark it as in a case like (value123) the parentheses are useless
-						if (needsParentheses)
-						{
-							if (startingParentheses)
-							{ // Turn "if(value)then" to "if value then"
-								NukeToken(tok, true);
-								NukeToken(nextTok, true);
-							} else {
-								tok.MarkParenthesis();
-								nextTok.MarkParenthesis();
-							}
-						}
-
-						break;
-					}
-				}
-			}
-
-			++parenthesesDepth;
-		}
-
-		if (tok.type == TK_RPARENTHESIS)
-			--parenthesesDepth;
-
-		if (tok.type == TK_THEN || tok.type == TK_DO)
-		{
-			// Since we marked all Parenthesis correctly (hopefully) we can nuke unmarked ones
-			for (int j=ifStart; j<i; ++j)
-			{
-				if (tokens[j].IsParenthesis() && !tokens[j].IsParenthesisMarked())
-					NukeToken(tokens[j]);
-			}
-
-			ifStart = 0;
-		} else if (tok.IsOperator() && ifStart != 0 && parenthesesDepth != markedDepth)
-		{
-			// We backtrack to mark the ( & ) parentheses
-			int backtrackDepth = parenthesesDepth;
-			// Only once we hit the first ) we can trust the depth comparison
-			bool hadHit = false;
-			for (size_t j=i; j>ifStart; --j)
-			{
-				Token& backTok = tokens[j];
-				if (backTok.type == TK_RPARENTHESIS)
-				{
-					++backtrackDepth;
-					if (!hadHit)
-					{
-						backTok.MarkParenthesis();
-						hadHit = true;
-					}
-				} else if (backTok.type == TK_LPARENTHESIS)
-					--backtrackDepth;
-
-				if (hadHit && backtrackDepth == parenthesesDepth)
-				{
-					backTok.MarkParenthesis();
-					break;
-				}
-			}
-
-			markedDepth = parenthesesDepth;
-		}
 
 		// RaphaelIT7: Note for myself
 		// Parenthesis can be used around a function to limit its return values to just the first one
@@ -1615,9 +1572,9 @@ public:
 		if (eError != StripError::NONE)
 		{
 			if (eError == StripError::CONTENT_ERROR)
-				Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to lua errors! (%s)", fileID, strippedContent.c_str());
+				Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to lua errors! (%s)\n", fileID, strippedContent.c_str());
 			else
-				Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to the result having syntax errors! (%s)", fileID, strippedContent.c_str());
+				Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to the result having syntax errors! (%s)\n", fileID, strippedContent.c_str());
 		} else
 			pEntry->content = strippedContent;
 
