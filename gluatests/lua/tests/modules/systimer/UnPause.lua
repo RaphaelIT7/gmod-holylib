@@ -93,18 +93,20 @@ return {
             timeout = 4,
             func = function()
                 local name = "SysTimer_UnPause_Test"
-                systimer.Create( name, 2, 1, function() end )
+                --Steam login loves to freeze for like 5 seconds soo the timer could run before we pause it
+                systimer.Create( name, 30, 1, function() end )
 
                 timer.Simple( 1.5, function()
                     local beforePause = systimer.TimeLeft( name )
                     systimer.Pause( name )
                     local result = systimer.UnPause( name )
                     local afterUnpause = systimer.TimeLeft( name )
+                    systimer.Remove( name )
 
                     expect( result ).to.beTrue()
-                    expect( math.abs( afterUnpause - beforePause ) < beforePause * 0.5 ).to.beTrue()
+                    expect( beforePause > 0 ).to.beTrue()
+                    expect( math.abs( afterUnpause - beforePause ) < 0.5 ).to.beTrue()
 
-                    systimer.Remove( name )
                     done()
                 end )
             end

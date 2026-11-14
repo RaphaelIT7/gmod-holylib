@@ -872,18 +872,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitCoordMP)
 
 	bool bIntegral = LUA->GetBool(2);
 	bool bLowPrecision = LUA->GetBool(3);
-#if defined(GMOD_X86_64)
-	EBitCoordType pType = kCW_None;
-	if (bIntegral)
-		pType = EBitCoordType::kCW_Integral;
-
-	if (bLowPrecision)
-		pType = EBitCoordType::kCW_LowPrecision;
-
-	pBF->WriteBitCoordMP((float)LUA->CheckNumber(2), pType);
-#else
 	pBF->WriteBitCoordMP((float)LUA->CheckNumber(2), bIntegral, bLowPrecision);
-#endif
 	return 0;
 }
 

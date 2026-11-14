@@ -80,9 +80,7 @@ DLL_EXPORT void HolyLib_PreLoad()
 //---------------------------------------------------------------------------------
 CGlobalVars *gpGlobals = nullptr;
 static bool bIgnoreNextUnload = false;
-#if !defined(GMOD_X86_64)
 IMDLCache *mdlcache = nullptr;
-#endif
 bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory)
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::Load", VPROF_BUDGETGROUP_HOLYLIB);

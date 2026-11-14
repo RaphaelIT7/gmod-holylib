@@ -71,12 +71,10 @@ prebuildCommand = basePath .. prebuildCommand -- We add this after execute since
 	Project setup
 ]]
 CreateWorkspace({name = "holylib", abi_compatible = true})
-	if not GMOD_X86_64 then -- X86_64 remains unchanged since they weren't moved yet to SteamRT4 (we probably will drop them soon anyways)
-		-- This define comes from the garrysmod_common but I can't remove it there yet as then I'll probably break a lot of other projects who target the public branch
-		filter("system:linux")
-			removedefines("_GLIBCXX_USE_CXX11_ABI=0")
-		filter({})
-	end
+	-- This define comes from the garrysmod_common but I can't remove it there yet as then I'll probably break a lot of other projects who target the public branch
+	filter("system:linux")
+		removedefines("_GLIBCXX_USE_CXX11_ABI=0")
+	filter({})
 
 	-- Serverside module (gmsv prefix)
 	-- Can define "source_path", where the source files are located
@@ -131,9 +129,6 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 		defines("NOBASSOVERLOADS")
 		defines("USE_OLD_BF_READ")
 		defines("ENABLE_LATEST_BASS") -- Since the last GMod update bass was updated!
-		if GMOD_X86_64 then
-			defines("GMOD_X86_64")
-		end
 
 		prebuildcommands(prebuildCommand)
 
@@ -218,9 +213,7 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 			buildoptions({"-Wno-undef"})
 
 		filter("system:windows")
-			if not GMOD_X86_64 then
-				files(sourcePath .. "sourcesdk/tier0/platform.cpp")
-			end
+			files(sourcePath .. "sourcesdk/tier0/platform.cpp")
 			removefiles(sourcePath .. "sourcesdk/linux_support.cpp")
 			if HOLYLIB_DEDICATED then
 				defines("DEDICATED")
@@ -229,10 +222,8 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 			end
 
 		filter("system:linux")
-			if not GMOD_X86_64 then
-				files(sourcePath .. "sourcesdk/tier0/platform_posix.cpp")
-			end
+			files(sourcePath .. "sourcesdk/tier0/platform_posix.cpp")
 			disablewarnings({"unused-variable"})
 			targetextension(".so")
-			links({"dl", "tier0", "pthread"}) -- this fixes the undefined reference to `dlopen' errors.
+			links({"dl", "pthread"}) -- this fixes the undefined reference to `dlopen' errors.
 			defines("DEDICATED") -- All linux build focus Linux dedicated servers.

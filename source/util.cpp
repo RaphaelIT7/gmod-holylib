@@ -868,6 +868,10 @@ void Util::AddDetour()
 		server = Detour::ResolveSymbolNoDereference<IServer>( engine_loader, Symbol::FromName( "?sv@@3VCGameServer@@A" ) );
 #else
 	server = InterfacePointers::Server();
+#if !ARCHITECTURE_IS_X86
+	if (!server)
+		server = Detour::ResolveSymbol<IServer>(engine_loader, Symbols::svSym);
+#endif
 #endif
 	Detour::CheckValue("get class", "IServer", server != nullptr);
 

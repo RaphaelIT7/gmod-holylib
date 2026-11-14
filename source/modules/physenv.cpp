@@ -100,13 +100,18 @@ static unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // co
 // It's driving me insane, somehow it's at 160 but there is A LOT that is supposed to be before it....
 // The entire layout of IVP_Real_Object is a mess and I don't want to figure that out rn
 static bool g_bIsValidClientData = false;
+#if ARCHITECTURE_IS_X86
+static constexpr size_t IVP_REAL_OBJECT_CLIENT_DATA_OFFSET = 0x0A0;
+#else
+static constexpr size_t IVP_REAL_OBJECT_CLIENT_DATA_OFFSET = 0x100;
+#endif
 static inline CPhysicsObject* GetClientDataFromGModObject(GMODSDK::IVP_Real_Object* pObj)
 {
 	if (!pObj)
 		return nullptr;
 
 	// Offset can easily be found in IVP_Real_Object constructor (It's the very last instruction load & store)
-	CPhysicsObject* pPhys = (CPhysicsObject*)*(void**)((char*)pObj + 0x0A0);
+	CPhysicsObject* pPhys = (CPhysicsObject*)*(void**)((char*)pObj + IVP_REAL_OBJECT_CLIENT_DATA_OFFSET);
 
 	// We only check ones and then pray its fine
 	// It's highly unlikely that we read the wrong offset yet still find a entry from a garbage pointer

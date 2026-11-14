@@ -12,7 +12,7 @@ public:
 	void Shutdown() override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "autorefresh"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 	bool IsEnabledByDefault() override { return false; };
 };
 

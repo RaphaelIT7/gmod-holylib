@@ -20,7 +20,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void OnClientDisconnect(CBaseClient* pClient) override;
 	const char* Name() override { return "sourcetv"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 

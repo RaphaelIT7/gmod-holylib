@@ -42,7 +42,7 @@ public:
 	void ServerActivate(edict_t *pEdictList, int edictCount, int clientMax) OVERRIDE;
 	void InitDetour(bool bPreServer) OVERRIDE;
 	const char* Name() { return "networkingreplacement"; };
-	int Compatibility() { return LINUX32; };
+	int Compatibility() { return LINUX32 | LINUX64; };
 	bool IsEnabledByDefault() { return false; };
 };
 
@@ -1587,7 +1587,8 @@ void CNetworkingReplacementModule::InitDetour(bool bPreServer)
 	func_CFrameSnapshotManager_CreatePackedEntity = (Symbols::CFrameSnapshotManager_CreatePackedEntity)Detour::GetFunction(engine_loader.GetModule(), Symbols::CFrameSnapshotManager_CreatePackedEntitySym);
 	Detour::CheckFunction((void*)func_CFrameSnapshotManager_CreatePackedEntity, "CFrameSnapshotManager::CreatePackedEntity");
 
-	framesnapshotmanager = *Detour::ResolveSymbol<CFrameSnapshotManager*>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
+	CFrameSnapshotManager** ppFrameSnapshotManager = Detour::ResolveSymbol<CFrameSnapshotManager*>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
+	framesnapshotmanager = ppFrameSnapshotManager ? *ppFrameSnapshotManager : nullptr;
 	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != nullptr);
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)

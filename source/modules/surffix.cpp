@@ -14,7 +14,7 @@ public:
 	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "surffix"; };
-	int Compatibility() override { return LINUX32 | WINDOWS64; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS64; };
 };
 
 static CSurfFixModule g_pSurfFixModule;

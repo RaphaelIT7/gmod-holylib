@@ -54,6 +54,18 @@ LUA_FUNCTION_STATIC(Test_GetEntity)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(Test_GetEntityIndex)
+{
+	CBaseEntity* pEntity = Util::Get_Entity(LUA, 1, true);
+	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
+	if (pEntity && pEntity->edict())
+		LUA->PushNumber(pEntity->edict()->m_EdictIndex);
+	else
+		LUA->PushNil();
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(Test_GetPlayer) // Same as Test_GetEntity though calling Get_Player since it's a separate independent function.
 {
 	CBasePlayer* pEntity = Util::Get_Player(LUA, 1, true);
@@ -251,6 +263,7 @@ static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, Test_PushEntity, "PushEntity");
 		Util::AddFunc(pLua, Test_GetEntity, "GetEntity");
+		Util::AddFunc(pLua, Test_GetEntityIndex, "GetEntityIndex");
 		Util::AddFunc(pLua, Test_RawGetEntity, "RawGetEntity"); // Used to test performance
 		Util::AddFunc(pLua, Test_GetPlayer, "GetPlayer");
 		Util::AddFunc(pLua, Test_ClearLuaTable, "ClearLuaTable");

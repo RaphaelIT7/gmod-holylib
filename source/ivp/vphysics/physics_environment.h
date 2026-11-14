@@ -13,10 +13,6 @@
 #include "ivu_types.hxx"
 #include "tier1/utlvector.h"
 
-#if GMOD_X86_64
-typedef physpresaverestoreparams_t physprerestoreparams_t;
-#endif
-
 class IVP_Environment;
 class CSleepObjects;
 class CPhysicsListenerCollision;
@@ -148,28 +144,6 @@ public:
 	[[nodiscard]] IPhysicsCollisionEvent *GetCollisionEventHandler();
 	// a constraint is being disabled - report the game DLL as "broken"
 	void NotifyConstraintDisabled( IPhysicsConstraint *pConstraint );
-
-#if GMOD_X86_64
-	void PreSave( const physpresaverestoreparams_t &params ) override;
-	void PostSave() override;
-
-	void SetAlternateGravity( const Vector &gravityVector ) override;
-	void GetAlternateGravity( Vector *pGravityVector ) const override;
-
-	float GetDeltaFrameTime( int maxTicks ) const override;
-	void ForceObjectsToSleep( IPhysicsObject **pList, int listCount ) override;
-	
-	//Network prediction related functions
-	void SetPredicted( bool bPredicted ) override; //Interaction with this system and it's objects may not always march forward, sometimes it will get/set data in the past.
-	bool IsPredicted( void ) override;
-	void SetPredictionCommandNum( int iCommandNum ) override; //what command the client is working on right now
-	int GetPredictionCommandNum( void ) override;
-	void DoneReferencingPreviousCommands( int iCommandNum ) override; //won't need data from commands before this one any more
-	void RestorePredictedSimulation( void ) override; //called to restore results from a previous simulation with the same predicted timestamp set
-
-	// destroy a CPhysCollide used in CreatePolyObject()/CreatePolyObjectStatic() when any owning IPhysicsObject is flushed from the queued deletion list.
-	void DestroyCollideOnDeadObjectFlush( CPhysCollide * ) override; //should only be used after calling DestroyObject() on all IPhysicsObjects created with it.
-#endif
 
 	inline const CUtlVector<IPhysicsObject *>& GetObjects() { return m_objects; }; // Expose for holylib
 	inline CCollisionSolver* GetCollisionSolver() { return m_pCollisionSolver; };

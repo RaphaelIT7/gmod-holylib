@@ -75,10 +75,6 @@ public:
 	void		ParseVehicle( vehicleparams_t *pVehicle, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseCustom( void *pCustom, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		SkipBlock( void ) override { ParseCustom(NULL, NULL); }
-#if GMOD_X86_64
-	void		ParseCollisionRules( ragdollcollisionrules_t *pRules, IVPhysicsKeyHandler *unknownKeyHandler ) override;
-	void		ParseRagdollAnimatedFriction( ragdollanimatedfriction_t *pFriction, IVPhysicsKeyHandler *unknownKeyHandler ) override;
-#endif
 
 private:
 	void		ParseVehicleAxle( vehicle_axleparams_t &axle );
@@ -994,40 +990,6 @@ void CVPhysicsParse::ParseCustom( void *pCustom, IVPhysicsKeyHandler *unknownKey
 		}
 	}
 }
-
-#if GMOD_X86_64
-void CVPhysicsParse::ParseCollisionRules(ragdollcollisionrules_t* pRules, IVPhysicsKeyHandler* unknownKeyHandler)
-{
-	DebugPrint();
-
-	if ( unknownKeyHandler )
-	{
-		unknownKeyHandler->SetDefaults( pRules );
-	}
-
-	Warning(PROJECT_NAME " - vphysics: called a function that isn't implemented!\n");
-
-	// ToDo: Verify that these actually exist in Gmod 64x and that they are used.
-
-	NextBlock();
-}
-
-void CVPhysicsParse::ParseRagdollAnimatedFriction(ragdollanimatedfriction_t* pFriction, IVPhysicsKeyHandler* unknownKeyHandler)
-{
-	DebugPrint();
-
-	if ( unknownKeyHandler )
-	{
-		unknownKeyHandler->SetDefaults( pFriction );
-	} else {
-		V_memset( pFriction, 0, sizeof(*pFriction) );
-	}
-
-	Warning(PROJECT_NAME " - vphysics: called a function that isn't implemented!\n");
-
-	NextBlock();
-}
-#endif
 
 IVPhysicsKeyParser *CreateVPhysicsKeyParser( const char *pKeyData, bool bIsPacked )
 {

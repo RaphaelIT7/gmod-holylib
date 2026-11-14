@@ -31,7 +31,7 @@ public:
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void Think(bool bSimulating) override;
 	const char* Name() override { return "filesystem"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
@@ -520,10 +520,6 @@ void CDiskFileTree::Rebuild()
 	if ( !holylib_filesystem_filecache.GetBool() )
 		return;
 
-#if GMOD_X86_64
-	return;
-#endif
-
 	if (Util::GetGModVersionNum() < 260718)
 		return;
 
@@ -905,6 +901,11 @@ static long hook_CBaseFileSystem_FastFileTime(CBaseFileSystem* _this, const CSea
 static Detouring::Hook detour_CBaseFileSystem_IsDirectory;
 static Symbols::Addon_FileSystem_IsDirectory func_Addon_FileSystem_IsDirectory = nullptr;
 static Symbols::CPackedStore_DirectoryEntryExists func_CPackedStore_DirectoryEntryExists = nullptr;
+#if defined(SYSTEM_LINUX) && !ARCHITECTURE_IS_X86
+static constexpr size_t PACKEDSTORE_OFFSET = 16; // ToDo: Actually fix the class and not rely on this shit!
+#else
+static constexpr size_t PACKEDSTORE_OFFSET = 8;
+#endif
 static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char* pFileName, const char* pathID)
 {
 	if (!func_CFileSystem_Stdio_FS_stat || !func_CPackedStore_DirectoryEntryExists || !func_Addon_FileSystem_IsDirectory)
@@ -941,7 +942,7 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 		{
 			// GMod
 			// ASM shows a +8 but I have no idea why
-			if ( func_CPackedStore_DirectoryEntryExists( (void*)((char*)pSearchPath->GetPackedStore() + 8), pFileName ) )
+			if ( func_CPackedStore_DirectoryEntryExists( (void*)((char*)pSearchPath->GetPackedStore() + PACKEDSTORE_OFFSET), pFileName ) )
 				return true;
 		}
 		else

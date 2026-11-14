@@ -104,11 +104,7 @@ struct ThreadPoolStartParams_t;
 #define GMCOMMON_CALLING_CONVENTION
 #endif
 
-#if GMOD_X86_64
-#define SIMPLETHREAD_RETURNVALUE long long unsigned
-#else
 #define SIMPLETHREAD_RETURNVALUE uintp
-#endif
 
  /*
   * I need to figure out how to hook into shit without breaking it on windows.
@@ -123,16 +119,11 @@ struct ThreadPoolStartParams_t;
 /*
  * The symbols will have this order:
  * 0 - Linux 32x
- * 1 - Linux 64x (x86-64)
+ * 1 - Linux 64x
  * 2 - Windows 32x
- * 3 - Windows 64x (x86-64)
+ * 3 - Windows 64x
  * 4 - Windows Dedicated 32x (falls back to Windows 32x if non existent)
- * 5 - Windows Dedicated 64x (x86-64 - falls back to Windows 64x (x86-64) if non existent)
- * 6 - Windows 64x (main branch)
- * 
- * x86-64 & main branch 64x are similar in some ways but x86-64 has lots of SDK changes.
- * It will fully be dropped once Linux 64x is on the dev branch.
- * If a x86-64 breaks don't bother to fix it. it will be dropped next update anyways
+ * 5 - Windows Dedicated 64x (falls back to Windows 64x if non existent)
  */
 namespace Symbols
 {
@@ -509,12 +500,6 @@ namespace Symbols
 	using CVProfile_FreeNodes_R = void (*)(void* profile, void *pNode);
 	extern const std::vector<Symbol> CVProfile_FreeNodes_RSym;
 	
-	using CL2Cache_Constructor = void (*)(void* cache);
-	extern const std::vector<Symbol> CL2Cache_ConstructorSym;
-	
-	using CL2Cache_Deconstructor = void (*)(void* cache);
-	extern const std::vector<Symbol> CL2Cache_DeconstructorSym;
-	
 	using CVProfNode_MarkFrame = void (*)(void* node);
 	extern const std::vector<Symbol> CVProfNode_MarkFrameSym;
 
@@ -758,11 +743,7 @@ namespace Symbols
 	using CBaseClient_OnRequestFullUpdate = void (GMCOMMON_CALLING_CONVENTION*)(void* client);
 	extern const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym;
 
-#if PLATFORM_64BITS
-	using CGameClient_SpawnPlayer = bool (GMCOMMON_CALLING_CONVENTION*)(void* client);
-#else
 	using CGameClient_SpawnPlayer = void (GMCOMMON_CALLING_CONVENTION*)(void* client);
-#endif
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
 
 	using CBaseServer_ProcessConnectionlessPacket = bool (GMCOMMON_CALLING_CONVENTION*)(void* server, netpacket_s* packet);
@@ -952,13 +933,6 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: crashhandler Symbols
 	//---------------------------------------------------------------------------------
-#if defined(SYSTEM_LINUX) && ARCHITECTURE_X86
-	using add_command = bool (__attribute__((regparm(2))) *)(const char* cmd, int cmd_len);
-#else
-	using add_command = bool (*)(const char* cmd, int cmd_len);
-#endif
-	extern const std::vector<Symbol> add_commandSym;
-
 	using CTextConsoleUnix_GetLine = char* (*)(void* _this);
 	extern const std::vector<Symbol> CTextConsoleUnix_GetLineSym;
 

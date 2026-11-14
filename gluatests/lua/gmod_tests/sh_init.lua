@@ -344,3 +344,10 @@ hook.Add( "GLuaTest_StartedTestRun", "Yes", function( testGroups )
         table.remove( testGroups, i )
     end
 end )
+
+-- Lazy... on dev 64x currently holytest isn't built yet
+if not holytest then
+	holytest = {
+		ServerExecute = HolyLib.ServerExecute
+	}
+end

@@ -78,12 +78,10 @@ CVPhysPtrSaveRestoreOps::CVPhysPtrSaveRestoreOps()
 void CPhysicsEnvironment::PreRestore( const physprerestoreparams_t &params )
 {
 	g_VPhysPtrSaveRestoreOps.PreRestore();
-#if !GMOD_X86_64
 	for ( int i = 0; i < params.recreatedObjectCount; i++ )
 	{
 		AddPtrAssociation( params.recreatedObjectList[i].pOldObject, params.recreatedObjectList[i].pNewObject );
 	}
-#endif
 }
 
 bool CPhysicsEnvironment::Restore( const physrestoreparams_t &params )

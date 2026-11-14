@@ -34,6 +34,8 @@ jobs:
       SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      GARRYSMOD_COMMON_64XBRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
       DETOURING: "RaphaelIT7/detouring"
       BUILD_CACHE: "true"
       UPLOAD_PDB: "true"
@@ -51,9 +53,11 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      GARRYSMOD_COMMON_64XBRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
       DETOURING: "RaphaelIT7/detouring"
       BUILD_CACHE: "true"
       UPLOAD_PDB: "true"
@@ -71,9 +75,11 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      GARRYSMOD_COMMON_64XBRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
       DETOURING: "RaphaelIT7/detouring"
       BUILD_CACHE: "true"
 
@@ -94,9 +100,10 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
       DETOURING: "RaphaelIT7/detouring"
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
@@ -120,9 +127,10 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
       DETOURING: "RaphaelIT7/detouring"
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
@@ -130,7 +138,7 @@ jobs:
       NO_SAVE_CACHE: "true" # Cache will only be updated by main compiles in build_plugin_linux job
 
   build_testingarea_64x:
-    name: "Build 64x (Testing Area - 64x)"
+    name: "Build 64x (Testing Area - Dev)"
     if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     secrets:
@@ -147,9 +155,11 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      GARRYSMOD_COMMON_64XBRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
       DETOURING: "RaphaelIT7/detouring"
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
@@ -169,9 +179,10 @@ jobs:
       ARTIFACT_EXPIRE: "1"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
       DETOURING: "RaphaelIT7/detouring"
       BUILD_CACHE: "true"
 
@@ -226,9 +237,11 @@ jobs:
       NO_SAVE_CACHE: "true"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      GARRYSMOD_COMMON_64XBRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
       DETOURING: "RaphaelIT7/detouring"
       ADDITIONAL_LINUX_32_SETUP: 'rm -rf source/ivp && cd source/modules/ && ls | grep -xvF ${{ matrix.module }}.cpp | xargs rm -f -- && cd ../../'
       ADDITIONAL_LINUX_64_SETUP: 'rm -rf source/ivp && cd source/modules/ && ls | grep -xvF ${{ matrix.module }}.cpp | xargs rm -f -- && cd ../../'
@@ -247,6 +260,7 @@ jobs:
             vdf: holylib_linux.vdf
             ghostinj: ghostinj.dll
             ghostinj_artifact: ghostinj.dll
+            lib: linux32
 
           - arch: 64x
             plugin: gmsv_holylib_linux64.so
@@ -254,6 +268,7 @@ jobs:
             vdf: holylib_linux_64.vdf
             ghostinj: ghostinj.dll
             ghostinj_artifact: ghostinj.dll (64x)
+            lib: linux64
 
     steps:
       - uses: actions/checkout@v4
@@ -262,6 +277,7 @@ jobs:
           sparse-checkout: |
             ${{ matrix.vdf }}
             gluatests
+            libs/${{ matrix.lib }}/libbass.so
 
       - uses: actions/download-artifact@v4
         name: "Download plugin"
@@ -278,13 +294,23 @@ jobs:
           mkdir -p garrysmod/lua/bin
           mv ${{ matrix.plugin }} garrysmod/lua/bin/
 
+          if [ "${{ matrix.arch }}" = "32x" ]; then
+            mkdir -p bin/
+            mv libs/${{ matrix.lib }}/libbass.so bin/
+          else
+            mkdir -p bin/linux64/
+            mv libs/${{ matrix.lib }}/libbass.so bin/linux64/
+            # The prebuilt reqwest binary only looks for bin/linux64/lua_shared.so due to being outdated as the dev 64x branch ships garrysmod/bin/linux64/lua_shared_srv.so
+            ln -s ../../garrysmod/bin/linux64/lua_shared_srv.so bin/linux64/lua_shared.so
+          fi
+
           mkdir -p garrysmod/addons
           mv ${{ matrix.vdf }} garrysmod/addons
           mv gluatests/binaries/*.dll garrysmod/lua/bin/
           mv gluatests garrysmod/addons
 
-          tar -czf gluatest.tar.gz ${{ matrix.ghostinj }} garrysmod/
-          tar -czf gluatest_no_ghostinj.tar.gz garrysmod/
+          tar -czf gluatest.tar.gz ${{ matrix.ghostinj }} garrysmod/ bin/
+          tar -czf gluatest_no_ghostinj.tar.gz garrysmod/ bin/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
@@ -342,11 +368,12 @@ jobs:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit:
-    name: "Test x86-64 branch"
+    name: "Test 64x dev branch"
     needs: setup_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
@@ -356,11 +383,12 @@ jobs:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit_noghostinj:
-    name: "Test x86-64 branch (No GhostInj)"
+    name: "Test 64x dev branch (No GhostInj)"
     needs: setup_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
       timeout: "10"
@@ -409,11 +437,12 @@ jobs:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit_holylua:
-    name: "Test x86-64 branch (HolyLua)"
+    name: "Test 64x dev branch (HolyLua)"
     needs: setup_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
@@ -423,11 +452,12 @@ jobs:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit_holylua_noghostinj:
-    name: "Test x86-64 branch (HolyLua, No GhostInj)"
+    name: "Test 64x dev branch (HolyLua, No GhostInj)"
     needs: setup_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       extra-startup-args: "-holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
@@ -457,11 +487,12 @@ jobs:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit_luajit:
-    name: "Test x86-64 branch (LuaJIT)"
+    name: "Test 64x dev branch (LuaJIT)"
     needs: setup_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       extra-startup-args: "-usegh -holylib_enable_luajit 1 +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
@@ -626,7 +657,7 @@ jobs:
       map: gm_glua_tests
 
   test_gmod_tests_64bit:
-    name: "Test x86-64 branch (gmod_tests)"
+    name: "Test 64x dev branch (gmod_tests)"
     needs: setup_gmod_tests_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
@@ -637,7 +668,8 @@ jobs:
           - name: gmod_tests_no_ghostinj_64x
             args: ""
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
@@ -670,7 +702,7 @@ jobs:
 
   test_gmod_tests_64bit_with_ivpreplacement:
     if: false
-    name: "Test x86-64 branch (gmod_tests & VPhysics replacement)"
+    name: "Test 64x dev branch (gmod_tests & VPhysics replacement)"
     needs: setup_gmod_tests_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
@@ -681,7 +713,8 @@ jobs:
           - name: gmod_tests_no_ghostinj_64x
             args: ""
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_replaceivp"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
@@ -712,7 +745,7 @@ jobs:
       map: gm_glua_tests
 
   test_gmod_tests_64bit_with_luajit:
-    name: "Test x86-64 branch (gmod_tests & LuaJIT replacement)"
+    name: "Test 64x dev branch (gmod_tests & LuaJIT replacement)"
     needs: setup_gmod_tests_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
@@ -723,7 +756,8 @@ jobs:
           - name: gmod_tests_no_ghostinj_64x
             args: ""
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_enable_luajit 1"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
@@ -796,6 +830,14 @@ jobs:
       BUILD_WINDOWS: "false"
       ARTIFACT_EXPIRE: "1"
       BUILD_CACHE: "true"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-7"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
+      GARRYSMOD_COMMON_64XBRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
+      DETOURING: "RaphaelIT7/detouring"
 
   setup_exampledll_artifacts:
     name: "Setup exampledll ${{ matrix.arch }} Artifact"
@@ -844,8 +886,9 @@ jobs:
 
           tar -xzf gluatest.tar.gz
 
-          tar -czf gluatest_exampledll.tar.gz ghostinj.dll garrysmod/
-          tar -czf gluatest_exampledll_no_ghostinj.tar.gz garrysmod/
+          # include bin/ for libbass.so since GMod doesn't ship it! See how we build the gluatest_ artifact
+          tar -czf gluatest_exampledll.tar.gz ghostinj.dll garrysmod/ bin/
+          tar -czf gluatest_exampledll_no_ghostinj.tar.gz garrysmod/ bin/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
@@ -887,7 +930,7 @@ jobs:
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
 
   test_exampledll_64bit:
-    name: "Test ExampleDLL x86-64 branch"
+    name: "Test ExampleDLL 64x dev branch"
     needs: setup_exampledll_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
@@ -898,7 +941,8 @@ jobs:
           - name: gluatest_exampledll_no_ghostinj_64x
             args: ""
     with:
-      branch: x86-64
+      branch: dev
+      use_64bit: "true"
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"

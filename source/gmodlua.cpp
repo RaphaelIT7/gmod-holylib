@@ -30,6 +30,8 @@ static bool g_bHasInternals = false;
 void GModLua::Init()
 {
 	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
+	if (!lua_shared_loader.IsValid()) // Happened when the ModuleLoader looks up the wrong folders/possible paths
+		Error(PROJECT_NAME " - core: Failed to find lua_shared?!\n");
 
 	LoadFunction(lua_pcall);
 	LoadFunction(lua_call);

@@ -39,7 +39,7 @@ public:
 	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
 	void LevelShutdown() override;
 	const char* Name() override { return "networking"; };
-	int Compatibility() override { return LINUX32 | LINUX64;  }; // ToDo: Fix CBaseClient offset being broken on 64x causing the access to CGameClient::m_pCurrentFrame to return a invalid pointer
+	int Compatibility() override { return LINUX32 | LINUX64; };
 };
 
 /*
@@ -1741,11 +1741,7 @@ void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot 
 	// Process work
 	if ( sv_parallel_packentities && sv_parallel_packentities->GetBool() )
 	{
-#if !defined(GMOD_X86_64)
 		ParallelProcess( "PackWork_t::Process", workItems, workItemCount, &PackWork_t::Process );
-#else
-		ParallelProcess( workItems, workItemCount, &PackWork_t::Process );
-#endif
 	}
 	else
 	{
@@ -1846,13 +1842,11 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		g_pShouldPrevent[i].ClearAll();
 
 	SourceSDK::FactoryLoader engine_loader("engine");
-#if !defined(GMOD_X86_64) // x86-64 does not have this function / ChangeFrameLists don't use virtual functions!
 	Detour::Create(
 		&detour_AllocChangeFrameList, "AllocChangeFrameList",
 		engine_loader.GetModule(), Symbols::AllocChangeFrameListSym,
 		(void*)hook_AllocChangeFrameList, m_pID
 	);
-#endif
 
 #if ARCHITECTURE_X86_64
 	if (!networking_enableunsafe64x.GetBool()) // It exists so that when I get to working on it, I can easily test it.
@@ -1911,7 +1905,8 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	);
 #endif
 
-	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
+	CFrameSnapshotManager** ppFrameSnapshotManager = Detour::ResolveSymbol<CFrameSnapshotManager*>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
+	framesnapshotmanager = ppFrameSnapshotManager ? *ppFrameSnapshotManager : nullptr;
 	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != nullptr);
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)

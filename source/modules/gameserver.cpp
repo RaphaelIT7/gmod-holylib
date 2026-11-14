@@ -3009,6 +3009,12 @@ static Detouring::Hook detour_CSteam3Server_SendUpdatedServerDetails;
 static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
 {
 	CGameServer* pServer = (CGameServer*)Util::server; // RaphaelIT7: Use CGameServer just because it makes it easier to debug layout here :)
+	if (!pServer)
+	{
+		detour_CSteam3Server_SendUpdatedServerDetails.GetTrampoline<Symbols::CSteam3Server_SendUpdatedServerDetails>()(_this);
+		return;
+	}
+
 	int nOrigMaxClients = pServer->m_nMaxclients;
 	pServer->m_nMaxclients = clamp(gameserver_maxplayers.GetInt(), nOrigMaxClients, ABSOLUTE_PLAYER_LIMIT);
 
@@ -3434,36 +3440,6 @@ static int FindFreeClientSlot()
 }
 
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
-#if GMOD_X86_64
-static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
-{
-	// m_nClientSlot = player slot! (entIndex - 1)
-	if (client->m_nClientSlot < gpGlobals->maxClients || gameserver_disablespawnsafety.GetBool())
-	{
-		return detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);;
-	}
-
-	// ent index! can be 128!
-	int nextFreeEntity = FindFreeClientSlot();
-	if (nextFreeEntity > gpGlobals->maxClients)
-	{
-		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
-		return false;
-	}
-
-	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
-	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
-	{
-		// It really didn't like what we had planned.
-		Warning(PROJECT_NAME ": Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
-		return false;
-	}
-
-	MoveCGameClientIntoCGameClient(client, pClient);
-	return false;
-	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
-}
-#else
 static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
 	// m_nClientSlot = player slot! (entIndex - 1)
@@ -3492,7 +3468,6 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	MoveCGameClientIntoCGameClient(client, pClient);
 	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
 }
-#endif
 
 // Called by Util from CSteam3Server::NotifyClientDisconnect
 void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)

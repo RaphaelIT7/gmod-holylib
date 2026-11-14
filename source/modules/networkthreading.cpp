@@ -29,7 +29,7 @@ public:
 	void LevelShutdown() override;
 	void Think(bool bSimulating) override;
 	const char* Name() override { return "networkthreading"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 	bool IsEnabledByDefault() override { return true; };
 };
 
@@ -452,7 +452,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			// check for connectionless packet (0xffffffff) first
 			if (LittleLong(*(unsigned int *)packet->data) == CONNECTIONLESS_HEADER)
 			{
-				packet->message.SeekRelative(sizeof(long)*8);	// read the -1
+				packet->message.SeekRelative(sizeof(int)*8);	// read the -1
 				int nPacketType = IsValidConnectionlessPacket(packet, false);
 				if (networkthreading_strictpackets.GetBool() && nPacketType == -1)
 				{
@@ -464,7 +464,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 					continue;
 
 				packet->message.StartReading( packet->data, packet->size ); // Reset buffer
-				packet->message.SeekRelative(sizeof(long)*8); // Read it again
+				packet->message.SeekRelative(sizeof(int)*8); // Read it again
 				if (net_showudp.GetInt())
 					Msg("UDP <- %s: sz=%i OOB '%c' wire=%i\n", packet->from.ToString(), packet->size, packet->data[4], packet->wiresize);
 
