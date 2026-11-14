@@ -31,7 +31,7 @@ public:
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void Think(bool bSimulating) override;
 	const char* Name() override { return "filesystem"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
@@ -519,10 +519,6 @@ void CDiskFileTree::Rebuild()
 {
 	if ( !holylib_filesystem_filecache.GetBool() )
 		return;
-
-#if GMOD_X86_64
-	return;
-#endif
 
 	if (Util::GetGModVersionNum() < 260718)
 		return;

@@ -51,7 +51,7 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
       DETOURING: "RaphaelIT7/detouring"
@@ -71,7 +71,7 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
       DETOURING: "RaphaelIT7/detouring"
@@ -94,7 +94,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
       DETOURING: "RaphaelIT7/detouring"
@@ -120,7 +120,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
       DETOURING: "RaphaelIT7/detouring"
@@ -147,7 +147,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
       DETOURING: "RaphaelIT7/detouring"
@@ -169,7 +169,7 @@ jobs:
       ARTIFACT_EXPIRE: "1"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
       DETOURING: "RaphaelIT7/detouring"
@@ -226,7 +226,7 @@ jobs:
       NO_SAVE_CACHE: "true"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
       DETOURING: "RaphaelIT7/detouring"
@@ -247,6 +247,7 @@ jobs:
             vdf: holylib_linux.vdf
             ghostinj: ghostinj.dll
             ghostinj_artifact: ghostinj.dll
+            lib: linux32
 
           - arch: 64x
             plugin: gmsv_holylib_linux64.so
@@ -254,6 +255,7 @@ jobs:
             vdf: holylib_linux_64.vdf
             ghostinj: ghostinj.dll
             ghostinj_artifact: ghostinj.dll (64x)
+            lib: linux64
 
     steps:
       - uses: actions/checkout@v4
@@ -262,6 +264,7 @@ jobs:
           sparse-checkout: |
             ${{ matrix.vdf }}
             gluatests
+            libs/${{ matrix.lib }}/libbass.so
 
       - uses: actions/download-artifact@v4
         name: "Download plugin"
@@ -278,13 +281,21 @@ jobs:
           mkdir -p garrysmod/lua/bin
           mv ${{ matrix.plugin }} garrysmod/lua/bin/
 
+          if [ "${{ matrix.arch }}" = "32x" ]; then
+            mkdir -p bin/
+            mv libs/${{ matrix.lib }}/libbass.so bin/
+          else
+            mkdir -p bin/linux64/
+            mv libs/${{ matrix.lib }}/libbass.so bin/linux64/
+          fi
+
           mkdir -p garrysmod/addons
           mv ${{ matrix.vdf }} garrysmod/addons
           mv gluatests/binaries/*.dll garrysmod/lua/bin/
           mv gluatests garrysmod/addons
 
-          tar -czf gluatest.tar.gz ${{ matrix.ghostinj }} garrysmod/
-          tar -czf gluatest_no_ghostinj.tar.gz garrysmod/
+          tar -czf gluatest.tar.gz ${{ matrix.ghostinj }} garrysmod/ bin/
+          tar -czf gluatest_no_ghostinj.tar.gz garrysmod/ bin/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"

@@ -558,24 +558,19 @@ static void* hook_lj_BC_FUNCC(void* arg) // Find out the luajit function later.
 }
 #endif
 
-#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
+#if defined(SYSTEM_LINUX)
 // HACK!
 // GMod's libtier0_srv.so is fucked
 // All CL2Cache are LOCAL and not GLOBAL (inside .symtab) and do NOT exist inside .dynsym causing the linker to NOT link against them!
 // This probably happens because CVProfNode::CVProfNode is inlined and since only the CVProfNode class uses CL2Cache
 // And CVProfNode is only created inside CVProfNode::GetSubNode which is defined in tier0 the compiler decided to hide it? I dunno
-static Symbols::CL2Cache_Constructor func_CL2Cache_Constructor = nullptr;
+// UPDATE: The CL2Cache constructor/deconstructor both do nothing anymore? I could've sworn there was code... anyways time to drop
 CL2Cache::CL2Cache()
 {
-	if (func_CL2Cache_Constructor)
-		func_CL2Cache_Constructor(this);
 }
 
-static Symbols::CL2Cache_Deconstructor func_CL2Cache_Deconstructor = nullptr;
 CL2Cache::~CL2Cache()
 {
-	if (func_CL2Cache_Deconstructor)
-		func_CL2Cache_Deconstructor(this);
 }
 #endif
 
@@ -963,14 +958,6 @@ void CVProfModule::InitDetour(bool bPreServer)
 
 	func_VProfRecord_IsPlayingBack = (Symbols::VProfRecord_IsPlayingBack)Detour::GetFunction(engine_loader.GetModule(), Symbols::VProfRecord_IsPlayingBackSym);
 	Detour::CheckFunction((void*)func_VProfRecord_IsPlayingBack, "VProfRecord_IsPlayingBack");
-
-#if defined(SYSTEM_LINUX)
-	func_CL2Cache_Constructor = (Symbols::CL2Cache_Constructor)Detour::GetFunction(tier0_loader.GetModule(), Symbols::CL2Cache_ConstructorSym);
-	Detour::CheckFunction((void*)func_CL2Cache_Constructor, "CL2Cache::Constructor");
-
-	func_CL2Cache_Deconstructor = (Symbols::CL2Cache_Deconstructor)Detour::GetFunction(tier0_loader.GetModule(), Symbols::CL2Cache_DeconstructorSym);
-	Detour::CheckFunction((void*)func_CL2Cache_Deconstructor, "CL2Cache::Deconstructor");
-#endif
 #endif
 
 #if defined(ARCHITECTURE_X86) && 0
@@ -996,11 +983,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 struct VProfCounter
 {
 	const char* strName = nullptr;
-#if ARCHITECTURE_IS_X86_64
-	int* iValue = nullptr;
-#else
 	int64* iValue = nullptr;
-#endif
 };
 
 Push_LuaClass(VProfCounter)

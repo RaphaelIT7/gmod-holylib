@@ -30,15 +30,6 @@
 #include "mathlib/polyhedron.h"
 #include "tier1/byteswap.h"
 
-#if GMOD_X86_64
-#include <GarrysMod/FactoryLoader.hpp>
-
-#if _WIN32
-#define DLL_TOOLS
-#include "detours.h"
-#endif
-#endif
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -57,16 +48,6 @@ public:
 	{
 		memset(m_bboxVertMap, 0, sizeof(m_bboxVertMap));
 	}
-#if GMOD_X86_64 && _WIN32
-	~CPhysicsCollision()
-	{
-		if (pOrigPhysicsDLL)
-		{
-			DLL_UnloadModule(pOrigPhysicsDLL);
-			pOrigPhysicsDLL = NULL;
-		}
-	}
-#endif
 	CPhysConvex	*ConvexFromVerts( Vector **pVerts, int vertCount ) override;
 	CPhysConvex	*ConvexFromVertsFast( Vector **pVerts, int vertCount );
 	CPhysConvex	*ConvexFromPlanes( float *pPlanes, int planeCount, float mergeDistance ) override;
@@ -124,10 +105,6 @@ public:
 	// If you delete the text and call members of IVPhysicsKeyParser, it will crash
 	IVPhysicsKeyParser	*VPhysicsKeyParserCreate( const char *pKeyData ) override;
 
-#if GMOD_X86_64
-	IVPhysicsKeyParser	*VPhysicsKeyParserCreate( vcollide_t *pVCollide ) override;
-#endif
-
 	// Free the parser created by VPhysicsKeyParserCreate
 	void			VPhysicsKeyParserDestroy( IVPhysicsKeyParser *pParser ) override;
 
@@ -157,16 +134,6 @@ public:
 	CPhysCollide	*UnserializeCollide( char *pBuffer, int size, int index ) override;
 	void			CollideSetOrthographicAreas( CPhysCollide *pCollide, const Vector &areas ) override;
 
-#if GMOD_X86_64
-	// Get an AABB for an oriented collision model
-	float			CollideGetRadius( const CPhysCollide *pCollide ) override;
-	void			*VCollideAllocUserData( vcollide_t *pVCollide, size_t userDataSize ) override;
-	void			VCollideFreeUserData( vcollide_t *pVCollide ) override;
-	void			VCollideCheck( vcollide_t *pVCollide, const char *pName ) override;
-	bool			TraceBoxAA( const Ray_t &ray, const CPhysCollide *pCollide, trace_t *ptr ) override;
-	void			DuplicateAndScale( vcollide_t *pOut, const vcollide_t *pIn, float flScale ) override;
-#endif
-
 private:
 	void InitBBoxCache();
 	bool IsBBoxCache( CPhysCollide *pCollide );
@@ -178,10 +145,6 @@ private:
 	CPhysicsTrace		m_traceapi;
 	CUtlVector<bboxcache_t>	m_bboxCache;
 	byte				m_bboxVertMap[8];
-
-#if GMOD_X86_64 && _WIN32
-	DLL_Handle pOrigPhysicsDLL = NULL;
-#endif
 };
 
 CPhysicsCollision g_PhysicsCollision;
@@ -1143,7 +1106,6 @@ static void LedgeInsidePoint( IVP_Compact_Ledge *pLedge, Vector& out )
 //			p3 - 
 // Output : float (volume in units^3)
 //-----------------------------------------------------------------------------
-#if !GMOD_X86_64 // Mathlib has them on 64x.
 static float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector &p2, const Vector &p3 )
 {
 	Vector a, b, c, cross;
@@ -1169,7 +1131,6 @@ static float TriangleArea( const Vector &p0, const Vector &p1, const Vector &p2 
 	CrossProduct( e0, e1, cross );
 	return 0.5f * cross.Length();
 }
-#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Tetrahedronalize this ledge and compute it's volume in BSP space
@@ -1817,59 +1778,6 @@ IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( const char *pKey
 	return CreateVPhysicsKeyParser( pKeyData, false );
 }
 
-#if GMOD_X86_64
-IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( vcollide_t *pVCollide )
-{
-	DebugPrint();
-	static IPhysicsCollision *g_OrigPhysicsCollision;
-	if (!g_OrigPhysicsCollision)
-	{
-		SourceSDK::FactoryLoader vphysics_loader("vphysics");
-		extern bool g_pForceOriginalIVP;
-		g_pForceOriginalIVP = true;
-		g_OrigPhysicsCollision = vphysics_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
-		if (g_OrigPhysicsCollision == physcollision)
-		{
-			Warning(PROJECT_NAME " - vphysics: We loaded ourself!\n");
-			g_OrigPhysicsCollision = NULL;
-
-#if _WIN32
-			// Of course we loaded ourself, were on windows.
-			if (!pOrigPhysicsDLL)
-			{
-				pOrigPhysicsDLL = DLL_LoadModule("vphysics_orig" DLL_EXTENSION, RTLD_LAZY); // Load original DLL
-			}
-
-			if (pOrigPhysicsDLL)
-			{
-				SourceSDK::FactoryLoader vphysics_orig_loader("vphysics_orig");
-				g_OrigPhysicsCollision = vphysics_orig_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
-			} else {
-				Warning(PROJECT_NAME " - vphysics: Failed to load original vphysics dll! Ensure that you renamed the original DLL to vphysics_orig.dll!\n");
-			}
-#endif
-		}
-
-		g_pForceOriginalIVP = false;
-	}
-
-	if (g_OrigPhysicsCollision)
-	{
-		IVPhysicsKeyParser* parser = g_OrigPhysicsCollision->VPhysicsKeyParserCreate( pVCollide );
-		DEBUG_IF
-		{
-			IVPhysicsKeyParser* our_parser = CreateVPhysicsKeyParser( pVCollide->pKeyValues, pVCollide->isPacked );
-			Msg("IVP returned: %p\n", parser);
-			Msg("We returned: %p\n", our_parser);
-		}
-
-		return parser;
-	}
-
-	return CreateVPhysicsKeyParser( pVCollide->pKeyValues, pVCollide->isPacked );
-}
-#endif
-
 // Free the parser created by VPhysicsKeyParserCreate
 void CPhysicsCollision::VPhysicsKeyParserDestroy( IVPhysicsKeyParser *pParser )
 {
@@ -1989,48 +1897,6 @@ void CPhysicsCollision::DestroyQueryModel( ICollisionQuery *pQuery )
 	DebugPrint();
 	delete pQuery;
 }
-
-#if GMOD_X86_64
-float CPhysicsCollision::CollideGetRadius(const CPhysCollide* pCollide)
-{
-	DebugPrint();
-	Error("Not Implemented!\n");
-	return 0.0f;
-}
-
-void* CPhysicsCollision::VCollideAllocUserData(vcollide_t* pVCollide, size_t userDataSize)
-{
-	DebugPrint();
-	Error("Not Implemented!\n");
-	return nullptr;
-}
-
-void CPhysicsCollision::VCollideFreeUserData(vcollide_t* pVCollide)
-{
-	DebugPrint();
-	Error("Not Implemented!\n");
-}
-
-void CPhysicsCollision::VCollideCheck(vcollide_t* pVCollide, const char* pName)
-{
-	DebugPrint();
-	Error("Not Implemented!\n");
-}
-
-bool CPhysicsCollision::TraceBoxAA(const Ray_t& ray, const CPhysCollide* pCollide, trace_t* ptr)
-{
-	DebugPrint();
-	Error("Not Implemented!\n");
-	return false;
-}
-
-void CPhysicsCollision::DuplicateAndScale(vcollide_t* pOut, const vcollide_t* pIn, float flScale)
-{
-	DebugPrint();
-	Error("Not Implemented!\n");
-}
-#endif
-
 
 CCollisionQuery::CCollisionQuery( CPhysCollide *pCollide )
 {

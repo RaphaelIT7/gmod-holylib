@@ -170,12 +170,11 @@ byte m_##name = 0;
 
 	inline bool CheckValue(const char* strMsg, const char* strName, bool bRet)
 	{
-		if (!bRet) {
-			Warning(PROJECT_NAME ": Failed to %s %s!\n", strMsg, strName);
-			return false;
-		}
+		if (bRet)
+			return true;
 
-		return true;
+		Warning(PROJECT_NAME ": Failed to %s %s!\n", strMsg, strName);
+		return false;
 	}
 
 	inline bool CheckValue(const char* strName, bool bRet)
@@ -201,36 +200,29 @@ byte m_##name = 0;
 
 	extern SymbolFinder symfinder;
 	template<class T>
-	inline T* ResolveSymbol(
-		SourceSDK::FactoryLoader& pLoader, const Symbol& pSymbol
-	)
+	inline T* ResolveSymbol(SourceSDK::FactoryLoader& pLoader, const Symbol& pSymbol)
 	{
 		if (pSymbol.type == Symbol::Type::None)
 			return nullptr;
 
 	#if defined SYSTEM_WINDOWS
-		auto iface = reinterpret_cast<T**>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length
-		));
+		auto iface = reinterpret_cast<T**>(symfinder.Resolve(pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length));
 		return iface != nullptr ? *iface : nullptr;
 	#elif defined SYSTEM_POSIX
-		return reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length
-		));
+		return reinterpret_cast<T*>(symfinder.Resolve(pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length));
 	#endif
 	}
 
 #ifdef SYSTEM_LINUX
 #define DLL_PREEXTENSION "lib"
 #define LIBRARY_EXTENSION ".so"
-#if ARCHITECTURE_IS_X86
 #define DLL_EXTENSION "_srv.so"
+#if ARCHITECTURE_IS_X86
 #define DETOUR_SYMBOL_ID 0
-#define MODULE_EXTENSION "linux64"
-#else
-#define DLL_EXTENSION ".so"
-#define DETOUR_SYMBOL_ID 1
 #define MODULE_EXTENSION "linux"
+#else
+#define DETOUR_SYMBOL_ID 1
+#define MODULE_EXTENSION "linux64"
 #endif
 #else
 #define DLL_PREEXTENSION ""
@@ -247,11 +239,7 @@ byte m_##name = 0;
 #ifndef NOT_DEDICATED
 #define DETOUR_SYMBOL_ID 5
 #else
-#if defined(GMOD_X86_64)
 #define DETOUR_SYMBOL_ID 3
-#else
-#define DETOUR_SYMBOL_ID 6
-#endif
 #endif
 #define MODULE_EXTENSION "win64"
 #endif
@@ -259,20 +247,10 @@ byte m_##name = 0;
 
 	inline const Symbol* GetSymbolForID(const std::vector<Symbol>& pSymbols)
 	{
-	#if DETOUR_SYMBOL_ID != 4 && DETOUR_SYMBOL_ID != 5
-	#if DETOUR_SYMBOL_ID != 6
+#if DETOUR_SYMBOL_ID != 4 && DETOUR_SYMBOL_ID != 5
 		if (pSymbols.size() <= DETOUR_SYMBOL_ID)
 			return nullptr;
-	#else
-		if (pSymbols.size() <= DETOUR_SYMBOL_ID)
-		{
-			if (pSymbols.size() <= 3)
-				return nullptr;
-
-			return &pSymbols[3]; // 3 = GMOD 64x
-		}
-	#endif
-	#else
+#else
 		if (pSymbols.size() <= DETOUR_SYMBOL_ID)
 		{
 			if (pSymbols.size() <= (DETOUR_SYMBOL_ID - 2))
@@ -280,54 +258,96 @@ byte m_##name = 0;
 
 			return &pSymbols[DETOUR_SYMBOL_ID - 2];
 		}
-	#endif
+#endif
 
 		return &pSymbols[DETOUR_SYMBOL_ID];
 	}
 
+#ifdef SYSTEM_LINUX // ToDo: Preferably move a lot of this hacky stuff into the detours.cpp
+	// ip has to point at an instruction using rip-relative addressing, returns the address of the variable it touches.
+	inline void* DecodeRipRelative(const uint8_t* ip)
+	{
+		size_t dispPos, length;
+		if ((ip[0] & 0xFB) == 0x48 && (ip[2] & 0xC7) == 0x05) // REX.W / REX.WR + opcode + modrm
+		{
+			dispPos = 3;
+			length = 7;
+		}
+		else if (ip[0] == 0x0F && (ip[1] == 0xB6 || ip[1] == 0xB7 || ip[1] == 0xBE || ip[1] == 0xBF) && (ip[2] & 0xC7) == 0x05) // movzx / movsx
+		{
+			dispPos = 3;
+			length = 7;
+		}
+		else if ((ip[0] == 0x80 || ip[0] == 0x83 || ip[0] == 0xC6) && (ip[1] & 0xC7) == 0x05) // cmp / mov with imm8
+		{
+			dispPos = 2;
+			length = 7;
+		}
+		else if ((ip[0] >= 0x88 && ip[0] <= 0x8B) && (ip[1] & 0xC7) == 0x05) // mov
+		{
+			dispPos = 2;
+			length = 6;
+		}
+		else
+			return nullptr;
+
+		int32_t disp;
+		memcpy(&disp, ip + dispPos, sizeof(disp));
+		return const_cast<uint8_t*>(ip) + length + disp;
+	}
+
+	// pSymbol is a signature + offset pointing at the instruction that touches the variable
+	inline void* ResolveRipRelative(void* pModule, const Symbol& pSymbol)
+	{
+		void* matchAddr = GetFunction(pModule, pSymbol);
+		if (matchAddr == nullptr)
+		{
+			Warning(PROJECT_NAME ": Failed to get matchAddr! %s\n", pSymbol.name.c_str());
+			return nullptr;
+		}
+
+		void* symbolAddr = DecodeRipRelative(reinterpret_cast<uint8_t*>(matchAddr) + pSymbol.offset);
+		if (symbolAddr == nullptr)
+			Warning(PROJECT_NAME ": Failed to match LEA bytes!\n");
+
+		return symbolAddr;
+	}
+#endif
+
 	template<class T>
-	inline T* ResolveSymbol(
-		SourceSDK::FactoryLoader& pLoader, const std::vector<Symbol>& pSymbols
-	)
+	inline T* ResolveSymbol(SourceSDK::FactoryLoader& pLoader, const std::vector<Symbol>& pSymbols)
 	{
 		const Symbol* pSymbol = GetSymbolForID(pSymbols);
 		if (!pSymbol)
 			return nullptr;
 
-	#if defined SYSTEM_WINDOWS
-		auto iface = reinterpret_cast<T**>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length
-		));
+#if defined SYSTEM_WINDOWS
+		auto iface = reinterpret_cast<T**>(symfinder.Resolve(pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length));
 		return iface != nullptr ? *iface : nullptr;
-	#elif defined SYSTEM_POSIX
-		return reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length
-		));
-	#endif
+#elif defined SYSTEM_LINUX
+#if !ARCHITECTURE_IS_X86
+		if (pSymbol->length != 0) // Linux64 has no symbols yet, so the variable is found through an instruction using it
+			return reinterpret_cast<T*>(ResolveRipRelative(pLoader.GetModule(), *pSymbol));
+#endif
+
+		return reinterpret_cast<T*>(symfinder.Resolve(pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length));
+#endif
 	}
 
 	template<class T>
-	inline T* ResolveSymbolNoDereference(
-		SourceSDK::FactoryLoader& pLoader, const std::vector<Symbol>& pSymbols
-	)
+	inline T* ResolveSymbolNoDereference(SourceSDK::FactoryLoader& pLoader, const std::vector<Symbol>& pSymbols)
 	{
 		const Symbol* pSymbol = GetSymbolForID(pSymbols);
 		if (!pSymbol)
 			return nullptr;
 
-		return reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length
-		));
+		return reinterpret_cast<T*>(symfinder.Resolve(pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length));
 	}
 
 	template<class T>
-	inline T* ResolveSymbolNoDereference(
-		SourceSDK::FactoryLoader& pLoader, Symbol& pSymbol
-	)
+	inline T* ResolveSymbolNoDereference(SourceSDK::FactoryLoader& pLoader, Symbol& pSymbol)
 	{
-		return reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length
-		));
+		return reinterpret_cast<T*>(symfinder.Resolve(pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length));
 	}
 
 	/*
@@ -372,17 +392,9 @@ byte m_##name = 0;
 		uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr + pSymbol->offset);
 	#endif
 
-		//
 		void* symbolAddr = nullptr;
-
 #ifdef SYSTEM_LINUX
-
-		if (ip[0] == 0x48) {
-			const size_t instrLen = 7;
-			int32_t disp = *reinterpret_cast<int32_t*>(ip + 3); // disp32 at offset 3
-			uint8_t* next = ip + instrLen;                      // RIP after the instruction
-			symbolAddr = next + disp;                         // final address = next + disp32
-		}
+		symbolAddr = DecodeRipRelative(ip);
 #elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
 		// NOTE: x86-32 uses absolute addresses in immediates (no RIP-relative addressing).
 		// The 4-byte operand IS the absolute virtual address directly.

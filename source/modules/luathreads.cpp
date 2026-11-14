@@ -16,7 +16,7 @@ public:
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void Shutdown() override;
 	const char* Name() override { return "luathreads"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 

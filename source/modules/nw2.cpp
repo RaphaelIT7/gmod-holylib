@@ -14,7 +14,7 @@ class CNW2Module : public IModule
 public:
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "nw2"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 };
 
 static CNW2Module g_pNW2Module;

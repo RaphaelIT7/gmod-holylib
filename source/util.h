@@ -19,11 +19,6 @@ extern IVEngineServer* engine;
 
 #define VPROF_BUDGETGROUP_HOLYLIB _T("HolyLib")
 
-#if defined(GMOD_X86_64)
-#define V_CreateThreadPool CreateNewThreadPool
-#define V_DestroyThreadPool DestroyThreadPool
-#endif
-
 extern GarrysMod::Lua::ILuaInterface* g_Lua;
 
 enum ThreadState
@@ -244,9 +239,6 @@ namespace Util
 
 	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
 	{
-#if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX && DEDICATED
-		startParams.bEnableOnLinuxDedicatedServer = true;
-#endif
 		pool->Start(startParams);
 	}
 

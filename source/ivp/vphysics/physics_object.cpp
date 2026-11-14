@@ -384,11 +384,7 @@ void CPhysicsObject::RecheckCollisionFilter()
 	m_callbacks &= ~CALLBACK_ENABLING_COLLISION;
 }
 
-#if !GMOD_X86_64
 void CPhysicsObject::RecheckContactPoints()
-#else
-void CPhysicsObject::RecheckContactPoints( bool bSearchForNewContacts )
-#endif
 {
 	DebugPrint();
 	IVP_Environment *pEnv = m_pObject->get_environment();
@@ -1701,7 +1697,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 
 	IVP_U_Matrix massCenterMatrix;
 	massCenterMatrix.init();
-#if !GMOD_X86_64 // BUG: Crashes on 64x. UPDATE: Now it crashes on 32x.... Maybe solid_t on 32x is wrong causing this issue?
+	// BUG: Crashes on 64x. UPDATE: Now it crashes on 32x.... Maybe solid_t on 32x is wrong causing this issue?
 	if ( pParams->massCenterOverride )
 	{
 		IVP_U_Point center;
@@ -1709,7 +1705,6 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 		massCenterMatrix.shift_os( &center );
 		objectTemplate.mass_center_override = &massCenterMatrix;
 	}
-#endif
 
 	CPhysicsObject *pObject = new CPhysicsObject();
 	short collideType;
@@ -2054,45 +2049,6 @@ void CPhysicsObject::InitFromTemplate( CPhysicsEnvironment *pEnvironment, void *
 
 	m_pShadow = NULL;
 }
-
-#if GMOD_X86_64
-void CPhysicsObject::SetSphereRadius(float radius)
-{
-	DebugPrint();
-	Warning("CPhysicsObject::SetSphereRadius - not implemented!\n");
-}
-
-void CPhysicsObject::SetUseAlternateGravity(bool bSet)
-{
-	DebugPrint();
-	Warning("CPhysicsObject::SetUseAlternateGravity - not implemented!\n");
-}
-
-void CPhysicsObject::SetCollisionHints(uint32 collisionHints)
-{
-	DebugPrint();
-	m_collisionHints = collisionHints; // ToDo, tf does it do.
-}
-
-uint32 CPhysicsObject::GetCollisionHints() const
-{
-	DebugPrint();
-	return m_collisionHints;
-}
-
-IPredictedPhysicsObject* CPhysicsObject::GetPredictedInterface(void) const
-{
-	DebugPrint();
-	Warning("CPhysicsObject::GetPredictedInterface - not implemented!\n");
-	return nullptr;
-}
-
-void CPhysicsObject::SyncWith(IPhysicsObject* pOther)
-{
-	DebugPrint();
-	Warning("CPhysicsObject::SyncWith - not implemented!\n");
-}
-#endif
 
 bool SavePhysicsObject( const physsaveparams_t &params, CPhysicsObject *pObject )
 {

@@ -150,10 +150,6 @@ public:
 		return m_strings.String(name);
 	}
 
-#if GMOD_X86_64
-	ISaveRestoreOps* GetMaterialIndexDataOps() const override;
-#endif
-
 private:
 	const CSurface	*GetInternalSurface( int materialIndex ) const;
 	CSurface	*GetInternalSurface( int materialIndex );
@@ -537,40 +533,12 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 				// sound names
 				else if ( !strcmpi( key, "stepleft" ) )
 				{
-#if GMOD_X86_64
-					prop.data.sounds.walkStepLeft = m_strings.AddString( value );
-					prop.data.sounds.runStepLeft = prop.data.sounds.walkStepLeft;
-#else
 					prop.data.sounds.stepleft = m_strings.AddString( value );
-#endif
 				}
 				else if ( !strcmpi( key, "stepright" ) )
 				{
-#if GMOD_X86_64
-					prop.data.sounds.walkStepRight = m_strings.AddString( value );
-					prop.data.sounds.runStepRight = prop.data.sounds.walkStepRight;
-#else
 					prop.data.sounds.stepright = m_strings.AddString( value );
-#endif
 				}
-#if GMOD_X86_64
-				else if ( !strcmpi( key, "walkstepleft" ) )
-				{
-					prop.data.sounds.walkStepLeft = m_strings.AddString( value );
-				}
-				else if ( !strcmpi( key, "walkstepright" ) )
-				{
-					prop.data.sounds.walkStepRight = m_strings.AddString( value );
-				}
-				else if ( !strcmpi( key, "runstepleft" ) )
-				{
-					prop.data.sounds.runStepLeft = m_strings.AddString( value );
-				}
-				else if ( !strcmpi( key, "runstepright" ) )
-				{
-					prop.data.sounds.runStepRight = m_strings.AddString( value );
-				}
-#endif
 				else if ( !strcmpi( key, "impactsoft" ) )
 				{
 					prop.data.sounds.impactSoft = m_strings.AddString( value );
@@ -650,14 +618,6 @@ void CPhysicsSurfaceProps::SetWorldMaterialIndexTable( int *pMapArray, int mapSi
 	DebugPrint();
 	m_ivpManager.SetPropMap( pMapArray, mapSize );
 }
-
-#if GMOD_X86_64
-ISaveRestoreOps* CPhysicsSurfaceProps::GetMaterialIndexDataOps() const
-{
-	DebugPrint();
-	return MaterialIndexDataOps();
-}
-#endif
 
 CIVPMaterialManager::CIVPMaterialManager( void ) : IVP_Material_Manager( IVP_FALSE ), m_props()
 {

@@ -22,7 +22,7 @@ public:
 	void Shutdown() override;
 	void ClientDisconnect(edict_t* pClient) override;
 	const char* Name() override { return "soundscape"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 	bool IsEnabledByDefault() override { return true; };
 };
 

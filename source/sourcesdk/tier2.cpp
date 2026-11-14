@@ -28,7 +28,6 @@
 // It is hoped that setting this, and using this library will be the common mechanism for
 // allowing link libraries to access tier2 library interfaces
 //-----------------------------------------------------------------------------
-#if !defined(GMOD_X86_64)
 IFileSystem *g_pFullFileSystem = nullptr;
 IMaterialSystem *materials = nullptr;
 IMaterialSystem *g_pMaterialSystem = nullptr;
@@ -40,7 +39,6 @@ IVBAllocTracker *g_VBAllocTracker = nullptr;
 IColorCorrectionSystem *colorcorrection = nullptr;
 IMdlLib *mdllib = nullptr;
 IQueuedLoader *g_pQueuedLoader = nullptr;
-#endif
 IP4 *p4 = nullptr;
 
 

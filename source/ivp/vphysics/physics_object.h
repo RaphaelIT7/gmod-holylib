@@ -116,11 +116,7 @@ public:
 	void			WakeNow();
 	void			Sleep() override;
 	void			RecheckCollisionFilter() override;
-#if !GMOD_X86_64
 	void			RecheckContactPoints() override;
-#else
-	void			RecheckContactPoints( bool bSearchForNewContacts = false ) override;
-#endif
 
 	void			SetMass( float mass ) override;
 	[[nodiscard]] float			GetMass( void ) const override;
@@ -192,9 +188,7 @@ public:
 
 	void			OutputDebugInfo() const override;
 
-#if !GMOD_X86_64
 	float			GetBuoyancyRatio() const override { return m_buoyancyRatio; };
-#endif
 
 	// local functions
 	[[nodiscard]] inline	IVP_Real_Object *GetObject( void ) const { return m_pObject; }
@@ -210,9 +204,6 @@ public:
 
 	[[nodiscard]] inline int		GetActiveIndex( void ) const { return m_activeIndex; }
 	inline void		SetActiveIndex( int index ) { m_activeIndex = index; }
-#if GMOD_X86_64
-	[[nodiscard]] inline float	GetBuoyancyRatio( void ) const { return m_buoyancyRatio; }
-#endif
 	// returns true if the mass center is set to the default for the collision model
 	[[nodiscard]] bool			IsMassCenterAtDefault() const;
 
@@ -226,19 +217,6 @@ public:
 
 	[[nodiscard]] CPhysicsEnvironment	*GetVPhysicsEnvironment();
 	[[nodiscard]] const CPhysicsEnvironment	*GetVPhysicsEnvironment() const;
-
-#if GMOD_X86_64
-	void			SetSphereRadius(float radius) override;
-
-	// EnableGravity still determines whether to apply gravity
-	// This flag determines which gravity constant to use for an alternate gravity effect
-	void			SetUseAlternateGravity( bool bSet ) override;
-	void			SetCollisionHints( uint32 collisionHints ) override;
-	uint32			GetCollisionHints() const override;
-
-	IPredictedPhysicsObject *GetPredictedInterface( void ) const override;
-	void			SyncWith( IPhysicsObject *pOther ) override;
-#endif
 
 private:
 	// NOTE: Local to vphysics, used to save/restore shadow controller
@@ -287,8 +265,6 @@ private:
 	float			m_buoyancyRatio;
 	float			m_dragCoefficient;
 	float			m_angDragCoefficient;
-
-	uint32 m_collisionHints = 0;
 
 	friend CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, int materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic );
 	friend bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvironment *pDestinationEnvironment ); //need direct access to m_pShadow for Portal mod's physics object transfer system

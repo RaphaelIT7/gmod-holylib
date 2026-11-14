@@ -1221,9 +1221,10 @@ static std::mutex g_pConsoleMutex;
 static std::deque<const char*> g_pConsoleBuffer;
 static std::atomic<void*> g_pConsole = nullptr;
 static Detouring::Hook detour_CTextConsoleUnix_GetLine;
-#if ARCHITECTURE_X86_64
 static std::atomic<int> g_nConsoleThreadState = ThreadState::STATE_NOTRUNNING;
-// This thread effectively only exists on 64x since it uses an older or newer? implementation of CTextConsoleUnix
+
+// GMod switched to using CS:GO's version (x86-64) of ::GetLine
+// See: https://github.com/perilouswithadollarsign/cstrike15_src/blob/master/dedicated/console/TextConsoleUnix.cpp#L129C28-L129C33
 static SIMPLETHREAD_RETURNVALUE ConsoleThread(void* data)
 {
 	// Got no valid detour!
@@ -1272,81 +1273,45 @@ static SIMPLETHREAD_RETURNVALUE ConsoleThread(void* data)
 	g_nConsoleThreadState.store(ThreadState::STATE_NOTRUNNING);
 	return 0;
 }
-#endif
-
-#if ARCHITECTURE_X86
-// add_command is threaded in the engine already! See editline_threadproc in dedicated/console/TextConsoleUnix.cpp
-// NOTE: add_command blocks the thread it's running in until the main thread handles the command, so for our case we just put them into the buffer.
-static Detouring::Hook detour_add_command;
-static bool
-#if SYSTEM_LINUX
-__attribute__((regparm(2)))
-#endif
-hook_add_command(const char *cmd, int cmd_len) // yay this is a fking __usercall
-{
-	if (!cmd || cmd_len <= 0)
-		return false;
-
-	if (ShoudExecuteThreadedCommand(cmd, cmd_len))
-		return true;
-
-	std::lock_guard<std::mutex> lock(g_pConsoleMutex);
-
-	char* pStr = new char[cmd_len];
-	V_strncpy(pStr, cmd, cmd_len);
-
-	g_pConsoleBuffer.push_back(pStr);
-	return true;
-}
-#endif
 
 // it get's called all the way until NULL is returned.
-#if ARCHITECTURE_X86
-static const char* hook_CTextConsoleUnix_GetLine(void* _this, int index, char *buf, size_t buflen)
-#else
 static const char* hook_CTextConsoleUnix_GetLine(void* _this)
-#endif
 {
 	if (g_pConsole.load() == nullptr)
 		g_pConsole.store(_this);
 
-#if ARCHITECTURE_X86_64
-	// Fallback to avoid breaking the entire console input when our thread dies
-	if (g_nConsoleThreadState.load() == ThreadState::STATE_NOTRUNNING)
-		return detour_CTextConsoleUnix_GetLine.GetTrampoline<Symbols::CTextConsoleUnix_GetLine>()(_this);
-#endif
-
 	static thread_local std::deque<const char*> pLocalBuffer;
-#if ARCHITECTURE_X86_64
 	static thread_local char pBuffer[511];
-#endif
 
 	if (pLocalBuffer.empty())
 	{
-		std::lock_guard<std::mutex> lock(g_pConsoleMutex);
-		if (g_pConsoleBuffer.empty())
-			return nullptr;
+		{
+			std::lock_guard<std::mutex> lock(g_pConsoleMutex);
+			if (!g_pConsoleBuffer.empty())
+			{
+				// We copy it over to avoid performance issues from locking so often
+				std::swap(pLocalBuffer, g_pConsoleBuffer);
+				g_pConsoleBuffer.clear();
+			}
+		}
 
-		// We copy it over to avoid performance issues from locking so often
-		std::swap(pLocalBuffer, g_pConsoleBuffer);
-		g_pConsoleBuffer.clear();
+		if (pLocalBuffer.empty())
+		{
+			// Fallback to avoid breaking the entire console input when our thread dies
+			if (g_nConsoleThreadState.load() == ThreadState::STATE_NOTRUNNING)
+				return detour_CTextConsoleUnix_GetLine.GetTrampoline<Symbols::CTextConsoleUnix_GetLine>()(_this);
+
+			return nullptr;
+		}
 	}
 
 	const char* cmd = pLocalBuffer.front();
-#if ARCHITECTURE_X86
-	V_strncpy(buf, cmd, buflen);
-#else
 	V_strncpy(pBuffer, cmd, sizeof(pBuffer));
-#endif
 
 	delete[] cmd;
 	pLocalBuffer.pop_front();
 
-#if ARCHITECTURE_X86
-	return buf;
-#else
 	return pBuffer;
-#endif
 }
 
 static ConVar crashhandler_crashtime("holylib_crashhandler_crashtime", "10000", 0, "Time in ms after which the crash handler will catch and nuke the server");
@@ -1465,10 +1430,8 @@ void CCrashHandlerModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* game
 	g_nWatcherThreadState.store(ThreadState::STATE_RUNNING);
 	g_pCrashWatcher = CreateSimpleThread((ThreadFunc_t)CrashWatcherThread, this);
 
-#if ARCHITECTURE_X86_64
 	g_nConsoleThreadState.store(ThreadState::STATE_RUNNING);
 	g_pThreadedConsole = CreateSimpleThread((ThreadFunc_t)ConsoleThread, this);
-#endif
 
 	g_pFullFileSystem->CreateDirHierarchy("holylib/crashes/", "MOD");
 #if SYSTEM_LINUX
@@ -1492,7 +1455,6 @@ void CCrashHandlerModule::Shutdown()
 		g_pCrashWatcher = nullptr;
 	}
 
-#if ARCHITECTURE_X86_64
 	if (g_pThreadedConsole)
 	{
 		if (g_nConsoleThreadState.load() != ThreadState::STATE_NOTRUNNING)
@@ -1505,7 +1467,6 @@ void CCrashHandlerModule::Shutdown()
 		ReleaseThreadHandle(g_pThreadedConsole);
 		g_pThreadedConsole = nullptr;
 	}
-#endif
 
 #if SYSTEM_LINUX
 	RestoreDefaultHandler();
@@ -1518,14 +1479,6 @@ void CCrashHandlerModule::InitDetour(bool bPreServer)
 		return;
 
 	SourceSDK::FactoryLoader dedicated_loader("dedicated");
-#if ARCHITECTURE_X86
-	Detour::Create(
-		&detour_add_command, "add_command",
-		dedicated_loader.GetModule(), Symbols::add_commandSym,
-		(void*)hook_add_command, m_pID
-	);
-#endif
-
 	Detour::Create(
 		&detour_CTextConsoleUnix_GetLine, "CTextConsoleUnix::GetLine",
 		dedicated_loader.GetModule(), Symbols::CTextConsoleUnix_GetLineSym,
