@@ -140,10 +140,7 @@ enum class TokenFlag : unsigned char
 	SPACE = 1 << 1,
 	VALUE = 1 << 2,
 	OPERATOR = 1 << 3,
-
-	// Only these two can be set at the same time
 	PARENTHESIS = 1 << 4,
-	PARENTHESIS_MARKED = 1 << 5,
 };
 
 struct Token {
@@ -156,10 +153,6 @@ struct Token {
 	bool IsEmpty() const { return content.empty() && lineBreaks == 0; }
 	bool IsValue() const { return (unsigned char)flag & (unsigned char)TokenFlag::VALUE; }
 	bool IsOperator() const { return (unsigned char)flag & (unsigned char)TokenFlag::OPERATOR; }
-
-	// ToDo: Too lazy to rename (AGAIN)
-	bool IsParenthesisMarked() const { return (unsigned char)flag & (unsigned char)TokenFlag::PARENTHESIS_MARKED; }
-	void MarkParenthesis() { flag = (TokenFlag)((unsigned char)flag | (unsigned char)TokenFlag::PARENTHESIS_MARKED); }
 
 	TokenType type;
 	TokenFlag flag = TokenFlag::NONE;
@@ -1098,7 +1091,7 @@ static void ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 	while (i < tokens.size())
 	{
 		Token &tok = tokens[i];
-		if (bRemoveComments && tok.type == TK_COMMENT)
+		if ((bRemoveComments || bMinify) && tok.type == TK_COMMENT)
 		{
 			int lineBreaks = 0;
 			for (char c : tok.content)
@@ -1143,7 +1136,10 @@ static void ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 			if (lineStart < tokens.size())
 			{
 				for (size_t j=lineStart; j<i; ++j)
-					NukeToken(tokens[j]);
+				{
+					if (tokens[j].type != TK_COMMENT)
+						NukeToken(tokens[j]);
+				}
 			}
 
 			lineStart = i+1;
