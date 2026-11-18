@@ -28,6 +28,7 @@ public:
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void LevelShutdown() override;
+	void Shutdown() override;
 	void Think(bool bSimulating) override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "gmoddatapack"; };
@@ -35,9 +36,21 @@ public:
 	bool IsEnabledByDefault() override { return false; }; // ToDo: Figure out what inside of here is behaving very randomly
 };
 
+static IThreadPool* pWorkerPool = nullptr;
+static void OnWorkerThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	if (!pWorkerPool)
+		return;
+
+	pWorkerPool->ExecuteAll();
+	pWorkerPool->Stop();
+	Util::StartThreadPool(pWorkerPool, ((ConVar*)convar)->GetInt());
+}
+
 static ConVar gmoddatapack_removeserverif("holylib_gmoddatapack_removeserverif", "0", 0, "If enabled, \"if SERVER then\" code blocks are removed from client files");
 static ConVar gmoddatapack_removecomments("holylib_gmoddatapack_removecomments", "0", 0, "If enabled, comments are removed from client files");
 static ConVar gmoddatapack_minify("holylib_gmoddatapack_minify", "0", 0, "If enabled, code is minified without changing line count");
+static ConVar gmoddatapack_threads("holylib_gmoddatapack_threads", "1", FCVAR_ARCHIVE, "The number of threads used for processing & compressing", true, 1, true, 16, OnWorkerThreadsChange);
 
 static CGModDataPackModule g_pGModDataPackModule;
 IModule* pGModDataPackModule = &g_pGModDataPackModule;
@@ -141,6 +154,7 @@ enum class TokenFlag : unsigned char
 	VALUE = 1 << 2,
 	OPERATOR = 1 << 3,
 	PARENTHESIS = 1 << 4,
+	NUKED_SEMICOLON = 1 << 5,
 };
 
 struct Token {
@@ -153,6 +167,9 @@ struct Token {
 	bool IsEmpty() const { return content.empty() && lineBreaks == 0; }
 	bool IsValue() const { return (unsigned char)flag & (unsigned char)TokenFlag::VALUE; }
 	bool IsOperator() const { return (unsigned char)flag & (unsigned char)TokenFlag::OPERATOR; }
+
+	bool IsNukedSemicolon() const { return (unsigned char)flag & (unsigned char)TokenFlag::NUKED_SEMICOLON; }
+	void MarkNukedSemicolon() { flag = (TokenFlag)((unsigned char)flag | (unsigned char)TokenFlag::NUKED_SEMICOLON); }
 
 	TokenType type;
 	TokenFlag flag = TokenFlag::NONE;
@@ -595,7 +612,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 
 		if (c == ';')
 		{
-			tokens.push_back({TK_SEMICOLON, content.substr(i, 1), TokenFlag::SPACE});
+			tokens.push_back({TK_SEMICOLON, content.substr(i, 1)});
 			++i;
 			continue;
 		}
@@ -639,7 +656,7 @@ static std::vector<Token> TokenizeContent(std::string_view content)
 		++i;
 	}
 
-	tokens.push_back({TK_EOF, ""});
+	tokens.push_back({TK_EOF, "", TokenFlag::SPACE});
 	return tokens;
 }
 
@@ -713,6 +730,16 @@ static void FoldOperand(ScopeEvalInfo& info)
 		flag = ScopeFlags::SCOPE_UNCERTAIN;
 }
 
+static inline bool OpensBlock(const Token& tok)
+{
+	return tok.type == TK_THEN || tok.type == TK_DO || tok.type == TK_FUNCTION || tok.type == TK_REPEAT;
+}
+
+static inline bool ClosesBlock(const Token& tok)
+{
+	return tok.type == TK_END || tok.type == TK_UNTIL;
+}
+
 // Input start must be advanced by 1!
 // We expect that the start argument was moved to the TK_THEN or TK_DO when were done!
 static ScopeFlags CanConditionBeRemoved(const std::vector<Token> &tokens, size_t& start)
@@ -721,33 +748,62 @@ static ScopeFlags CanConditionBeRemoved(const std::vector<Token> &tokens, size_t
 	size_t nScopes = 1;
 	pScopes[0].start = start;
 
+	// We must track scope depth since Lua apparently have functions inside an if...
+	// Example: if SERVER and (function() if x then return true end return false end)() then
+	int depth = 1;
+	bool hadIf = false;
+
 	size_t lastNonEmpty = 0; // To avoid backtracking! (Now it just is a very small save in backtracking I guess)
-	while (start < tokens.size() && tokens[start].type != TK_THEN && tokens[start].type != TK_DO)
+	while (start < tokens.size() && depth > 0)
 	{
+		const Token& curTok = tokens[start];
+		if (OpensBlock(curTok))
+		{
+			depth++;
+			if (curTok.type == TK_THEN)
+			{
+				if (hadIf)
+					hadIf = false;
+				else { // We hit our own then so we decrement that our depth should hit 0 now
+					depth-=2;
+					break;
+				}
+			}
+		} else if (ClosesBlock(curTok))
+			depth--;
+		else if (curTok.type == TK_IF)
+			hadIf = true;
+
+		if (depth > 1)
+		{ // Lets not deal with what may be inside of a function... not our problem. We shouldn't need to evaluate a function!
+			++start;
+			continue;
+		}
+
 		ScopeEvalInfo& scope = pScopes[nScopes-1];
-		if (!tokens[start].IsSpace() && !tokens[start].IsParenthesis())
+		if (!curTok.IsSpace() && !curTok.IsParenthesis())
 			scope.isEmpty = false;
 
 		ScopeFlags& curFlag = scope.operand;
-		if (tokens[start].type == TK_SOMETHING && tokens[start].content == "SERVER")
+		if (curTok.type == TK_SOMETHING && curTok.content == "SERVER")
 			SetScopeFlag(curFlag, !IsNotTK(tokens, lastNonEmpty) ? ScopeFlags::SCOPE_SERVER : ScopeFlags::SCOPE_CLIENT);
-		else if (tokens[start].type == TK_SOMETHING && tokens[start].content == "CLIENT")
+		else if (curTok.type == TK_SOMETHING && curTok.content == "CLIENT")
 			SetScopeFlag(curFlag, IsNotTK(tokens, lastNonEmpty) ? ScopeFlags::SCOPE_SERVER : ScopeFlags::SCOPE_CLIENT);
-		else if (!tokens[start].IsSpace() && !tokens[start].IsParenthesis() && tokens[start].type != TK_NOT &&
-			tokens[start].type != TK_AND && tokens[start].type != TK_OR && tokens[start].type != TK_COMMENT)
+		else if (!curTok.IsSpace() && !curTok.IsParenthesis() && curTok.type != TK_NOT &&
+			curTok.type != TK_AND && curTok.type != TK_OR && curTok.type != TK_COMMENT)
 			curFlag = ScopeFlags::SCOPE_UNCERTAIN; // Annoying... (ToDo: Clean this up to proper evaluate conditions / figure out if their constant & server/client only)
 
-		if (tokens[start].type == TK_AND)
+		if (curTok.type == TK_AND)
 			FoldOperand(scope);
 
-		if (tokens[start].type == TK_OR)
+		if (curTok.type == TK_OR)
 		{
 			FoldOperand(scope);
 			scope.folded = CombineFlags(scope);
 			scope.flag = ScopeFlags::SCOPE_NONE;
 		}
 
-		if (tokens[start].type == TK_LPARENTHESIS)
+		if (curTok.type == TK_LPARENTHESIS)
 		{
 			if (nScopes >= std::size(pScopes))
 				return ScopeFlags::SCOPE_NONE;
@@ -756,7 +812,7 @@ static ScopeFlags CanConditionBeRemoved(const std::vector<Token> &tokens, size_t
 			pScopes[nScopes].start = start;
 			pScopes[nScopes].evalToken = IsNotTK(tokens, lastNonEmpty) ? TK_NOT : TK_INVALID;
 			nScopes++;
-		} else if (tokens[start].type == TK_RPARENTHESIS)
+		} else if (curTok.type == TK_RPARENTHESIS)
 		{
 			scope.end = start;
 
@@ -790,16 +846,6 @@ static inline void NukeToken(Token& tok, bool bSpace = false)
 	tok.lineBreaks = 0;
 	tok.flag = TokenFlag::SPACE;
 	tok.type = TK_SOMETHING;
-}
-
-static inline bool OpensBlock(const Token& tok)
-{
-	return tok.type == TK_THEN || tok.type == TK_DO || tok.type == TK_FUNCTION || tok.type == TK_REPEAT;
-}
-
-static inline bool ClosesBlock(const Token& tok)
-{
-	return tok.type == TK_END || tok.type == TK_UNTIL;
 }
 
 // The goal is to remove parts of a Lua script without changing the line number (so that errors remain easy to debug!)
@@ -858,8 +904,32 @@ static size_t RemoveScoped(size_t i, std::vector<Token>& tokens, TokenType tok, 
 
 static inline size_t NukeIfCond(size_t i, std::vector<Token> &tokens, ScopeFlags flag)
 {
-	while (i < tokens.size() && tokens[i].type != TK_THEN)
+	// See the comment in CanConditionBeRemoved
+	int depth = 1;
+	bool hadIf = false;
+
+	while (i < tokens.size() && depth > 0)
+	{
+		const Token& curTok = tokens[i];
+		if (OpensBlock(curTok))
+		{
+			depth++;
+			if (curTok.type == TK_THEN)
+			{
+				if (hadIf)
+					hadIf = false;
+				else { // We hit our own then so we decrement that our depth should hit 0 now
+					depth-=2;
+					break;
+				}
+			}
+		} else if (ClosesBlock(curTok))
+			depth--;
+		else if (curTok.type == TK_IF)
+			hadIf = true;
+
 		NukeToken(tokens[i++]);
+	}
 
 	if (flag == ScopeFlags::SCOPE_SERVER && i < tokens.size())
 		NukeToken(tokens[i++]);
@@ -1035,15 +1105,41 @@ static void MinifyContents(std::vector<Token> &tokens)
 	}
 
 	size_t last = tokens.size();
+	size_t last2 = tokens.size();
 	size_t space = tokens.size();
 	for (size_t i=0; i<tokens.size(); ++i)
 	{
 		Token& tok = tokens[i];
 		if (tok.type == TK_EOF || tok.type == TK_LINEEND || tok.lineBreaks > 0 || tok.content == "\r")
 		{
-			last = tokens.size();
+			space = tokens.size();
+			if (tok.type == TK_EOF)
+				last = last2 = space;
+
+			continue;
+		}
+
+		if (tok.type == TK_SEMICOLON)
+		{
+			if (i+1 < tokens.size() && tokens[i+1].IsSpace())
+			{
+				NukeToken(tok);
+				tok.MarkNukedSemicolon();
+			}
+
+			last2 = last;
+			last = i;
 			space = tokens.size();
 			continue;
+		}
+
+		// Lua requres a ; in the special case of print();(function() end)
+		if (last2 < tokens.size() && tok.type == TK_LPARENTHESIS && tokens[last].IsNukedSemicolon() && tokens[last2].type == TK_RPARENTHESIS)
+		{ // Time to restore for this special case... Annoying!
+			Token& semiTok = tokens[last];
+			semiTok.content = ";";
+			semiTok.type = TK_SEMICOLON;
+			semiTok.flag = TokenFlag::NONE;
 		}
 
 		if (tok.IsSpace() || tok.IsEmpty())
@@ -1052,14 +1148,6 @@ static void MinifyContents(std::vector<Token> &tokens)
 				space = i;
 
 			tok.content = "";
-			continue;
-		}
-
-		if (tok.type == TK_SEMICOLON)
-		{
-			if (i+1 < tokens.size() && tokens[i+1].IsSpace())
-				NukeToken(tok);
-
 			continue;
 		}
 
@@ -1080,6 +1168,7 @@ static void MinifyContents(std::vector<Token> &tokens)
 		// Parenthesis can be used around a function to limit its return values to just the first one
 		// like print((unpack({"Hello", "World"}))) fives only "Hello"
 
+		last2 = last;
 		last = i;
 		space = tokens.size();
 	}
@@ -1131,22 +1220,23 @@ static void ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 	for (size_t i=0; i<tokens.size(); ++i)
 	{
 		Token& tok = tokens[i];
-		if (tok.type == TK_LINEEND)
+		if (tok.type == TK_LINEEND || tok.lineBreaks > 0)
 		{
 			if (lineStart < tokens.size())
 			{
 				for (size_t j=lineStart; j<i; ++j)
-				{
-					if (tokens[j].type != TK_COMMENT)
-						NukeToken(tokens[j]);
-				}
+					NukeToken(tokens[j]);
 			}
 
 			lineStart = i+1;
 			continue;
 		}
 
-		if (tok.IsSpace() || tok.IsEmpty())
+		if (tok.type == TK_COMMENT && !tok.content.empty())
+		{
+			tok.content = tok.content.substr(0, tok.content.find_last_not_of(" \t\r")+1);
+			lineStart = tokens.size()+1;
+		} else if (tok.IsSpace() || tok.IsEmpty())
 		{
 			if (lineStart >= tokens.size())
 				lineStart = i;
@@ -1176,16 +1266,12 @@ static void ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 
 	// I dislike this way a bit but it allows us to patch tokens from the past :)
 	// And we can nuke empty lines at the end
-	for (size_t endPos = tokens.size()-1; endPos > 0; --endPos)
-	{
-		if (!tokens[endPos].IsSpace() && !tokens[endPos].IsEmpty() && tokens[endPos].type != TokenType::TK_EOF)
-		{
-			if (endPos+1 < tokens.size())
-				tokens[endPos+1].type = TokenType::TK_EOF;
+	size_t endPos = tokens.size();
+	while (endPos > 0 && (tokens[endPos-1].IsSpace() || tokens[endPos-1].IsEmpty() || tokens[endPos-1].type == TokenType::TK_EOF))
+		--endPos;
 
-			break;
-		}
-	}
+	if (endPos < tokens.size())
+		tokens[endPos].type = TokenType::TK_EOF;
 }
 
 static std::string BuildContents(std::vector<Token>& tokens)
@@ -1365,6 +1451,11 @@ public:
 	class LuaPackEntry
 	{
 	public:
+		LuaPackEntry()
+		{
+			Clear();
+		}
+
 		inline bool IsReady() const
 		{
 			return compressed.GetWritten() != 0;
@@ -1390,29 +1481,32 @@ public:
 
 		inline void Clear()
 		{
-			hasSourceContent = false;
 			sourceContent = "";
 			content = "";
 			compressed.Clear();
+			hasSourceContent = false;
 			processed = false;
 			removeServerCode = false;
 			removeComments = false;
+			minify = false;
 		}
 
 		std::string sourceContent = "";
 		std::string content = "";
 		Bootil::AutoBuffer compressed;
 		std::shared_mutex mutex; // Per entry instead of a global mutex to avoid blocking the main thread for other entries while compressing
-		bool hasSourceContent = false;
-		bool processed = false;
-		bool removeServerCode = false;
-		bool removeComments = false;
-		bool minify = false;
+		bool hasSourceContent : 1;
+		bool processed : 1;
+		bool removeServerCode : 1;
+		bool removeComments : 1;
+		bool minify : 1;
+		unsigned short fileID = USHRT_MAX;
 	};
 
 	void Initialize();
 	void Shutdown();
 
+	static void WorkerJob(LuaDataPack::LuaPackEntry* pEntry);
 	void AddFileContents(std::string fileName, std::string content)
 	{
 		if (!g_pDataPack)
@@ -1436,34 +1530,39 @@ public:
 		}
 
 		LuaPackEntry& pEntry = *pPackEntry;
-		std::lock_guard<std::shared_mutex> lock(pEntry.mutex);
-		bool bRemoveServerCode = gmoddatapack_removeserverif.GetBool();
-		bool bRemoveComments = gmoddatapack_removecomments.GetBool();
-		bool bMinify = gmoddatapack_minify.GetBool();
-		bool bSameSource = pEntry.hasSourceContent && pEntry.sourceContent == content;
-		bool bSameProcessConfig = pEntry.removeServerCode == bRemoveServerCode && pEntry.removeComments == bRemoveComments && pEntry.minify == bMinify;
-		if (bSameSource && pEntry.IsContentReady() && bSameProcessConfig) // Nothing changed
-		{
-			std::vector<unsigned char> pHash = HashString(pEntry.content.c_str(), pEntry.content.length() + 1);
-			g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data());
+		{ // Lets avoid holding the lock for longer than needed
+			std::lock_guard<std::shared_mutex> lock(pEntry.mutex);
+			bool bRemoveServerCode = gmoddatapack_removeserverif.GetBool();
+			bool bRemoveComments = gmoddatapack_removecomments.GetBool();
+			bool bMinify = gmoddatapack_minify.GetBool();
+			bool bSameSource = pEntry.hasSourceContent && pEntry.sourceContent == content;
+			bool bSameProcessConfig = pEntry.removeServerCode == bRemoveServerCode && pEntry.removeComments == bRemoveComments && pEntry.minify == bMinify;
+			if (bSameSource && pEntry.IsContentReady() && bSameProcessConfig) // Nothing changed
+			{
+				std::vector<unsigned char> pHash = HashString(pEntry.content.c_str(), pEntry.content.length() + 1);
+				g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data());
 
-			return;
+				return;
+			}
+
+			pEntry.compressed.Clear();
+			pEntry.hasSourceContent = true;
+			pEntry.sourceContent = content;
+			pEntry.content = content;
+			pEntry.removeServerCode = bRemoveServerCode;
+			pEntry.removeComments = bRemoveComments;
+			pEntry.minify = bMinify;
+			pEntry.processed = false;
+			pEntry.fileID = fileID;
 		}
-
-		pEntry.compressed.Clear();
-		pEntry.hasSourceContent = true;
-		pEntry.sourceContent = content;
-		pEntry.content = content;
-		pEntry.removeServerCode = bRemoveServerCode;
-		pEntry.removeComments = bRemoveComments;
-		pEntry.minify = bMinify;
-		pEntry.processed = false;
 
 		if (g_pGModDataPackModule.InDebug())
 			Msg(PROJECT_NAME " - gmoddatapack: Added fileID %i into compression queue!\n", fileID);
 
-		std::lock_guard<std::mutex> queueLock(m_pCompressQueueMutex);
-		m_pCompressQueue.push_back(fileID);
+		if (!pWorkerPool)
+			CreateWorkerPool();
+
+		pWorkerPool->QueueCall(&WorkerJob, pPackEntry);
 	}
 
 	enum class StripError
@@ -1605,97 +1704,38 @@ public:
 		return &m_pLuaFileCache[fileID];
 	}
 
+	inline void CreateWorkerPool()
+	{
+		if (pWorkerPool)
+			return;
+
+		pWorkerPool = V_CreateThreadPool();
+		Util::StartThreadPool(pWorkerPool, gmoddatapack_threads.GetInt());
+	}
+
 public:
 	static constexpr int MAX_LUA_FILES = 1 << 13;
 	LuaPackEntry m_pLuaFileCache[MAX_LUA_FILES];
 
-	std::vector<int> m_pCompressQueue;
-	std::mutex m_pCompressQueueMutex;
-
 	std::vector<int> m_pStringTableUpdateQueue;
 	std::mutex m_pStringTableUpdateQueueMutex;
-
-	std::atomic<ThreadState> m_pWorkerThreadState;
-	ThreadHandle_t m_pWorkerThread = nullptr;
 
 	Lua::ILuaInterfaceReference pInterface;
 };
 static LuaDataPack g_pLuaDataPack;
 
-static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
+void LuaDataPack::WorkerJob(LuaDataPack::LuaPackEntry* pEntry)
 {
-	while (g_pLuaDataPack.m_pWorkerThreadState.load() == ThreadState::STATE_RUNNING)
+	std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
+	if (pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
+		return;
+
 	{
-		ThreadSleep(50);
-
-		std::vector<int> pWorkEntires;
-		{
-			std::lock_guard<std::mutex> lock(g_pLuaDataPack.m_pCompressQueueMutex);
-			if (!g_pLuaDataPack.m_pCompressQueue.empty())
-			{
-				pWorkEntires = std::move(g_pLuaDataPack.m_pCompressQueue);
-				g_pLuaDataPack.m_pCompressQueue.clear();
-			}
-		}
-
-		// First pass
-		// We do this first to have less overhead by being able to faster call from this thread to the main thread
-		if (pWorkEntires.empty())
-		{
-			if (g_pGModDataPackModule.InDebug() >= 2)
-				Msg(PROJECT_NAME " - gmoddatapack: Worker thread got no work!\n");
-
-			continue;
-		}
-
-		{
-			// We lock the lua state if we have one set.
-			// We mainly split this into two passes to avoid blocking the main thread for long!
-			Lua::ScopedThreadAccess pThreadScope;
-			
-			// Let's try to avoid an deadlock, we check here due to the main thread possibly shutting down so we cannot expect the StateAccess below to work.
-			if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
-				break;
-
-			auto LUA = g_pLuaDataPack.pInterface.GetLua();
-			Lua::StateAccess pState(LUA);
-			for (int fileID : pWorkEntires)
-			{
-				if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
-					break;
-
-				LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
-				if (!pEntry)
-					continue;
-
-				std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
-				if (pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
-					continue;
-
-				g_pLuaDataPack.ProcessContent(pEntry, fileID);
-			}
-		}
-
-		// Second pass
-		for (int fileID : pWorkEntires)
-		{
-			if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
-				break;
-
-			LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
-			if (!pEntry)
-				continue;
-
-			std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
-			if (pEntry->IsReady() || !pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
-				continue;
-
-			g_pLuaDataPack.CompressFile(pEntry, fileID);
-		}
+		Lua::ScopedThreadAccess pThreadScope;
+		g_pLuaDataPack.ProcessContent(pEntry, pEntry->fileID);
 	}
 
-	g_pLuaDataPack.m_pWorkerThreadState.store(ThreadState::STATE_NOTRUNNING);
-	return 0;
+	g_pLuaDataPack.CompressFile(pEntry, pEntry->fileID);
 }
 
 void LuaDataPack::Initialize()
@@ -1720,25 +1760,13 @@ void LuaDataPack::Initialize()
 		}
 	}
 
-	m_pWorkerThreadState = ThreadState::STATE_RUNNING;
-	m_pWorkerThread = CreateSimpleThread((ThreadFunc_t)WorkerThread, this);
+	CreateWorkerPool();
 }
 
 void LuaDataPack::Shutdown()
 {
 	g_pLuaDataPack.pInterface.InvalidateInterface();
-	if (m_pWorkerThread)
-	{
-		if (m_pWorkerThreadState.load() != ThreadState::STATE_NOTRUNNING)
-		{
-			m_pWorkerThreadState.store(ThreadState::STATE_SHOULD_SHUTDOWN);
-			while (m_pWorkerThreadState.load() != ThreadState::STATE_NOTRUNNING) // Wait for shutdown
-				ThreadSleep(0);
-		}
-
-		ReleaseThreadHandle(m_pWorkerThread);
-		m_pWorkerThread = nullptr;
-	}
+	pWorkerPool->AbortAll();
 
 	// We keep it, simply because then we can re-use stuff
 	//for (int i=0; i<MAX_LUA_FILES; ++i)
@@ -2089,4 +2117,13 @@ void CGModDataPackModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 void CGModDataPackModule::LevelShutdown()
 {
 	g_pLuaDataPack.Shutdown();
+}
+
+void CGModDataPackModule::Shutdown()
+{
+	if (pWorkerPool)
+	{
+		Util::DestroyThreadPool(pWorkerPool);
+		pWorkerPool = nullptr;
+	}
 }
