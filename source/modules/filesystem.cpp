@@ -63,6 +63,9 @@ enum class FileCacheEntry : unsigned char
 	INVALID = 0, // Does not exist
 	FILE,
 	FOLDER,
+	// It exists but it's empty or invalid?
+	// ToDo: See why exactly I had done it previously with the return value...
+	FOLDER_INVALID,
 };
 
 
@@ -483,7 +486,7 @@ void CDiskFileTree::RenamePath( const char *pszOldAbsolutePath, const char *pszN
 		return;
 	}
 
-	bool bIsFolder = it->second == FileCacheEntry::FOLDER;
+	bool bIsFolder = it->second == FileCacheEntry::FOLDER || it->second == FileCacheEntry::FOLDER_INVALID;
 	m_FileList[ pszNewAbsolutePath ] = it->second;
 	m_FileList.erase( it );
 
@@ -542,10 +545,15 @@ bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath, bool bForceSca
 		return true;
 
 	// If we have a entry then we already are tracking this one
-	if ( !bForceScan && m_FileList.find( pszFolderPath ) != m_FileList.end() )
+	if ( !bForceScan )
 	{
-		// Msg("Skipping already scanned folder %s\n", pszFolderPath);
-		return true;
+		auto it = m_FileList.find( pszFolderPath );
+		// We must avoid skipping FOLDER_INVALID since that is never setup?
+		if ( it != m_FileList.end() && it->second == FileCacheEntry::FOLDER )
+		{
+			// Msg("Skipping already scanned folder %s\n", pszFolderPath);
+			return true;
+		}
 	}
 
 	char szSearchPath[MAX_PATH];
@@ -574,13 +582,11 @@ bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath, bool bForceSca
 			if (bCreateWatchers)
 				g_FileWatcherSystem.CreateWatcher( szFullPath );
 
-			if ( RecursiveTraverse( szFullPath ) )
-			{
 #if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
-				V_strlower( szFullPath );
+			V_strlower( szFullPath );
 #endif
-				m_FileList.emplace( szFullPath, FileCacheEntry::FOLDER);
-			}
+			bool bSetup = RecursiveTraverse( szFullPath );
+			m_FileList.emplace( szFullPath, bSetup ? FileCacheEntry::FOLDER : FileCacheEntry::FOLDER_INVALID );
 		}
 		else
 		{
@@ -969,7 +975,7 @@ static bool hook_CBaseFileSystem_IsDirectory(CBaseFileSystem* _this, const char*
 				FileCacheEntry eCacheEntry = g_DiskFileTree.ContainsPath( pTmpFileName );
 
 				// RaphaelIT7: We check == INVALID since FS_stat works on both file and folder so we must allow both!
-				if ( eCacheEntry != FileCacheEntry::FOLDER && eCacheEntry != FileCacheEntry::UNKNOWN )
+				if ( eCacheEntry != FileCacheEntry::FOLDER && eCacheEntry != FileCacheEntry::FOLDER_INVALID && eCacheEntry != FileCacheEntry::UNKNOWN )
 				{
 					// RaphaelIT7: Debugging
 					//if ( FS_stat( pTmpFileName, &buf ) != -1 )
@@ -1787,7 +1793,8 @@ LUA_FUNCTION_STATIC(filesystem_Exists)
 	return 1;
 }
 
-std::string extractDirectoryPath(const std::string& filepath) {
+std::string extractDirectoryPath(const std::string& filepath)
+{
 	size_t lastSlashPos = filepath.find_last_of('/');
 	if (lastSlashPos != std::string::npos)
 		return filepath.substr(0, lastSlashPos + 1);
@@ -1826,11 +1833,10 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 	const char *pFilename = g_pFullFileSystem->FindFirstEx(filepath, gamePath, &findHandle);
 	while (pFilename)
 	{
-		if (g_pFullFileSystem->IsDirectory((strDirectoryPath + pFilename).c_str(), gamePath)) {
+		if (g_pFullFileSystem->FindIsDirectory(findHandle))
 			folders.push_back(pFilename);
-		} else {
+		else
 			files.push_back(pFilename);
-		}
 
 		pFilename = g_pFullFileSystem->FindNext(findHandle);
 	}
