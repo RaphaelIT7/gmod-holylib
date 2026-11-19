@@ -1766,7 +1766,8 @@ void LuaDataPack::Initialize()
 void LuaDataPack::Shutdown()
 {
 	g_pLuaDataPack.pInterface.InvalidateInterface();
-	pWorkerPool->AbortAll();
+	if (pWorkerPool)
+		pWorkerPool->AbortAll();
 
 	// We keep it, simply because then we can re-use stuff
 	//for (int i=0; i<MAX_LUA_FILES; ++i)
