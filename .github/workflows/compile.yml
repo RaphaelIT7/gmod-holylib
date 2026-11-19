@@ -173,6 +173,7 @@ jobs:
       PROJECT_PATH: "ghostinj-dll/"
       PROJECT_NAME: "ghostinj"
       BUILD_64x: "true"
+      SUFFIX_64x: "64"
       LINUX_FILEEXTENTION: "dll"
       BUILD_WINDOWS: "false"
       USE_PREFIX: "false"
@@ -266,8 +267,8 @@ jobs:
             plugin: gmsv_holylib_linux64.so
             plugin_artifact: gmsv_holylib_linux64.so (64x)
             vdf: holylib_linux_64.vdf
-            ghostinj: ghostinj.dll
-            ghostinj_artifact: ghostinj.dll (64x)
+            ghostinj: ghostinj64.dll
+            ghostinj_artifact: ghostinj64.dll (64x)
             lib: linux64
 
     steps:
@@ -537,7 +538,11 @@ jobs:
     container: debian:bullseye
     strategy:
       matrix:
-        arch: [32x, 64x]
+        include:
+          - arch: 32x
+            ghostinj: ghostinj.dll
+          - arch: 64x
+            ghostinj: ghostinj64.dll
     steps:
       - uses: actions/checkout@v4
         name: "Checkout gmod_tests repo"
@@ -564,7 +569,7 @@ jobs:
           mv garrysmod/addons/gluatests/maps garrysmod/addons/gmod_tests/maps
           rm -rf garrysmod/addons/gluatests
 
-          tar -czf gmod_tests.tar.gz ghostinj.dll garrysmod/
+          tar -czf gmod_tests.tar.gz ${{ matrix.ghostinj }} garrysmod/
           tar -czf gmod_tests_no_ghostinj.tar.gz garrysmod/
 
       - uses: actions/upload-artifact@v4
@@ -851,11 +856,13 @@ jobs:
             dll: gmsv_exampledll_linux.dll
             dll_artifact: gmsv_exampledll_linux.dll
             config_path: x86
+            ghostinj: ghostinj.dll
 
           - arch: 64x
             dll: gmsv_exampledll_linux64.dll
             dll_artifact: gmsv_exampledll_linux64.dll (64x)
             config_path: x64
+            ghostinj: ghostinj64.dll
     steps:
       - uses: actions/download-artifact@v4
         name: "Download ${{ matrix.arch }} artifact"
@@ -887,7 +894,7 @@ jobs:
           tar -xzf gluatest.tar.gz
 
           # include bin/ for libbass.so since GMod doesn't ship it! See how we build the gluatest_ artifact
-          tar -czf gluatest_exampledll.tar.gz ghostinj.dll garrysmod/ bin/
+          tar -czf gluatest_exampledll.tar.gz ${{ matrix.ghostinj }} garrysmod/ bin/
           tar -czf gluatest_exampledll_no_ghostinj.tar.gz garrysmod/ bin/
 
       - uses: actions/upload-artifact@v4

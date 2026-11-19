@@ -40,9 +40,9 @@ CreateWorkspace({name = "ghostinj", abi_compatible = false})
 		--IncludeScanning()
 
 		targetsuffix("")
-		filter("system:windows")
-			files({"source/win32/*.cpp", "source/win32/*.hpp"})
-
 		filter("system:linux")
 			targetextension(".dll")
 			links("dl") -- this fixes the undefined reference to `dlopen' errors.
+
+		filter({"system:linux", "platforms:x86_64"})
+			targetsuffix("64")

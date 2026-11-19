@@ -16,9 +16,11 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
+      SCANNING: "RaphaelIT7/scanning"
+      DETOURING: "RaphaelIT7/detouring"
       ADDITIONAL_DATA: "1"
       UPLOAD_PDB: "true"
 
@@ -34,31 +36,13 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
-      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
-      GARRYSMOD_COMMON_BRANCH: "holylib"
-      UPLOAD_PDB: "true"
-      BUILD_WINDOWS_DEDICATED: "true"
-
-  build_plugin_windows_64x_main:
-    name: "Build Plugin (64x - Main Branch)"
-    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
-    with:
-      PROJECT_NAME: "holylib"
-      BUILD_64x: "true"
-      BUILD_32x: "false"
-      REALM: "sv"
-      LINUX_FILEEXTENTION: "so"
-      BUILD_WINDOWS: "true"
-      BUILD_LINUX: "false"
-      ADDITIONAL_POSTARTIFACTNAME: " - Main branch"
-      ARTIFACT_EXPIRE: "7"
-      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_64XBRANCH: "patch-7"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       GARRYSMOD_COMMON_BRANCH: "holylib"
-      BUILD_CACHE: "true"
+      SCANNING: "RaphaelIT7/scanning"
+      DETOURING: "RaphaelIT7/detouring"
       UPLOAD_PDB: "true"
+      BUILD_WINDOWS_DEDICATED: "true"
 
   build_ghostinj:
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
@@ -66,6 +50,7 @@ jobs:
       PROJECT_PATH: "ghostinj-dll/"
       PROJECT_NAME: "ghostinj"
       BUILD_64x: "true"
+      SUFFIX_64x: "64"
       LINUX_FILEEXTENTION: "dll"
       BUILD_WINDOWS: "false"
       USE_PREFIX: "false"
@@ -96,7 +81,6 @@ jobs:
           mkdir linux64
           mkdir win32
           mkdir win64
-          mkdir win64mainbranch
           mkdir win32dedicated
           mkdir win64dedicated
           mkdir ghostinj32
@@ -128,13 +112,6 @@ jobs:
         with:
           name: "gmsv_holylib_win64.dll (64x)"
           path: "win64/"
-          run-id: ${{inputs.ARTIFACT_ID}}
-
-      - uses: actions/download-artifact@v4
-        name: Download gmsv_holylib_win64.dll (64x) - Main Branch
-        with:
-          name: "gmsv_holylib_win64.dll (64x) - Main Branch"
-          path: "win64mainbranch/"
           run-id: ${{inputs.ARTIFACT_ID}}
 
       - uses: actions/download-artifact@v4
@@ -196,7 +173,7 @@ jobs:
       - uses: actions/download-artifact@v4
         name: Download ghostinj.dll (64x)
         with:
-          name: "ghostinj.dll (64x)"
+          name: "ghostinj64.dll (64x)"
           path: "ghostinj64/"
           run-id: ${{inputs.ARTIFACT_ID}}
 
@@ -206,11 +183,10 @@ jobs:
           echo -n "linux64/gmsv_holylib_linux64.so" | sha256sum
           echo -n "win32/gmsv_holylib_win32.dll" | sha256sum
           echo -n "win64/gmsv_holylib_win64.dll" | sha256sum
-          echo -n "win64mainbranch/gmsv_holylib_win64.dll" | sha256sum
           echo -n "win32dedicated/gmsv_holylib_win32.dll" | sha256sum
           echo -n "win64dedicated/gmsv_holylib_win64.dll" | sha256sum
           echo -n "ghostinj32/ghostinj.dll" | sha256sum
-          echo -n "ghostinj64/ghostinj.dll" | sha256sum
+          echo -n "ghostinj64/ghostinj64.dll" | sha256sum
 
       - name: Create Release
         id: create_release
@@ -261,16 +237,6 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: win64/gmsv_holylib_win64.dll
-          asset_name: gmsv_holylib_win64.dll
-          asset_content_type: application/octet-stream
-
-      - name: Upload gmsv_holylib_win64.dll (64x) - Main Branch
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: win64mainbranch/gmsv_holylib_win64.dll
           asset_name: gmsv_holylib_win64.dll
           asset_content_type: application/octet-stream
 
@@ -360,8 +326,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ghostinj64/ghostinj.dll
-          asset_name: ghostinj.dll (64x)
+          asset_path: ghostinj64/ghostinj64.dll
+          asset_name: ghostinj64.dll (64x)
           asset_content_type: application/octet-stream
 
       - name: Upload holylib_linux.vdf
