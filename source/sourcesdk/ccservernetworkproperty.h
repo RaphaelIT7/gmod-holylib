@@ -87,45 +87,52 @@ inline bool CheckAreasConnected(int area1, int area2)
 	return g_BSPData->map_areas[area1].floodnum == g_BSPData->map_areas[area2].floodnum;
 }
 
+static bool g_bSkipAreaCheckInPVS = false;
 inline bool CCServerNetworkProperty::IsInPVS( const CCheckTransmitInfo *pInfo )
 {
 	// PVS data must be up to date
 	// Assert( !m_pPev || ( ( m_pPev->m_fStateFlags & FL_EDICT_DIRTY_PVS_INFORMATION ) == 0 ) );
-	
+
 	int i;
 
-	// Early out if the areas are connected
-	if ( !m_PVSInfo.m_nAreaNum2 )
+	// RaphaelIT7:
+	// We can skip the area checks since areasplit already ensures that PVS entities are already inside a connected area
+	// It should make PVS checks a bit cheaper :D
+	if (!g_bSkipAreaCheckInPVS)
 	{
-		for ( i=0; i< pInfo->m_AreasNetworked; ++i )
+		// Early out if the areas are connected
+		if ( !m_PVSInfo.m_nAreaNum2 )
 		{
-			int clientArea = pInfo->m_Areas[i];
-			if ( clientArea == m_PVSInfo.m_nAreaNum || CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
-				break;
+			for ( i=0; i< pInfo->m_AreasNetworked; ++i )
+			{
+				int clientArea = pInfo->m_Areas[i];
+				if ( clientArea == m_PVSInfo.m_nAreaNum || CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
+					break;
+			}
 		}
-	}
-	else
-	{
-		// doors can legally straddle two areas, so
-		// we may need to check another one
-		for ( i=0; i< pInfo->m_AreasNetworked; ++i )
+		else
 		{
-			int clientArea = pInfo->m_Areas[i];
-			if ( clientArea == m_PVSInfo.m_nAreaNum || clientArea == m_PVSInfo.m_nAreaNum2 )
-				break;
+			// doors can legally straddle two areas, so
+			// we may need to check another one
+			for ( i=0; i< pInfo->m_AreasNetworked; ++i )
+			{
+				int clientArea = pInfo->m_Areas[i];
+				if ( clientArea == m_PVSInfo.m_nAreaNum || clientArea == m_PVSInfo.m_nAreaNum2 )
+					break;
 
-			if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
-				break;
+				if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
+					break;
 
-			if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum2 ) )
-				break;
+				if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum2 ) )
+					break;
+			}
 		}
-	}
 
-	if ( i == pInfo->m_AreasNetworked )
-	{
-		// areas not connected
-		return false;
+		if ( i == pInfo->m_AreasNetworked )
+		{
+			// areas not connected
+			return false;
+		}
 	}
 
 	// ignore if not touching a PV leaf

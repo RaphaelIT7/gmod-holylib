@@ -1510,15 +1510,25 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 	if (networking_areasplit.GetBool())
 	{
-		const int nClientArea = Util::engineserver->GetArea(clientPosition);
+		g_bSkipAreaCheckInPVS = true;
 		for (int nArea = 0; nArea<MAX_MAP_AREAS-1; ++nArea)
 		{
 			EntityTransmitCache::AreaCache& pArea = g_nEntityTransmitCache.nAreaEntities[nArea];
 			if (pArea.nCount == 0)
 				continue;
 
-			// +1 since we shifted everything by 1 to remove Area0 saving some KB
-			if (!Util::engineserver->CheckAreasConnected(nClientArea, nArea+1))
+			// A client can be sent multiple areas, though good thing the engine gives that information nicely already
+			// It's prepared inside CGameClient::SetupPackInfo
+			// Fun Fact: If more than 8 Areas are networked there is no bounds check -> corruption/crash
+			int nClientArea = 0;
+			for (; nClientArea<pInfo->m_AreasNetworked; ++nClientArea)
+			{
+				// +1 since we shifted everything by 1 to remove Area0 saving some KB
+				if (Util::engineserver->CheckAreasConnected(pInfo->m_Areas[nClientArea], nArea+1))
+					break;
+			}
+
+			if (nClientArea == pInfo->m_AreasNetworked)
 				continue;
 
 			for (int i=0; i<pArea.nCount; ++i)
@@ -1534,6 +1544,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 				DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea, clientPosition, maxTransmitRange);
 			}
 		}
+		g_bSkipAreaCheckInPVS = false;
 	}
 
 	for (int i=0; i<=g_nEntityTransmitCache.nPVSEdictCount; ++i)
