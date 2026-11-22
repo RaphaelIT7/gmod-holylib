@@ -74,6 +74,8 @@ jobs:
           sparse-checkout: |
             holylib_linux.vdf
             holylib_linux_64.vdf
+            holylib_win.vdf
+            holylib_win_64.vdf
 
       - name: Create folders
         run: |
@@ -348,6 +350,26 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: holylib_linux_64.vdf
           asset_name: holylib_linux_64.vdf
+          asset_content_type: application/octet-stream
+
+      - name: Upload holylib_win.vdf
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: holylib_win.vdf
+          asset_name: holylib_win.vdf
+          asset_content_type: application/octet-stream
+
+      - name: Upload holylib_win_64.vdf
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: holylib_win_64.vdf
+          asset_name: holylib_win_64.vdf
           asset_content_type: application/octet-stream
 
       - uses: geekyeggo/delete-artifact@v5
