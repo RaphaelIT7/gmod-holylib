@@ -371,7 +371,7 @@ do
 
         -- Get a pointer to the data field and set it directly
         local ang_ptr = ffi.cast("uintptr_t*", ang)
-        ang_ptr[0] = ffi.cast("uintptr_t", ffi.cast("uint8_t*", ang) + ffi.offsetof("GMOD_AngUserData", "x"))
+        ang_ptr[0] = ffi.cast("uintptr_t", ffi.cast("uint8_t*", ang)) + ffi.offsetof("GMOD_AngUserData", "x")
 
         ---@type Angle
         return ang

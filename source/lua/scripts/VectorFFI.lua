@@ -474,7 +474,7 @@ do
 
         -- Get a pointer to the data field and set it directly
         local vec_ptr = ffi.cast("uintptr_t*", vec)
-        vec_ptr[0] = ffi.cast("uintptr_t", ffi.cast("uint8_t*", vec) + ffi.offsetof("GMOD_VecUserData", "x"))
+        vec_ptr[0] = ffi.cast("uintptr_t", ffi.cast("uint8_t*", vec)) + ffi.offsetof("GMOD_VecUserData", "x")
 
         ---@type Vector
         return vec
