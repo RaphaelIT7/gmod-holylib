@@ -773,6 +773,11 @@ static ScopeFlags CanConditionBeRemoved(const std::vector<Token> &tokens, size_t
 			depth--;
 		else if (curTok.type == TK_IF)
 			hadIf = true;
+		else if (curTok.type == TK_ELSEIF)
+		{
+			hadIf = true;
+			depth--;
+		}
 
 		if (depth > 1)
 		{ // Lets not deal with what may be inside of a function... not our problem. We shouldn't need to evaluate a function!
@@ -842,8 +847,13 @@ static ScopeFlags CanConditionBeRemoved(const std::vector<Token> &tokens, size_t
 
 static inline void NukeToken(Token& tok, bool bSpace = false)
 {
+	for (char c : tok.content)
+	{
+		if (c=='\n')
+			++tok.lineBreaks;
+	}
+
 	tok.content = bSpace ? " " : "";
-	tok.lineBreaks = 0;
 	tok.flag = TokenFlag::SPACE;
 	tok.type = TK_SOMETHING;
 }
@@ -870,14 +880,7 @@ static size_t RemoveScoped(size_t i, std::vector<Token>& tokens, TokenType tok, 
 			hasLineBreaks = true;
 		}
 		else if (curTok.type == TK_COMMENT)
-		{
-			int lineBreaks = 0;
-			for (char c : curTok.content)
-				if (c=='\n') ++lineBreaks;
-
 			NukeToken(curTok);
-			curTok.lineBreaks = lineBreaks;
-		}
 		else if (curTok.type == TK_ELSE && depth == 1)
 		{
 			depth--;
@@ -908,6 +911,7 @@ static inline size_t NukeIfCond(size_t i, std::vector<Token> &tokens, ScopeFlags
 	int depth = 1;
 	bool hadIf = false;
 
+	NukeToken(tokens[i++]); // The if / elseif itself is not part of the condition
 	while (i < tokens.size() && depth > 0)
 	{
 		const Token& curTok = tokens[i];
@@ -927,6 +931,11 @@ static inline size_t NukeIfCond(size_t i, std::vector<Token> &tokens, ScopeFlags
 			depth--;
 		else if (curTok.type == TK_IF)
 			hadIf = true;
+		else if (curTok.type == TK_ELSEIF)
+		{
+			hadIf = true;
+			depth--;
+		}
 
 		NukeToken(tokens[i++]);
 	}
@@ -1107,6 +1116,7 @@ static void MinifyContents(std::vector<Token> &tokens)
 	size_t last = tokens.size();
 	size_t last2 = tokens.size();
 	size_t space = tokens.size();
+	int braces = 0;
 	for (size_t i=0; i<tokens.size(); ++i)
 	{
 		Token& tok = tokens[i];
@@ -1119,9 +1129,14 @@ static void MinifyContents(std::vector<Token> &tokens)
 			continue;
 		}
 
+		if (tok.type == TK_LBRACE)
+			++braces;
+		else if (tok.type == TK_RBRACE)
+			--braces;
+
 		if (tok.type == TK_SEMICOLON)
 		{
-			if (i+1 < tokens.size() && tokens[i+1].IsSpace())
+			if (braces == 0 && i+1 < tokens.size() && tokens[i+1].IsSpace())
 			{
 				NukeToken(tok);
 				tok.MarkNukedSemicolon();
@@ -1134,7 +1149,7 @@ static void MinifyContents(std::vector<Token> &tokens)
 		}
 
 		// Lua requres a ; in the special case of print();(function() end)
-		if (last2 < tokens.size() && tok.type == TK_LPARENTHESIS && tokens[last].IsNukedSemicolon() && tokens[last2].type == TK_RPARENTHESIS)
+		if (last2 < tokens.size() && tok.type == TK_LPARENTHESIS && tokens[last].IsNukedSemicolon() && (tokens[last2].type == TK_SOMETHING || tokens[last2].type == TK_RPARENTHESIS || tokens[last2].type == TK_RBRACKET || tokens[last2].type == TK_RBRACE || tokens[last2].type == TK_STRING))
 		{ // Time to restore for this special case... Annoying!
 			Token& semiTok = tokens[last];
 			semiTok.content = ";";
@@ -1182,13 +1197,7 @@ static void ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 		Token &tok = tokens[i];
 		if ((bRemoveComments || bMinify) && tok.type == TK_COMMENT)
 		{
-			int lineBreaks = 0;
-			for (char c : tok.content)
-				if (c=='\n') ++lineBreaks;
-
-			tok.content = "";
-			tok.lineBreaks = lineBreaks;
-
+			NukeToken(tok);
 			++i;
 			continue;
 		}
