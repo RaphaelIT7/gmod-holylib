@@ -374,7 +374,7 @@ jobs:
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
@@ -389,7 +389,7 @@ jobs:
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
       timeout: "10"
@@ -443,7 +443,7 @@ jobs:
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
@@ -458,7 +458,7 @@ jobs:
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       extra-startup-args: "-holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
@@ -493,7 +493,7 @@ jobs:
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       extra-startup-args: "-usegh -holylib_enable_luajit 1 +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
@@ -674,7 +674,7 @@ jobs:
             args: ""
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
@@ -719,7 +719,7 @@ jobs:
             args: ""
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_replaceivp"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
@@ -762,7 +762,7 @@ jobs:
             args: ""
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_enable_luajit 1"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
@@ -949,7 +949,7 @@ jobs:
             args: ""
     with:
       branch: dev
-      use_64bit: "true"
+      use-64bit: "true"
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
