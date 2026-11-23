@@ -50,6 +50,9 @@ static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersCo
 {
 	detour_CSteam3Server_OnLogonSuccess.GetTrampoline<Symbols::CSteam3Server_OnLogonSuccess>()(srv, info);
 
+	if (SteamNetworkingUtils())
+		SteamNetworkingUtils()->InitRelayNetworkAccess();
+
 	if (Lua::PushHook("HolyLib:OnSteamConnect"))
 	{
 		g_Lua->CallFunctionProtected(1, 0, true);
