@@ -1680,6 +1680,15 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
       J->guardemit = rbguard;
     }
   
+    {
+      IRIns *tabir = IR(tref_ref(ix->tab));
+      if (tabir->o != IR_TNEW && tabir->o != IR_TDUP) {
+	TRef fl = emitir(IRT(IR_FLOAD, IRT_U8), ix->tab, IRFL_TAB_MARKED);
+	TRef ro = emitir(IRTI(IR_BAND), fl, lj_ir_kint(J, LJ_GC_READONLY));
+	emitir(IRTGI(IR_EQ), ro, lj_ir_kint(J, 0));
+      }
+    }
+
     if (tvisnil(oldv)) {  /* Previous value was nil? */
       /* Need to duplicate the hasmm check for the early guards. */
       int hasmm = 0;

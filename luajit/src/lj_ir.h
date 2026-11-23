@@ -206,6 +206,7 @@ IRFPMDEF(FPMENUM)
   _(TAB_ASIZE,	offsetof(GCtab, asize)) \
   _(TAB_HMASK,	offsetof(GCtab, hmask)) \
   _(TAB_NOMM,	offsetof(GCtab, nomm)) \
+  _(TAB_MARKED,	offsetof(GCtab, marked)) \
   _(UDATA_META,	offsetof(GCudata, metatable)) \
   _(UDATA_ENV,	offsetof(GCudata, env)) \
   _(UDATA_FLAGS, offsetof(GCudata, flags)) /* You can use U16 for load if when needing to guard on both type and flags :) */ \

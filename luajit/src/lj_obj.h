@@ -521,12 +521,14 @@ typedef struct CFuncCallInfo {
   uint8_t exactargs : 1;
 } CFuncCallInfo;
 
+#define CFUNC_CI_USED(ci)	((ci)->func || (ci)->traceFunc)
+
 /* We allow up to 10 alternative functions */
 #define MAX_CFUNC_CALLINFOS 10
 typedef struct GCfuncC {
   GCfuncHeader;
   lua_CFunction f;	/* C function to be called. */
-  CFuncCallInfo callinfo[MAX_CFUNC_CALLINFOS];
+  CFuncCallInfo *callinfo;
   TValue upvalue[1];  /* Array of upvalues (TValue). */
 } GCfuncC;
 

@@ -4047,9 +4047,10 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  barrierback TAB:RB, TMPR
     |  jmp <2
     |->err_readonly:
-    |  mov CARG1, SAVE_L
-    |  restoreregs
-    |  jmp extern lj_tab_readonly_err		// (lua_State *L)
+    |  mov L:CARG1, SAVE_L
+    |  mov L:CARG1->base, BASE
+    |  mov SAVE_PC, PC
+    |  call extern lj_tab_readonly_err		// (lua_State *L)
     break;
   case BC_TSETS:
     |  ins_ABC	// RA = src, RB = table, RC = str const (~)

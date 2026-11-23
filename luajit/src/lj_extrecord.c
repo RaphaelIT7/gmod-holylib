@@ -84,6 +84,8 @@ IRType LJ_FASTCALL lj_recext_ctype_to_irtype(lua_TraceRecorderType type)
       return IRT_STR;
     case TR_TYPE_CHARS:
       return IRT_STR;
+    case TR_TYPE_PTR:
+      return IRT_PTR;
     default:
       return IRT_NIL;
   }

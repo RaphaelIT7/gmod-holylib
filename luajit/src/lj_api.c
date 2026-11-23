@@ -757,9 +757,12 @@ LUA_API int lua_userdata_setmetaaccess(lua_State *L, int idx, int set)
 
 static int lua_CFunc_info(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
 {
+  if (!fn->c.callinfo)
+    return 0;
+
   for (int infoIDX=0; infoIDX<MAX_CFUNC_CALLINFOS; ++infoIDX)
   {
-    if (!fn->c.callinfo[infoIDX].func)
+    if (!CFUNC_CI_USED(&fn->c.callinfo[infoIDX]))
       continue;
 
     int invalid = 0;
@@ -780,7 +783,7 @@ static int lua_CFunc_info(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
 
   for (int infoIDX=0; infoIDX<MAX_CFUNC_CALLINFOS; ++infoIDX)
   {
-    if (!fn->c.callinfo[infoIDX].func)
+    if (!CFUNC_CI_USED(&fn->c.callinfo[infoIDX]))
       return infoIDX;
   }
 
@@ -796,6 +799,12 @@ static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
   // Technically not required (& we remove/skip it anyways below) - but I do require it, you should be AWARE of the args!
   if (info->givestate && info->argType[0] != TR_TYPE_LUASTATE)
     return;
+
+  if (!fn->c.callinfo) {
+    CFuncCallInfo *ci = (CFuncCallInfo *)lj_mem_new(L, MAX_CFUNC_CALLINFOS*sizeof(CFuncCallInfo));
+    memset(ci, 0, MAX_CFUNC_CALLINFOS*sizeof(CFuncCallInfo));
+    fn->c.callinfo = ci;
+  }
 
   fn->c.callinfo[infoIDX].traceFunc = (lua_TraceRecorderFunction)info->traceFunc;
   fn->c.callinfo[infoIDX].func = (ASMFunction)info->asmFunc;
@@ -1268,6 +1277,8 @@ LUA_API void lua_rawseti(lua_State *L, int idx, int n)
   GCtab *t = tabV(index2adr(L, idx));
   TValue *dst, *src;
   lj_checkapi_slot(1);
+  if (LJ_UNLIKELY(isreadonly(t)))
+    lj_err_msg(L, LJ_ERR_READONLY);
   dst = lj_tab_setint(L, t, n);
   src = L->top-1;
   copyTV(L, dst, src);

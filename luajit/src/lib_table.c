@@ -68,6 +68,8 @@ LJLIB_CF(table_insert)		LJLIB_REC(.)
 {
   GCtab *t = lj_lib_checktab(L, 1);
   int32_t n, i = (int32_t)lj_tab_len(t) + 1;
+  if (LJ_UNLIKELY(isreadonly(t)))
+    lj_err_caller(L, LJ_ERR_READONLY);
   int nargs = (int)((char *)L->top - (char *)L->base);
   if (nargs != 2*sizeof(TValue)) {
     if (nargs != 3*sizeof(TValue))
@@ -253,6 +255,8 @@ LJLIB_CF(table_sort)
 {
   GCtab *t = lj_lib_checktab(L, 1);
   int32_t n = (int32_t)lj_tab_len(t);
+  if (LJ_UNLIKELY(isreadonly(t)))
+    lj_err_caller(L, LJ_ERR_READONLY);
   lua_settop(L, 2);
   if (!tvisnil(L->base+1))
     lj_lib_checkfunc(L, 2);

@@ -113,13 +113,7 @@ GCfunc *lj_func_newC(lua_State *L, MSize nelems, GCtab *env)
   GCfunc *fn = (GCfunc *)lj_mem_newgco(L, sizeCfunc(nelems));
   fn->c.gct = ~LJ_TFUNC;
   fn->c.ffid = FF_C;
-  for (int idx=0; idx<MAX_CFUNC_CALLINFOS; ++idx)
-  {
-  	fn->c.callinfo[idx].traceFunc = 0;
-    fn->c.callinfo[idx].func = 0;
-    fn->c.callinfo[idx].flags = 0;
-    fn->c.callinfo[idx].givestate = 0;
-  }
+  fn->c.callinfo = NULL;
   fn->c.nupvalues = (uint8_t)nelems;
   /* NOBARRIER: The GCfunc is new (marked white). */
   setmref(fn->c.pc, &G(L)->bc_cfunc_ext);
@@ -191,6 +185,8 @@ GCfunc *lj_func_newL_gc(lua_State *L, GCproto *pt, GCfuncL *parent)
 
 void LJ_FASTCALL lj_func_free(global_State *g, GCfunc *fn)
 {
+  if (!isluafunc(fn) && fn->c.callinfo)
+    lj_mem_free(g, fn->c.callinfo, MAX_CFUNC_CALLINFOS*sizeof(CFuncCallInfo));
   MSize size = isluafunc(fn) ? sizeLfunc((MSize)fn->l.nupvalues) :
 			       sizeCfunc((MSize)fn->c.nupvalues);
   lj_mem_free(g, fn, size);

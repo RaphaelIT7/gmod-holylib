@@ -34,7 +34,7 @@ typedef enum {
 
 #ifdef LUAJIT_DISABLE_VMEVENT
 #define lj_vmevent_send(g, ev, args)		UNUSED(g)
-#define lj_vmevent_send_novmthread(L, ev, args)	UNUSED(g)
+#define lj_vmevent_send_novmthread(L, ev, args)	UNUSED(L)
 #define lj_vmevent_send_(g, ev, args, post)	UNUSED(g)
 #else
 #define lj_vmevent_send(g, ev, args) \

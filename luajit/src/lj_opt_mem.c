@@ -579,7 +579,7 @@ static AliasRet aa_fref(jit_State *J, IRIns *refa, IRIns *refb)
     return ALIAS_NO;  /* Different fields. */
   if (refa->op1 == refb->op1)
     return ALIAS_MUST;  /* Same field, same object. */
-  else if (refa->op2 >= IRFL_TAB_META && refa->op2 <= IRFL_TAB_NOMM)
+  else if (refa->op2 >= IRFL_TAB_META && refa->op2 <= IRFL_TAB_MARKED)
     return aa_table(J, refa->op1, refb->op1);  /* Disambiguate tables. */
   else
     return ALIAS_MAY;  /* Same field, possibly different object. */

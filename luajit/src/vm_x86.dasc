@@ -4735,9 +4735,10 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  movzx RA, PC_RA			// Restore RA.
     |  jmp <2
     |->err_readonly:
-    |  mov FCARG1, SAVE_L
-    |  restoreregs
-    |  jmp extern lj_tab_readonly_err@4		// (lua_State *L)
+    |  mov L:FCARG1, SAVE_L
+    |  mov L:FCARG1->base, BASE
+    |  mov SAVE_PC, PC
+    |  call extern lj_tab_readonly_err@4		// (lua_State *L)
     break;
   case BC_TSETS:
     |  ins_ABC	// RA = src, RB = table, RC = str const (~)

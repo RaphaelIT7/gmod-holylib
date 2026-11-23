@@ -205,9 +205,9 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
   }
 
   uint32_t mostargs = 0;
-  for (uint32_t idx = 0; idx < MAX_CFUNC_CALLINFOS; ++idx) {
+  for (uint32_t idx = 0; fn->callinfo && idx < MAX_CFUNC_CALLINFOS; ++idx) {
     CFuncCallInfo* ci = &fn->callinfo[idx];
-    if (!ci->func)
+    if (!CFUNC_CI_USED(ci))
       continue;
 
     int mismatch = 0;
