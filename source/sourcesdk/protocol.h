@@ -50,7 +50,7 @@ enum
 #define DELTA_OFFSET_BITS 5
 #define DELTA_OFFSET_MAX ( ( 1 << DELTA_OFFSET_BITS ) - 1 )
 
-#define DELTASIZE_BITS		20	// must be: 2^DELTASIZE_BITS > (NET_MAX_PAYLOAD * 8)
+#define DELTASIZE_BITS		24	// must be: 2^DELTASIZE_BITS > (NET_MAX_PAYLOAD * 8) - GMod uses 24 bits!
 
 // Largest # of commands to send in a packet
 #define NUM_NEW_COMMAND_BITS		4
