@@ -531,7 +531,7 @@ void CDiskFileTree::Rebuild()
 	Addon::FileSystem* m_AddonFileSystem = (Addon::FileSystem*)g_pFullFileSystem->Addons();
 	FOR_EACH_LL_(((CBaseFileSystem*)g_pFullFileSystem)->m_SearchPaths, pSearchPath)
 	{
-		if ( V_IsAbsolutePath( pSearchPath->GetPathString() ) && (m_AddonFileSystem->ModPath().empty() || PathStartsWith( pSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() )) )
+		if ( V_IsAbsolutePath( pSearchPath->GetPathString() ) && (m_AddonFileSystem->ModPath().empty() || !PathStartsWith( pSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() )) )
 			BuildTree( pSearchPath->GetPathString() );
 	}
 }
@@ -547,7 +547,14 @@ bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath, bool bForceSca
 	// If we have a entry then we already are tracking this one
 	if ( !bForceScan )
 	{
+#if SYSTEM_LINUX
+		char szFolderKey[MAX_PATH];
+		V_strncpy( szFolderKey, pszFolderPath, sizeof( szFolderKey ) );
+		V_strlower( szFolderKey );
+		auto it = m_FileList.find( szFolderKey );
+#else
 		auto it = m_FileList.find( pszFolderPath );
+#endif
 		// We must avoid skipping FOLDER_INVALID since that is never setup?
 		if ( it != m_FileList.end() && it->second == FileCacheEntry::FOLDER )
 		{
@@ -576,25 +583,27 @@ bool CDiskFileTree::RecursiveTraverse( const char *pszFolderPath, bool bForceSca
 		V_snprintf( szFullPath, sizeof( szFullPath ), "%s" CORRECT_PATH_SEPARATOR_S "%s", pszFolderPath, findData.cFileName );
 		NormalizePath( szFullPath );
 
+		// Only the key is lowercase! The disk is case sensitive on Linux so we must scan with the real path
+#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
+		char szKey[MAX_PATH];
+		V_strncpy( szKey, szFullPath, sizeof( szKey ) );
+		V_strlower( szKey );
+		const char* pszKey = szKey;
+#else
+		const char* pszKey = szFullPath;
+#endif
+
 		const bool bDirectory = ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
 		if ( bDirectory )
 		{
 			if (bCreateWatchers)
 				g_FileWatcherSystem.CreateWatcher( szFullPath );
 
-#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
-			V_strlower( szFullPath );
-#endif
 			bool bSetup = RecursiveTraverse( szFullPath );
-			m_FileList.emplace( szFullPath, bSetup ? FileCacheEntry::FOLDER : FileCacheEntry::FOLDER_INVALID );
+			m_FileList.emplace( pszKey, bSetup ? FileCacheEntry::FOLDER : FileCacheEntry::FOLDER_INVALID );
 		}
 		else
-		{
-#if SYSTEM_LINUX // ToDo: Linux is an absolute mess!
-			V_strlower( szFullPath );
-#endif
-			m_FileList.emplace( szFullPath, FileCacheEntry::FILE );
-		}
+			m_FileList.emplace( pszKey, FileCacheEntry::FILE );
 	} while ( func_CFileSystem_Stdio_FS_FindNextFile( g_pFullFileSystem, hFind, &findData ) );
 
 	func_CFileSystem_Stdio_FS_FindClose( g_pFullFileSystem, hFind );
@@ -795,7 +804,7 @@ void hook_CBaseFileSystem_AddSearchPathInternal(CBaseFileSystem* _this, const ch
 		}
 	}*/
 
-	if ( V_IsAbsolutePath( g_pLastCreatedSearchPath->GetPathString() ) && (m_AddonFileSystem->ModPath().empty() || PathStartsWith( g_pLastCreatedSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() )) )
+	if ( V_IsAbsolutePath( g_pLastCreatedSearchPath->GetPathString() ) && (m_AddonFileSystem->ModPath().empty() || !PathStartsWith( g_pLastCreatedSearchPath->GetPathString(), m_AddonFileSystem->ModPath().c_str() )) )
 	{
 		if (V_stricmp(g_pLastCreatedSearchPath->GetPathIDString(), "BASE_PATH") == 0)
 			g_FileWatcherSystem.CreateWatcher( g_pLastCreatedSearchPath->GetPathString() );
