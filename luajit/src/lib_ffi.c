@@ -531,8 +531,7 @@ LJLIB_CF(ffi_new)	LJLIB_REC(.)
   return 1;
 }
 
-#if defined(LJ_NO_SANDBOX)
-LJLIB_NOREG LJLIB_CF(ffi_cast)	LJLIB_REC(ffi_new)
+LJLIB_CF(ffi_cast)	LJLIB_REC(ffi_new)
 {
   CTState *cts = ctype_cts(L);
   CTypeID id = ffi_checkctype(L, cts, NULL);
@@ -549,7 +548,6 @@ LJLIB_NOREG LJLIB_CF(ffi_cast)	LJLIB_REC(ffi_new)
   }
   return 1;
 }
-#endif
 
 LJLIB_CF(ffi_typeof)	LJLIB_REC(.)
 {

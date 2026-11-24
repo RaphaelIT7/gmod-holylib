@@ -755,6 +755,55 @@ LUA_API int lua_userdata_setmetaaccess(lua_State *L, int idx, int set)
   return 0;
 }
 
+LUA_API int lua_userdata_setimmutable(lua_State *L, int idx, int set)
+{
+  cTValue *o = index2adr(L, idx);
+  if (tvisudata(o))
+  {
+    GCudata* ud = udataV(o);
+    if (set) {
+      ud->flags |= LJ_UDATA_FLAG_IMMUTABLE;
+    } else {
+      ud->flags &= ~LJ_UDATA_FLAG_IMMUTABLE;
+    }
+    return 1;
+  }
+
+  return 0;
+}
+
+static int metatable_setflag(lua_State *L, int idx, uint8_t flag, int set)
+{
+  cTValue *o = index2adr(L, idx);
+  if (tvistab(o))
+  {
+    GCtab *t = tabV(o);
+    if (set) {
+      t->udflags |= flag;
+    } else {
+      t->udflags &= (uint8_t)~flag;
+    }
+    return 1;
+  }
+
+  return 0;
+}
+
+LUA_API int lua_metatable_setusertable(lua_State *L, int idx, int set)
+{
+  return metatable_setflag(L, idx, LJ_UDATA_FLAG_USERTABLE, set);
+}
+
+LUA_API int lua_metatable_setmetaaccess(lua_State *L, int idx, int set)
+{
+  return metatable_setflag(L, idx, LJ_UDATA_FLAG_USEMETAFORACCESS, set);
+}
+
+LUA_API int lua_metatable_setimmutable(lua_State *L, int idx, int set)
+{
+  return metatable_setflag(L, idx, LJ_UDATA_FLAG_IMMUTABLE, set);
+}
+
 static int lua_CFunc_info(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
 {
   if (!fn->c.callinfo)

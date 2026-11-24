@@ -173,6 +173,10 @@ LUA_API int   (lua_pushthread) (lua_State *L);
 
 LUA_API int (lua_userdata_setusertable) (lua_State *L, int idx, int set);
 LUA_API int (lua_userdata_setmetaaccess) (lua_State *L, int idx, int set);
+LUA_API int (lua_userdata_setimmutable) (lua_State *L, int idx, int set);
+LUA_API int (lua_metatable_setusertable) (lua_State *L, int idx, int set);
+LUA_API int (lua_metatable_setmetaaccess) (lua_State *L, int idx, int set);
+LUA_API int (lua_metatable_setimmutable) (lua_State *L, int idx, int set);
 
 typedef unsigned char lua_CFunctionInfoCallConv;
 enum {

@@ -500,7 +500,7 @@ lua_TraceEntry lj_tr_emit(lua_TraceRecorder* tr, lua_TraceRecorderEntry entry)
     case TR_CONV:
     {
       TRef val = (TRef)entry.a;
-      IRType st = irt_type(IR(val)->t);
+      IRType st = tref_type(val);
       IRType dt = lj_recext_ctype_to_irtype(entry.type);
       return (lua_TraceEntry)emitir(EMIT_IRT(IR_CONV, dt), val, st|((dt) << 5));
     }

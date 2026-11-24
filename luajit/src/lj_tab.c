@@ -90,6 +90,7 @@ static GCtab *newtab(lua_State *L, uint32_t asize, uint32_t hbits)
     t->gct = ~LJ_TTAB;
     t->nomm = (uint8_t)~0;
     t->colo = (int8_t)asize;
+    t->udflags = 0;
     setmref(t->array, (TValue *)((char *)t + sizeof(GCtab)));
     setgcrefnull(t->metatable);
     t->asize = asize;
@@ -105,6 +106,7 @@ static GCtab *newtab(lua_State *L, uint32_t asize, uint32_t hbits)
     t->gct = ~LJ_TTAB;
     t->nomm = (uint8_t)~0;
     t->colo = 0;
+    t->udflags = 0;
     setmref(t->array, NULL);
     setgcrefnull(t->metatable);
     t->asize = 0;  /* In case the array allocation fails. */

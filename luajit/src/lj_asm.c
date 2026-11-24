@@ -2360,9 +2360,9 @@ static void asm_setup_regsp(ASMState *as)
 #endif
     /* fallthrough */
     /* C calls evict all scratch regs and return results in RID_RET. */
-    case IR_SNEW: case IR_XSNEW: case IR_NEWREF: case IR_BUFPUT:
+    case IR_SNEW: case IR_XSNEW: case IR_NEWREF: case IR_BUFPUT: case IR_UDNEW:
       if (REGARG_NUMGPR < 3 && as->evenspill < 3)
-	as->evenspill = 3;  /* lj_str_new and lj_tab_newkey need 3 args. */
+	as->evenspill = 3;  /* lj_str_new, lj_tab_newkey and lj_udata_new need 3 args. */
 #if LJ_TARGET_X86 && LJ_HASFFI
       if (0) {
     case IR_CNEW:
@@ -2375,7 +2375,7 @@ static void asm_setup_regsp(ASMState *as)
     case IR_CNEW:
 #endif
       /* fallthrough */
-    case IR_TNEW: case IR_TDUP: case IR_CNEWI: case IR_UDNEW: case IR_TOSTR:
+    case IR_TNEW: case IR_TDUP: case IR_CNEWI: case IR_TOSTR:
     case IR_BUFSTR:
       ir->prev = REGSP_HINT(RID_RET);
       if (inloop)

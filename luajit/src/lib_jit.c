@@ -559,6 +559,35 @@ LJLIB_CF(jit_opt_start)
   return 0;
 }
 
+/* udata flags that apply to userdata created afterwards */
+static int jitopt_udata_defaultflag(lua_State *L, uint8_t flag)
+{
+  global_State *g = G(L);
+  int prev = (g->udata_defaultflags & flag) != 0;
+  lj_lib_checkany(L, 1);
+  if (lua_toboolean(L, 1))
+    g->udata_defaultflags |= flag;
+  else
+    g->udata_defaultflags &= (uint8_t)~flag;
+  lua_pushboolean(L, prev);
+  return 1;
+}
+
+LJLIB_CF(jit_opt_userdata_setusertable)
+{
+  return jitopt_udata_defaultflag(L, LJ_UDATA_FLAG_USERTABLE);
+}
+
+LJLIB_CF(jit_opt_userdata_setmetaaccess)
+{
+  return jitopt_udata_defaultflag(L, LJ_UDATA_FLAG_USEMETAFORACCESS);
+}
+
+LJLIB_CF(jit_opt_userdata_setimmutable)
+{
+  return jitopt_udata_defaultflag(L, LJ_UDATA_FLAG_IMMUTABLE);
+}
+
 #include "lj_libdef.h"
 
 #endif

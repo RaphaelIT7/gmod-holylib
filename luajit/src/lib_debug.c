@@ -438,6 +438,30 @@ LJLIB_CF(debug_userdata_setmetaaccess)
   return 1;
 }
 
+LJLIB_CF(debug_userdata_setimmutable)
+{
+  lua_pushboolean(L, lua_userdata_setimmutable(L, 1, lua_toboolean(L, 2)));
+  return 1;
+}
+
+LJLIB_CF(debug_metatable_setusertable)
+{
+  lua_pushboolean(L, lua_metatable_setusertable(L, 1, lua_toboolean(L, 2)));
+  return 1;
+}
+
+LJLIB_CF(debug_metatable_setmetaaccess)
+{
+  lua_pushboolean(L, lua_metatable_setmetaaccess(L, 1, lua_toboolean(L, 2)));
+  return 1;
+}
+
+LJLIB_CF(debug_metatable_setimmutable)
+{
+  lua_pushboolean(L, lua_metatable_setimmutable(L, 1, lua_toboolean(L, 2)));
+  return 1;
+}
+
 #include "lj_libdef.h"
 
 LUALIB_API int luaopen_debug(lua_State *L)

@@ -351,6 +351,11 @@ typedef struct GCstr {
 // NOTE: The meta access is always looked up first and only then the userdata lookup is done!
 // Originally we looked up the usertable first to allow people to override functions per object using the usertable BUT that would be inconsistent behavior with GMod
 
+// If set then you guarantee that the entries of the metatable are never changed
+// Traces then use the functions directly instead of looking them up
+// NOTE: Turning this off won't flush existing traces. Call jit.flush()
+#define LJ_UDATA_FLAG_IMMUTABLE 0x04
+
 /* Userdata object. Payload follows. */
 typedef struct GCudata {
   GCHeader;
@@ -390,7 +395,9 @@ enum {
 
 #define uddata(u)	((void *)((u)+1))
 #define sizeudata(u)	(sizeof(struct GCudata)+(u)->len)
-#define udata_isflagset(u, flag) ((u->flags & flag))
+// The flags of the userdata and of its metatable are combined
+#define udata_mtflags(u) (gcref((u)->metatable) ? gco2tab(gcref((u)->metatable))->udflags : 0)
+#define udata_isflagset(u, flag) (((u)->flags | udata_mtflags(u)) & (flag))
 
 /* -- C data object ------------------------------------------------------- */
 
@@ -570,6 +577,9 @@ typedef struct GCtab {
   GCHeader;
   uint8_t nomm;		/* Negative cache for fast metamethods. */
   int8_t colo;		/* Array colocation. */
+#if LJ_GC64
+  uint8_t udflags;	/* udata flags */
+#endif
   MRef array;		/* Array part. */
   GCRef metatable;	/* Must be at same offset in GCudata. */
   GCRef gclist;
@@ -578,6 +588,8 @@ typedef struct GCtab {
   uint32_t hmask;	/* Hash part mask (size of hash part - 1). */
 #if LJ_GC64
   MRef freetop;		/* Top of free elements. */
+#else
+  uint8_t udflags;	/* udata flags */
 #endif
 } GCtab;
 
@@ -733,6 +745,7 @@ typedef struct global_State {
   PRNGState prng;	/* Global PRNG state. */
   GCRef gcroot[GCROOT_MAX];  /* GC roots. */
   uint32_t mxcsr; /* Holds the last MXCSR state when we entered Lua (unused for now) */
+  uint8_t udata_defaultflags; /* Flags set onto new userdata */
 } global_State;
 
 #define mainthread(g)	(&gcref(g->mainthref)->th)

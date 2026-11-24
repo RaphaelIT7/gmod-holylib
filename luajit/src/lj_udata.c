@@ -19,7 +19,7 @@ GCudata *lj_udata_new(lua_State *L, MSize sz, GCtab *env)
   ud->gct = ~LJ_TUDATA;
   ud->udtype = UDTYPE_USERDATA;
   ud->len = sz;
-  ud->flags = 0;
+  ud->flags = env ? 0 : g->udata_defaultflags;
   /* NOBARRIER: The GCudata is new (marked white). */
   setgcrefnull(ud->metatable);
   if (env)

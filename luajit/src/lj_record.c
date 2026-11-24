@@ -1088,6 +1088,14 @@ static BCReg rec_mm_prep(jit_State *J, ASMFunction cont)
   return top+1+LJ_FR2;
 }
 
+static void rec_udata_mtflags(jit_State *J, GCtab *mt)
+{
+  if (mt) {
+    TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), lj_ir_ktab(J, mt), IRFL_TAB_UDFLAGS);
+    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, mt->udflags));
+  }
+}
+
 /* Record metamethod lookup. */
 int lj_record_mm_lookup(jit_State *J, RecordIndex *ix, MMS mm)
 {
@@ -1097,13 +1105,21 @@ int lj_record_mm_lookup(jit_State *J, RecordIndex *ix, MMS mm)
     mt = tabref(tabV(&ix->tabv)->metatable);
     mix.tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_TAB_META);
   } else if (tref_isudata(ix->tab)) {
-    int udtype = udataV(&ix->tabv)->udtype;
-    mt = tabref(udataV(&ix->tabv)->metatable);
+    GCudata *ud = udataV(&ix->tabv);
+    int udtype = ud->udtype;
+    mt = tabref(ud->metatable);
     mix.tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_META);
     /* The metatables of special userdata objects are treated as immutable. */
-    if (udtype != UDTYPE_USERDATA) {
+    if (udtype != UDTYPE_USERDATA || (mt && udata_isflagset(ud, LJ_UDATA_FLAG_IMMUTABLE))) {
       cTValue *mo;
-      if (LJ_HASFFI && udtype == UDTYPE_FFI_CLIB) {
+      if (udtype == UDTYPE_USERDATA) {
+	TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), ix->tab, IRFL_UDATA_FLAGS);
+	emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, ud->flags));
+	tr = lj_ir_ktab(J, mt);
+	emitir(IRTG(IR_EQ, IRT_TAB), mix.tab, tr);
+	mix.tab = tr;
+	rec_udata_mtflags(J, mt);
+      } else if (LJ_HASFFI && udtype == UDTYPE_FFI_CLIB) {
 	/* Specialize to the C library namespace object. */
 	emitir(IRTG(IR_EQ, IRT_PGC), ix->tab, lj_ir_kptr(J, udataV(&ix->tabv)));
       } else {
@@ -1556,36 +1572,61 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
     tr = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_META);
     GCtab *mt = gco2tab(gcref(ud->metatable));
     emitir(IRTG(IR_EQ, IRT_TAB), tr, mt ? lj_ir_kgc(J, obj2gco(mt), IRT_TAB) : lj_ir_knull(J, IRT_TAB));
+    rec_udata_mtflags(J, mt);
     if (ix->val == 0) { /* Indexed load */
       RecordIndex mtix = *ix;
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && mt) {
-        mtix.tab = lj_ir_kgc(J, obj2gco(mt), IRT_TAB);
-        settabV(J->L, &mtix.tabv, mt);
-        mtix.idxchain = 0;
+        int lookup = 1;
+        if (udata_isflagset(ud, LJ_UDATA_FLAG_IMMUTABLE) && tref_isstr(ix->key) && tref_isk(ix->key)) {
+          cTValue *mo = lj_tab_getstr(mt, strV(&ix->keyv));
+          if (!mo || tvisnil(mo)) {
+            lookup = 0;
+          } else {
+            res = lj_record_constify(J, mo);
+            if (res)
+              return res;
+          }
+        }
 
-        res = lj_record_idx(J, &mtix);
-        if (res != TREF_NIL)
-          return res;
+        if (lookup) {
+          mtix.tab = lj_ir_kgc(J, obj2gco(mt), IRT_TAB);
+          settabV(J->L, &mtix.tabv, mt);
+          mtix.idxchain = 0;
+
+          res = lj_record_idx(J, &mtix);
+          if (res != TREF_NIL)
+            return res;
+        }
       }
 
       RecordIndex utix = *ix;
-      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
-        utix.tab = emitir(IRT(IR_FLOAD, IRT_TAB), utix.tab, IRFL_UDATA_ENV);
-        emitir(IRTG(IR_NE, IRT_TAB), utix.tab, lj_ir_knull(J, IRT_TAB));
-        settabV(J->L, &utix.tabv, t);
-        utix.idxchain = 0;
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE)) {
+        tr = emitir(IRT(IR_FLOAD, IRT_TAB), utix.tab, IRFL_UDATA_ENV);
+        if (t) {
+          emitir(IRTG(IR_NE, IRT_TAB), tr, lj_ir_knull(J, IRT_TAB));
+          utix.tab = tr;
+          settabV(J->L, &utix.tabv, t);
+          utix.idxchain = 0;
 
-        res = lj_record_idx(J, &utix);
-        if (res != TREF_NIL)
-          return res;
+          res = lj_record_idx(J, &utix);
+          if (res != TREF_NIL)
+            return res;
+        } else {
+          emitir(IRTG(IR_EQ, IRT_TAB), tr, lj_ir_knull(J, IRT_TAB));
+        }
       }
     } else { /* Indexed store. */
-      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
-        ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);
-        emitir(IRTG(IR_NE, IRT_TAB), ix->tab, lj_ir_knull(J, IRT_TAB));
-        settabV(J->L, &ix->tabv, t);
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE)) {
+        tr = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);
+        if (t) {
+          emitir(IRTG(IR_NE, IRT_TAB), tr, lj_ir_knull(J, IRT_TAB));
+          ix->tab = tr;
+          settabV(J->L, &ix->tabv, t);
 
-        return lj_record_idx(J, ix);
+          return lj_record_idx(J, ix);
+        }
+
+        emitir(IRTG(IR_EQ, IRT_TAB), tr, lj_ir_knull(J, IRT_TAB));
       }
     }
   }
