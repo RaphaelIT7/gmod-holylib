@@ -210,7 +210,10 @@ enum {
   TR_TYPE_STRING, // a GCstr when input, lua_String when output!
   TR_TYPE_CHARS, // const char* - NULL Terminated! (will result in a Lua string alloc! -> lj_str_new)
   TR_TYPE_NIL,
+  // If you use this for a XLOAD then do NOT use knull as JIT may fold it away if you compare it against 0 or another pointer!
   TR_TYPE_PTR,
+  // kint64 on 64x - kint on 32x
+  TR_TYPE_INTP,
 };
 
 typedef unsigned char lua_TraceField;
@@ -470,6 +473,7 @@ LUA_API lua_TraceEntry (lj_tr_emit) (lua_TraceRecorder* tr, lua_TraceRecorderEnt
 LUA_API lua_TraceEntry (lj_tr_kint) (lua_TraceRecorder* tr, int val);
 LUA_API lua_TraceEntry (lj_tr_k64) (lua_TraceRecorder* tr, size_t val); // unsigned
 LUA_API lua_TraceEntry (lj_tr_kint64) (lua_TraceRecorder* tr, size_t val); // signed!
+LUA_API lua_TraceEntry (lj_tr_kintp) (lua_TraceRecorder* tr, size_t val); // TR_TYPE_INTP
 LUA_API lua_TraceEntry (lj_tr_knum) (lua_TraceRecorder* tr, lua_Number val);
 LUA_API lua_TraceEntry (lj_tr_kptr) (lua_TraceRecorder* tr, void* val);
 LUA_API lua_TraceEntry (lj_tr_knull) (lua_TraceRecorder* tr, lua_TraceRecorderType type);

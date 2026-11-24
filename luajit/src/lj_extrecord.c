@@ -86,6 +86,8 @@ IRType LJ_FASTCALL lj_recext_ctype_to_irtype(lua_TraceRecorderType type)
       return IRT_STR;
     case TR_TYPE_PTR:
       return IRT_PTR;
+    case TR_TYPE_INTP:
+      return IRT_INTP;
     default:
       return IRT_NIL;
   }
@@ -656,6 +658,11 @@ lua_TraceEntry lj_tr_k64(lua_TraceRecorder* tr, size_t val)
 lua_TraceEntry lj_tr_kint64(lua_TraceRecorder* tr, size_t val)
 {
   return (lua_TraceEntry)lj_ir_kint64(TR2J(tr), val);
+}
+
+lua_TraceEntry lj_tr_kintp(lua_TraceRecorder* tr, size_t val)
+{
+  return (lua_TraceEntry)lj_ir_kintp(TR2J(tr), val);
 }
 
 lua_TraceEntry lj_tr_knum(lua_TraceRecorder* tr, lua_Number val)
