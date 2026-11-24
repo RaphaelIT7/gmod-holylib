@@ -11,6 +11,7 @@
 #include "scripts/AngleFFI.h"
 #include "scripts/HolyLibUserDataFFI.h"
 #include "scripts/VoiceDataFFI.h"
+#include "edict.h"
 
 extern "C"
 {
@@ -318,6 +319,40 @@ static lua_CFunctionInfo ASMINFO_TypeID = [] { \
 	return info; \
 }();
 
+// Multiple functions just load fields from gpGlobals
+// and since its static we can just load it by the calculated offset
+extern CGlobalVars* gpGlobals;
+static int TraceRecord_GlobalsField(lua_TraceRecorder* rec, const void* pField, lua_TraceRecorderType type)
+{
+	size_t offset = (size_t)((const char*)pField - (const char*)gpGlobals);
+	lua_TraceEntry val = LJTR_EMIT(rec, TR_XLOAD, type, lj_tr_kptr(rec, (void*)gpGlobals), offset);
+	if (type == TR_TYPE_FLOAT)
+		val = LJTR_EMIT(rec, TR_CONV, TR_TYPE_DOUBLE, val, 0);
+
+	lj_tr_setbase(rec, 0, val);
+	return 1;
+}
+
+#define GLOBALS_FIELD_TRACEREC(name, field, type) \
+static int TraceRecord_##name(lua_TraceRecorder* rec) \
+{ \
+	return gpGlobals ? TraceRecord_GlobalsField(rec, &gpGlobals->field, type) : -1; \
+} \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	lua_CFunctionInfo info{}; \
+	info.traceFunc = TraceRecord_##name; \
+	return info; \
+}();
+
+GLOBALS_FIELD_TRACEREC(CurTime, curtime, TR_TYPE_DOUBLE)
+GLOBALS_FIELD_TRACEREC(FrameTime, frametime, TR_TYPE_FLOAT)
+GLOBALS_FIELD_TRACEREC(RealTime, realtime, TR_TYPE_FLOAT)
+GLOBALS_FIELD_TRACEREC(TickCount, tickcount, TR_TYPE_INT)
+GLOBALS_FIELD_TRACEREC(MaxPlayers, maxClients, TR_TYPE_INT)
+GLOBALS_FIELD_TRACEREC(TickInterval, interval_per_tick, TR_TYPE_DOUBLE)
+#undef GLOBALS_FIELD_TRACEREC
+
 extern int table_setreadonly(lua_State* L);
 extern int table_isreadonly(lua_State* L);
 extern int func_setdebugblocked(lua_State* L);
@@ -380,6 +415,31 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	lua_sethook(L, nullptr, 0, 0);
 
 	bOpenLibs = false;
+}
+
+static void RegisterGlobalJIT(lua_State* L, const char* tableName, const char* funcName, lua_CFunctionInfo* info)
+{
+	int top = lua_gettop(L);
+	if (tableName)
+	{
+		lua_getfield(L, LUA_GLOBALSINDEX, tableName);
+		if (!lua_istable(L, -1))
+		{
+			lua_settop(L, top);
+			return;
+		}
+
+		lua_getfield(L, -1, funcName);
+	} else
+		lua_getfield(L, LUA_GLOBALSINDEX, funcName);
+
+	if (lua_iscfunction(L, -1))
+	{
+		lua_settracablecclosure(L, -1, info);
+		Msg(PROJECT_NAME " - jit: Added JIT support for %s%s%s\n", tableName ? tableName : "", tableName ? "." : "", funcName);
+	}
+
+	lua_settop(L, top);
 }
 
 // We load the FFI scripts after LuaInit allowing them to properly work AFTER all new Lua types were registered.
@@ -446,6 +506,16 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Msg(PROJECT_NAME " - jit: Added JIT support for TypeID\n");
 	}
 	pLua->Pop(1);
+
+	if (gpGlobals)
+	{
+		RegisterGlobalJIT(L, nullptr, "CurTime", &ASMINFO_CurTime);
+		RegisterGlobalJIT(L, nullptr, "FrameTime", &ASMINFO_FrameTime);
+		RegisterGlobalJIT(L, nullptr, "RealTime", &ASMINFO_RealTime);
+		RegisterGlobalJIT(L, "engine", "TickCount", &ASMINFO_TickCount);
+		RegisterGlobalJIT(L, "game", "MaxPlayers", &ASMINFO_MaxPlayers);
+		RegisterGlobalJIT(L, "engine", "TickInterval", &ASMINFO_TickInterval);
+	}
 }
 
 Override(luaJIT_setmode);
