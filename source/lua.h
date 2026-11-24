@@ -10,6 +10,7 @@
 #include "../gmod-luajit/luajit.h"
 #define LJ_UDATA_FLAG_USERTABLE 0x01 // from our JIT build
 #define LJ_UDATA_FLAG_USEMETAFORACCESS 0x02
+#define LJ_UDATA_FLAG_IMMUTABLE 0x04
 #else
 extern "C" // Our JIT build
 {
@@ -1246,11 +1247,10 @@ constexpr int GCudata_HolyLib_dataoffset = sizeof(GCudata_HolyLib_Default);
 
 enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 {
-	// First two bits are reserved for HolyLib's LuaJIT built!
-	UDATA_EXPLICIT_DELETE = 1 << 2,
-	UDATA_NO_USERTABLE = 1 << 3,
-	UDATA_INLINED_DATA = 1 << 4,
-	UDATA_REFERENCED = 1 << 5, // This userdata is a ReferencedLuaUserData and NOT LuaUserData
+	// First three bits are reserved for HolyLib's LuaJIT built!
+	UDATA_EXPLICIT_DELETE = 1 << 3,
+	UDATA_NO_USERTABLE = 1 << 4,
+	UDATA_INLINED_DATA = 1 << 5,
 	// We use this so that LuaJIT aborts traces due to the flags having changed avoiding any possible issue (even if there are none already)
 	// This was an intentional design choice for most JIT changes to guard on the GCudata::flags so they should never change frequently!
 	UDATA_INVALID = 1 << 6,
@@ -1336,7 +1336,7 @@ struct LuaUserData {
 			HolyLib.flags |= (int)udataFlags::UDATA_INLINED_DATA;
 
 		// Always set as we do not care about __index calls.
-		HolyLib.flags |= LJ_UDATA_FLAG_USEMETAFORACCESS;
+		HolyLib.flags |= LJ_UDATA_FLAG_USEMETAFORACCESS | LJ_UDATA_FLAG_IMMUTABLE;
 
 		HolyLib.udtype = pMetaEntry.iType;
 
@@ -1593,8 +1593,6 @@ struct ReferencedLuaUserData : LuaUserData
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, const Lua::LuaMetaEntry& pMetaEntry, void* pData, bool bNoUserTable = false, bool bIsInline = false)
 	{
 		LuaUserData::Init(LUA, pMetaEntry, pData, bNoUserTable, bIsInline);
-
-		HolyLib.flags |= (int)udataFlags::UDATA_REFERENCED;
 
 		// NOTE:
 		// In the past I set the 0x20 & 0x40 flags into marked for the GC_FIXED & GC_SFIXED but those do not ensure that userdata won't be cleared

@@ -6,17 +6,6 @@
 
 local CreateVector, isvector
 
-do
-    local old_type = type
-    -- Override the type function to return "Vector" for our custom vector type
-    function type(v)
-        if isvector(v) then
-            return "Vector"
-        end
-        return old_type(v)
-    end
-end
-
 -- We cannot localize type since for the AngleFFI we override it!
 -- local type = type
 local tonumber = tonumber
@@ -483,10 +472,12 @@ do
     debug.setblocked(CreateVector)
 
     _G.GMOD_isvector = _G.GMOD_isvector or _G.isvector
-    local GMOD_isvector = _G.GMOD_isvector
+    local VectorMeta = getmetatable(_G.GMOD_Vector(0, 0, 0))
+    local base_type = type
+
     function isvector(v)
-        if GMOD_isvector(v) then
-            return true
+        if base_type(v) == "userdata" then
+            return getmetatable(v) == VectorMeta
         end
 
         return ffi.istype("GMOD_VecUserData", v)
@@ -494,6 +485,23 @@ do
 
     debug.setblocked(isvector)
     _G.isvector = isvector
+
+    function type(v)
+        local t = base_type(v)
+        if t == "cdata" then
+            if ffi.istype("GMOD_VecUserData", v) then
+                return "Vector"
+            end
+        elseif t == "userdata" then
+            if getmetatable(v) == VectorMeta then
+                return "Vector"
+            end
+        end
+
+        return t
+    end
+
+    debug.setblocked(type)
 end
 
 jit.markFFITypeAsValidUserData(mt.MetaID, Vector(1, 1, 1))

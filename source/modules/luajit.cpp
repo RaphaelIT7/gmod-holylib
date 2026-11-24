@@ -21,8 +21,6 @@ extern "C"
 	#include "../luajit/src/lj_lib.h"
 	#include "../luajit/src/lj_err.h"
 	#include "../luajit/src/lj_cdata.h"
-	#include "../luajit/src/lj_cconv.h"
-	#include "../luajit/src/lj_cparse.h"
 }
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -128,57 +126,6 @@ const char* LuaDetour<R (*)(lua_State*, Args...), Func>::pszName;
 	}; \
 	static RegisterLuaDetour_##name registerLuaDetour_##name;
 
-/* Check first argument for a C type and returns its ID. */
-static CTypeID ffi_checkctype(lua_State *L, CTState *cts, TValue *param)
-{
-  TValue *o = L->base;
-  if (!(o < L->top)) {
-  err_argtype:
-	lj_err_argtype(L, 1, "C type");
-  }
-  if (tvisstr(o)) {  /* Parse an abstract C type declaration. */
-	GCstr *s = strV(o);
-	CPState cp;
-	int errcode;
-	cp.L = L;
-	cp.cts = cts;
-	cp.srcname = strdata(s);
-	cp.p = strdata(s);
-	cp.param = param;
-	cp.mode = CPARSE_MODE_ABSTRACT|CPARSE_MODE_NOIMPLICIT;
-	errcode = lj_cparse(&cp);
-	if (errcode) lj_err_throw(L, errcode);  /* Propagate errors. */
-	return cp.val.id;
-  } else {
-	GCcdata *cd;
-	if (!tviscdata(o)) goto err_argtype;
-	if (param && param < L->top) lj_err_arg(L, 1, LJ_ERR_FFI_NUMPARAM);
-	cd = cdataV(o);
-	return cd->ctypeid == CTID_CTYPEID ? *(CTypeID *)cdataptr(cd) : cd->ctypeid;
-  }
-}
-
-// RaphaelIT7: Lazy readding as I DONT want to recompile LuaJIT....
-static int ffi_cast(lua_State* L)
-{
-	CTState *cts = ctype_cts(L);
-	CTypeID id = ffi_checkctype(L, cts, NULL);
-	CType *d = ctype_raw(cts, id);
-	TValue *o = lj_lib_checkany(L, 2);
-	L->top = o+1;  /* Make sure this is the last item on the stack. */
-	if (!(ctype_isnum(d->info) || ctype_isptr(d->info) || ctype_isenum(d->info)))
-		lj_err_arg(L, 1, LJ_ERR_FFI_INVTYPE);
-
-	if (!(tviscdata(o) && cdataV(o)->ctypeid == id)) {
-		GCcdata *cd = lj_cdata_new(cts, id, d->size);
-		lj_cconv_ct_tv(cts, d, (uint8_t*)cdataptr(cd), o, CCF_CAST);
-		setcdataV(L, o, cd);
-		lj_gc_check(L);
-	}
-
-	return 1;
-}
-
 static thread_local int overrideFFIReference = -1;
 static int getffi(lua_State* L)
 {
@@ -190,12 +137,6 @@ static int getffi(lua_State* L)
 		lua_rawgeti(L, LUA_REGISTRYINDEX, overrideFFIReference);
 	} else {
 		lua_getfield(L, LUA_GLOBALSINDEX, "ffi");
-	}
-
-	if (lua_type(L, -1) == LUA_TTABLE)
-	{
-		lua_pushcclosure(L, ffi_cast, 0);
-		lua_setfield(L, -2, "cast");
 	}
 
 	return 1;
@@ -334,7 +275,7 @@ static int TraceRecord_TypeID(lua_TraceRecorder* rec)
 {
 	lua_TraceEntry tr = lj_tr_getbase(rec, 0);
 #define typecheck(func, type) \
-	if (func(tr)) { lj_tr_setbase(rec, 1, lj_tr_kint(rec, type)); return 1; }
+	if (func(tr)) { lj_tr_setbase(rec, 0, lj_tr_kint(rec, type)); return 1; }
 
 	typecheck(tref_isnil, LUA_TNIL)
 	typecheck(tref_isbool, LUA_TBOOLEAN)

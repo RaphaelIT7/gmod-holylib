@@ -6,17 +6,6 @@
 
 local CreateAngle, isangle
 
-do
-    local old_type = type
-    -- Override the type function to return "Angle" for our custom angtor type
-    function type(v)
-        if isangle(v) then
-            return "Angle"
-        end
-        return old_type(v)
-    end
-end
-
 -- We cannot localize type since for the AngleFFI we override it!
 -- local type = type
 local tonumber = tonumber
@@ -380,10 +369,12 @@ do
     debug.setblocked(CreateAngle)
 
     _G.GMOD_isangle = _G.GMOD_isangle or _G.isangle
-    local GMOD_isangle = _G.GMOD_isangle
+    local AngleMeta = getmetatable(_G.GMOD_Angle(0, 0, 0))
+    local base_type = type
+
     function isangle(v)
-        if GMOD_isangle(v) then
-            return true
+        if base_type(v) == "userdata" then
+            return getmetatable(v) == AngleMeta
         end
 
         return ffi.istype("GMOD_AngUserData", v)
@@ -391,6 +382,23 @@ do
 
     debug.setblocked(isangle)
     _G.isangle = isangle
+
+    function type(v)
+        local t = base_type(v)
+        if t == "cdata" then
+            if ffi.istype("GMOD_AngUserData", v) then
+                return "Angle"
+            end
+        elseif t == "userdata" then
+            if getmetatable(v) == AngleMeta then
+                return "Angle"
+            end
+        end
+
+        return t
+    end
+
+    debug.setblocked(type)
 end
 
 jit.markFFITypeAsValidUserData(mt.MetaID, Angle(1, 1, 1))
