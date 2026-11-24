@@ -354,6 +354,8 @@ typedef struct lua_TraceRecorderEntry
 {
   lua_TraceRecorderOP op;
   lua_TraceRecorderType type;
+  unsigned char guard : 1;
+  // padding here free to use later on
   union {
     unsigned int a;
     void* aptr;
@@ -366,7 +368,6 @@ typedef struct lua_TraceRecorderEntry
     size_t c;
     void* cptr;
   };*/
-  unsigned int guard : 1;
 } lua_TraceRecorderEntry;
 
 // These are internal values, you should never use/modify them.
