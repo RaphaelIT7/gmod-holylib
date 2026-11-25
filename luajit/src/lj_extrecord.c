@@ -255,11 +255,17 @@ lua_TraceEntry lj_tr_emit(lua_TraceRecorder* tr, lua_TraceRecorderEntry entry)
     }
     case TR_XLOAD:
     {
+      TRef ptr = (TRef)entry.a;
+      IRType t = lj_recext_ctype_to_irtype(entry.type);
+      return (lua_TraceEntry)emitir(EMIT_IRT(IR_XLOAD, t), ptr, 0);
+    }
+    case TR_XRLOAD:
+    {
       TRef base = (TRef)entry.a;
       size_t offset = entry.b;
-      TRef val = emitir(IRT(IR_ADD, IRT_PTR), base, lj_ir_kintp(J, offset));
+      TRef ptr = emitir(IRT(IR_ADD, IRT_PTR), base, lj_ir_kintp(J, offset));
       IRType t = lj_recext_ctype_to_irtype(entry.type);
-      return (lua_TraceEntry)emitir(EMIT_IRT(IR_XLOAD, t), val, 0);
+      return (lua_TraceEntry)emitir(EMIT_IRT(IR_XLOAD, t), ptr, 0);
     }
     case TR_XREF:
     {

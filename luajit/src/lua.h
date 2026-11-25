@@ -273,8 +273,8 @@ enum {
   TR_FLOAD, // a = value, b = lua_TraceField
   TR_FREF, // a = value, b = lua_TraceField - This OP acts as a reference for the FSTORE
   TR_FSTORE, // a = TR_FREF, b = store value
-  // IMPORTANT! Our TR_XLOAD/XSTORE functions work differently from JITs IR_XLOAD/STORE!
-  TR_XLOAD, // a = value, b = size_t offset of the value
+  TR_XLOAD, // a = pointer (const/tref)
+  TR_XRLOAD, // a = base pointer, b = size_t offset - Loads from base + offset (TR_XREF + TR_XLOAD)
   TR_XREF, // a = value, b = size_t offset of the value
   TR_XSTORE, // a = TR_XREF, b = store value
 
