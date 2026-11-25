@@ -320,12 +320,11 @@ static lua_CFunctionInfo ASMINFO_TypeID = [] { \
 }();
 
 // Multiple functions just load fields from gpGlobals
-// and since its static we can just load it by the calculated offset
+// and since its static we can just load straight from the field address
 extern CGlobalVars* gpGlobals;
 static int TraceRecord_GlobalsField(lua_TraceRecorder* rec, const void* pField, lua_TraceRecorderType type)
 {
-	size_t offset = (size_t)((const char*)pField - (const char*)gpGlobals);
-	lua_TraceEntry val = LJTR_EMIT(rec, TR_XLOAD, type, lj_tr_kptr(rec, (void*)gpGlobals), offset);
+	lua_TraceEntry val = LJTR_EMIT(rec, TR_XLOAD, type, lj_tr_kptr(rec, (void*)pField), 0);
 	if (type == TR_TYPE_FLOAT)
 		val = LJTR_EMIT(rec, TR_CONV, TR_TYPE_DOUBLE, val, 0);
 
