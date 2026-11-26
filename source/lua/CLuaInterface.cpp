@@ -256,7 +256,7 @@ void Lua::CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 	// LuaInterface->Shutdown(); // BUG: Gmod doesn't do this in here... right?
 	// NOTE: We already call Shutdown from Lua::DestroyInterface so if your not careful you might call it twice and crash.
 
-	delete LuaInterface;
+	delete (CLuaInterface*)LuaInterface;
 }
 
 // =================================
@@ -345,10 +345,10 @@ void CLuaInterface::SetTable(int iStackPos)
 	lua_settable(state, iStackPos);
 }
 
-bool CLuaInterface::SetMetaTable(int iStackPos)
+void CLuaInterface::SetMetaTable(int iStackPos)
 {
 	LuaDebugPrint(3, "CLuaInterface::SetMetaTable %i\n", iStackPos);
-	return lua_setmetatable(state, iStackPos);
+	lua_setmetatable(state, iStackPos);
 }
 
 bool CLuaInterface::GetMetaTable(int iStackPos)
@@ -1036,9 +1036,9 @@ void CLuaInterface::PushLuaFunction(GarrysMod::Lua::CFunc func)
 	lua_pushcclosure(state, func, 0);
 }
 
-void CLuaInterface::LuaError(const char* str, int iStackPos)
+void CLuaInterface::RemoveThisFunction(const char* str, int iStackPos)
 {
-	LuaDebugPrint(4, "CLuaInterface::LuaError %s %i\n", str, iStackPos);
+	LuaDebugPrint(4, "CLuaInterface::RemoveThisFunction %s %i\n", str, iStackPos);
 	
 	if (iStackPos != -1) {
 		luaL_argerror(state, iStackPos, str);
@@ -1619,7 +1619,7 @@ int CLuaInterface::GetColor(int iStackPos) // Probably returns the StackPos
 	return (a << 24) | (r << 16) | (g << 8) | b;
 }
 
-GarrysMod::Lua::ILuaObject* CLuaInterface::PushColor(Color color)
+void CLuaInterface::PushColor(Color color)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushColor\n");
 	
@@ -1634,7 +1634,6 @@ GarrysMod::Lua::ILuaObject* CLuaInterface::PushColor(Color color)
 		pObject->SetMetaTable(pMetaTable, this);
 
 	pObject->Push(this);
-	return pOrigObject;
 }
 
 int CLuaInterface::GetStack(int level, lua_Debug* dbg)
@@ -1703,9 +1702,9 @@ size_t CLuaInterface::GetDataString(int iStackPos, const char **pOutput)
 }
 
 static char cMessageBuffer[4096]; // this is NOT thread safe! Anyways :3
-void CLuaInterface::ErrorFromLua(const char *fmt, ...)
+void CLuaInterface::ErrorNoHaltStack(const char *fmt, ...)
 {
-	LuaDebugPrint(2, "CLuaInterface::ErrorFromLua %s\n", fmt);
+	LuaDebugPrint(2, "CLuaInterface::ErrorNoHaltStack %s\n", fmt);
 	GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state);
 
 	va_list args;
@@ -1982,7 +1981,7 @@ int CLuaInterface::FilterConVarFlags(int& flags)
 	return IsMenu();
 }
 
-void* CLuaInterface::CreateConVar(const char* name, const char* defaultValue, const char* helpString, int flags)
+ConVar* CLuaInterface::CreateConVar(const char* name, const char* defaultValue, const char* helpString, int flags)
 {
 	LuaDebugPrint(2, "CLuaInterface::CreateConVar\n");
 
@@ -1992,7 +1991,7 @@ void* CLuaInterface::CreateConVar(const char* name, const char* defaultValue, co
 	return nullptr; //return LuaConVars()->CreateConVar(name, defaultValue, helpString, flags);
 }
 
-void* CLuaInterface::CreateConCommand(const char* name, const char* helpString, int flags, FnCommandCallback_t callback, FnCommandCompletionCallback completionFunc)
+ConCommand* CLuaInterface::CreateConCommand(const char* name, const char* helpString, int flags, FnCommandCallback_t callback, FnCommandCompletionCallback completionFunc)
 {
 	LuaDebugPrint(2, "CLuaInterface::CreateConCommand\n");
 
@@ -2053,6 +2052,27 @@ int CLuaInterface::RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObje
 	}
 
 	return -1;
+}
+
+void CLuaInterface::FormatError(const char* fmt, ...)
+{
+	if (fmt == nullptr)
+	{
+		Error("Error called with nullptr message!");
+		return;
+	}
+
+	static char buffer[4096];
+	va_list args;
+	va_start(args, fmt);
+	V_vsnprintf(buffer, sizeof(buffer), fmt, args);
+	va_end(args);
+
+	size_t len = strlen(buffer);
+	if (len > 0 && buffer[len - 1] == '\n')
+		buffer[len - 1] = '\0';
+
+	luaL_error(state, "%s", buffer);
 }
 
 #define DLL_TOOLS

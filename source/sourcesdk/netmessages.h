@@ -358,18 +358,16 @@ public:
 
 class CLC_GMod_ClientToServer : public CNetMessage
 {
-public:
-	bool			ReadFromBuffer( bf_read &buffer );
-	bool			WriteToBuffer( bf_write &buffer );
-	const char		*ToString() const; // boobies xd
-	int				GetType() const { return clc_GMod_ClientToServer; }
-		const char* GetName() const { return "GMod_ClientToServer"; }
+	DECLARE_CLC_MESSAGE( GMod_ClientToServer ); // boobies xd
+	int				GetGroup() const { return INetChannelInfo::GMOD_NET; }
 
 	//IClientMessageHandler2 *m_pMessageHandler;
 	//bool Process() { return m_pMessageHandler->ProcessGMod_ClientToServer( this ); }
 
-	int magic; // offset
-	bf_read		m_DataIn;
+	int				m_nLength;
+	bf_read			m_DataIn;
+	bf_write		m_DataOut;
+	unsigned char	m_nType;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////

@@ -287,7 +287,12 @@ private:
 	int					m_iTracing; // 0 = not active, 1 = active for this frame, 2 = forced active
 	CNetworkStatTrace	m_Trace;
 
-	int __offset2[4]; // 16 bytes on both 32x & 64x
+	int					m_nSignonStateMsgCount;
+	unsigned short		m_nSetConVarCount;
+	float				m_flSetConVarWindowEnd;
+	bool				m_bSpawnCountMismatchHandled;
+	bool				m_bFullUpdateRequestPending;
+	unsigned short		m_nUnused;
 };
 
 #endif // BASECLIENT_H

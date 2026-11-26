@@ -53,7 +53,6 @@ namespace GarrysMod::Lua
 }
 
 class LuaClientDatatableHook;
-class CSteamAPIContext;
 class IGet;
 
 #define GMOD_LUASHARED_INTERFACE "LUASHARED003"
@@ -64,7 +63,7 @@ namespace GarrysMod::Lua
 	{
 	public:
 		virtual ~ILuaShared() {};
-		virtual void Init(CreateInterfaceFn, bool, CSteamAPIContext*, IGet*) = 0;
+		virtual void Init(CreateInterfaceFn, bool, IGet*) = 0;
 		virtual void Shutdown() = 0;
 		virtual void DumpStats() = 0;
 		virtual ILuaInterface* CreateLuaInterface(unsigned char, bool) = 0;

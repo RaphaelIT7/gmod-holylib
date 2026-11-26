@@ -31,8 +31,8 @@ public:
 	virtual int GetMemberInt( const char *name, int i = 0 );
 	virtual float GetMemberFloat( const char *name, float f = 0.0f );
 	virtual const char *GetMemberStr( const char *name, const char *s = "" );
-	virtual void *GetMemberUserData( const char *name, void *u = 0 );
-	virtual void *GetMemberUserData( float name, void *u = 0 );
+	virtual void *GetMemberUserData_DontUseMe( const char *name, void *u = 0 );
+	virtual void *GetMemberUserData_DontUseMe( float name, void *u = 0 );
 	virtual ILuaObject *GetMember( const char *name, ILuaObject *obj );
 	virtual ILuaObject *GetMember( ILuaObject *key, ILuaObject *obj );
 

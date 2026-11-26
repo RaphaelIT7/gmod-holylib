@@ -29,8 +29,7 @@
 
 static ConVar net_showudp( "holylib_net_showudp", "0", 0, "Dump UDP packets summary to console" );
 static ConVar net_showtcp( "holylib_net_showtcp", "0", 0, "Dump TCP stream summary to console" );
-static std::string blocksize_value = std::to_string(MAX_ROUTABLE_PAYLOAD); // Required as else we crash since std::string would be deconstructed.
-static ConVar net_blocksize( "holylib_net_blocksize", blocksize_value.c_str(), 0, "Max fragment bytes per packet", true, FRAGMENT_SIZE, true, MAX_ROUTABLE_PAYLOAD );
+static ConVar net_blocksize( "holylib_net_blocksize", "24576", 0, "Max fragment bytes per packet", true, FRAGMENT_SIZE, true, 28672 );
 
 static ConVar net_showmsg( "holylib_net_showmsg", "0", 0, "Show incoming message: <0|1|name>" );
 static ConVar net_showfragments( "holylib_net_showfragments", "0", 0, "Show netchannel fragments" );
@@ -51,7 +50,7 @@ static ConVar net_minfragments( "holylib_net_minfragments", "1", 0, "Forces a mi
 static ConVar net_maxfragments( "holylib_net_maxfragments", "0", 0, "Forces a maximum number of fragments to be used. 0 = let the engine freely decide", true, 0, true, MAX_FRAGMENTS );
 
 static std::string routable_default = std::to_string(MAX_ROUTABLE_PAYLOAD); // Let's try to not crash
-static ConVar holylib_net_maxroutable("holylib_net_maxroutable", routable_default.c_str(), 0, "Maximum payload size", true, 0, true, MAX_ROUTABLE_PAYLOAD);
+static ConVar holylib_net_maxroutable("holylib_net_maxroutable", routable_default.c_str(), 0, "Maximum payload size", true, 576, true, MAX_ROUTABLE_PAYLOAD);
 
 extern bool Q_RemoveAllEvilCharacters2( char *pch ); // Because 64x is shit
 extern int  NET_SendStream( int nSock, const char * buf, int len, int flags );

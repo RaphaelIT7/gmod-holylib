@@ -38,7 +38,7 @@ public:
 	virtual void SetField(int iStackPos, const char* strName);
 	virtual void CreateTable();
 	virtual void SetTable(int iStackPos);
-	virtual bool SetMetaTable(int iStackPos);
+	virtual void SetMetaTable(int iStackPos);
 	virtual bool GetMetaTable(int i);
 	virtual void Call(int iArgs, int iResults);
 	virtual int PCall(int iArgs, int iResults, int iErrorFunc);
@@ -96,7 +96,7 @@ public:
 	virtual GarrysMod::Lua::ILuaObject *GetObject(int index);
 	virtual void PushLuaObject(GarrysMod::Lua::ILuaObject *obj);
 	virtual void PushLuaFunction(GarrysMod::Lua::CFunc func);
-	virtual void LuaError(const char *err, int index);
+	virtual void RemoveThisFunction(const char *err, int index);
 	virtual void TypeError(const char *name, int index);
 	virtual void CallInternal(int args, int rets);
 	virtual void CallInternalNoReturns(int args);
@@ -140,14 +140,14 @@ public:
 	virtual void PopPath( );
 	virtual const char *GetPath( );
 	virtual int GetColor( int index );
-	virtual GarrysMod::Lua::ILuaObject* PushColor( Color color );
+	virtual void PushColor( Color color );
 	virtual int GetStack( int level, lua_Debug *dbg );
 	virtual int GetInfo( const char *what, lua_Debug *dbg );
 	virtual const char *GetLocal( lua_Debug *dbg, int n );
 	virtual const char *GetUpvalue( int funcIndex, int n );
 	virtual bool RunStringEx( const char *filename, const char *path, const char *stringToRun, bool run, bool printErrors, bool dontPushErrors, bool noReturns );
 	virtual size_t GetDataString( int index, const char **str );
-	virtual void ErrorFromLua( const char *fmt, ... );
+	virtual void ErrorNoHaltStack( const char *fmt, ... );
 	virtual const char *GetCurrentLocation( );
 	virtual void MsgColour( const Color &col, const char *fmt, ... );
 	virtual void GetCurrentFile( std::string &outStr );
@@ -160,11 +160,12 @@ public:
 	virtual const char *GetPooledString( int index );
 	virtual int AddThreadedCall( GarrysMod::Lua::ILuaThreadedCall * );
 	virtual void AppendStackTrace( char *, unsigned int );
-	virtual void *CreateConVar( const char *, const char *, const char *, int );
-	virtual void *CreateConCommand( const char *, const char *, int, FnCommandCallback_t, FnCommandCompletionCallback );
+	virtual ConVar *CreateConVar( const char *, const char *, const char *, int );
+	virtual ConCommand *CreateConCommand( const char *, const char *, int, FnCommandCallback_t, FnCommandCompletionCallback );
 	virtual const char* CheckStringOpt( int iStackPos, const char* def );
 	virtual double CheckNumberOpt( int iStackPos, double def );
 	virtual int RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObject* obj );
+	virtual void FormatError( const char* fmt, ... );
 
 public:
 	std::string RunMacros(std::string script);

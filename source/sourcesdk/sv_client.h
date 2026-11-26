@@ -57,6 +57,7 @@ public:
 	
 	void PacketStart	(int incoming_sequence, int outgoing_acknowledged);
 	void PacketEnd( void );
+	bool ShouldAcceptFile( const char *fileName, unsigned int transferID );
 	
 	void FileReceived( const char *fileName, unsigned int transferID );
 	void FileRequested(RequestFile_t requestType, unsigned int requestValue, unsigned int transferID );
@@ -154,6 +155,9 @@ public:
 #if defined( REPLAY_ENABLED )
 	float					m_flLastSaveReplayTime;
 #endif
+	double					m_flLastStringCommandTime;
+	int						m_nStringCommandCount;
+	unsigned short			m_nFileRequestCount;
 };
 
 #endif // SV_CLIENT_H

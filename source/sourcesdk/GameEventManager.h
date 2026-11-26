@@ -71,6 +71,7 @@ public:
 	void SetInt( const char *keyName, int value );
 	void SetFloat( const char *keyName, float value );
 	void SetString( const char *keyName, const char *value );
+	KeyValues *GetKeyValues();
 	
 	CGameEventDescriptor	*m_pDescriptor;
 	KeyValues				*m_pDataKeys;

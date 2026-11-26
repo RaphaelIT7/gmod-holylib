@@ -24,9 +24,6 @@
 #define MAX_FRAGMENTS_BITS	5	// How many fragments we can send at once
 #define MAX_FRAGMENTS	(1 << MAX_FRAGMENTS_BITS) - 1  // Maximum number of fragments we can safely transmit. -1 as else we would go over MAX_FRAGMENTS_BITS
 
-#undef MAX_ROUTABLE_PAYLOAD
-#define MAX_ROUTABLE_PAYLOAD		(FRAGMENT_SIZE * FRAGMENT_SIZE)	// Matches x360 size(1260). Update: Won't match anymore
-
 // How fast to converge flow estimates
 #define FLOW_AVG ( 3.0F / 4.0F )
  // Don't compute more often than this

@@ -87,7 +87,7 @@ public:
 	// local backdoor tables
 	void			SetMirrorTable( INetworkStringTable *table );
 	void			UpdateMirrorTable( int tick_ack  );
-	void 			GMOD_WriteUpdateSelective( bf_write* buf, int unknown1, int unknown2 );
+	void 			GMOD_WriteUpdateSelective( bf_write* buf, int iStartIndex, int iEndIndex );
 	void			CopyStringTable(CNetworkStringTable * table);
 	// buffer IO
 	void			WriteStringTable( bf_write& buf );

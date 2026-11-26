@@ -258,7 +258,7 @@ public: // Gimme that access
 	int			m_nNumConnections;		//Number of successful client connections.
 
 	bool		m_bReportNewFakeClients; // Whether or not newly created fake clients should be included in server browser totals
-	bool		m_bGModUnknown; // Magic (RaphaelIT7 (ToDo): Guess)
+	bool		m_bKeepPlayersOnShutdown; // Used by "quit keep_players"
 };
 
 extern CThreadFastMutex g_svInstanceBaselineMutex;

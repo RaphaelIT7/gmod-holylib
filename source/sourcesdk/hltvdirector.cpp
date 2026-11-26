@@ -1,7 +1,7 @@
 //HOLYLIB_REQUIRES_MODULE=sourcetv
+#include "util.h"
 #include "player.h"
 #include "sourcesdk/hltvdirector.h"
-#include "util.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

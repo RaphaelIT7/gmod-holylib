@@ -2,13 +2,10 @@
 
 #include <vector>
 #include <string>
+#include <set>
+#include "shareddefs.h"
 
 class LuaFindResult;
-
-namespace GarrysMod::Lua
-{
-//	struct LuaFile; // RaphaelIT7: I'm guessing that GetFromDatatable & FindFileInDatatable return this struct(defined in garrysmod_common -> LuaShared.h) but I dind't verify it yet.
-}
 
 abstract_class IGModDataPack
 {
@@ -35,4 +32,8 @@ public:
 	void OnFilesRequested( int userID, bf_read* msg, int bits );
 public: // Gimme that
 	INetworkStringTable* m_pClientLuaFiles;
+	std::string m_ClientSearchPaths;
+	int m_nPendingFileRequestRequests[MAX_PLAYERS];
+	std::set<std::string> m_SingleplayerFileNames;
+	bool m_bTooManyFilesReported;
 };

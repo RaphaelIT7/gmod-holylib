@@ -248,6 +248,7 @@ public:
 	CUtlMap<DataIndex, DataEntry> m_pNetworkedData;
 	CUtlDict<CGMODVariant, DataIndex> m_pNonNetworkedData;
 	bool m_bFullUpdate;
+	void (*m_pChangeCallback)(void*, int, const CGMODVariant&);
 };
 
 static uint32_t MakeValueMask(int nBits)

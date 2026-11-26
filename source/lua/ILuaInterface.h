@@ -97,7 +97,7 @@ namespace GarrysMod::Lua
 
 		// Sets the metatable for the value at iStackPos to the value at the top of the stack
 		// Pops the value off of the top of the stack
-		virtual bool		SetMetaTable(int iStackPos) = 0;
+		virtual void		SetMetaTable(int iStackPos) = 0;
 
 		// Pushes the metatable of the value at iStackPos on to the top of the stack
 		// Upon failure, returns false and does not push anything
@@ -473,7 +473,7 @@ namespace GarrysMod::Lua
 		virtual ILuaObject *GetObject( int index ) = 0;
 		virtual void PushLuaObject( ILuaObject *obj ) = 0;
 		virtual void PushLuaFunction( CFunc func ) = 0;
-		virtual void LuaError( const char *err, int index ) = 0;
+		virtual void RemoveThisFunction( const char *err, int index ) = 0;
 		virtual void TypeError( const char *name, int index ) = 0;
 		virtual void CallInternal( int args, int rets ) = 0;
 		virtual void CallInternalNoReturns( int args ) = 0;
@@ -517,14 +517,14 @@ namespace GarrysMod::Lua
 		virtual void PopPath( ) = 0;
 		virtual const char *GetPath( ) = 0;
 		virtual int GetColor( int index ) = 0;
-		virtual ILuaObject* PushColor( Color color ) = 0;
+		virtual void PushColor( Color color ) = 0;
 		virtual int GetStack( int level, lua_Debug *dbg ) = 0;
 		virtual int GetInfo( const char *what, lua_Debug *dbg ) = 0;
 		virtual const char *GetLocal( lua_Debug *dbg, int n ) = 0;
 		virtual const char *GetUpvalue( int funcIndex, int n ) = 0;
 		virtual bool RunStringEx( const char *filename, const char *path, const char *stringToRun, bool run, bool printErrors, bool dontPushErrors, bool noReturns ) = 0;
 		virtual size_t GetDataString( int index, const char **str ) = 0;
-		virtual void ErrorFromLua( const char *fmt, ... ) = 0;
+		virtual void ErrorNoHaltStack( const char *fmt, ... ) = 0;
 		virtual const char *GetCurrentLocation( ) = 0;
 		virtual void MsgColour( const Color &col, const char *fmt, ... ) = 0;
 		virtual void GetCurrentFile( std::string &outStr ) = 0;
@@ -537,14 +537,12 @@ namespace GarrysMod::Lua
 		virtual const char *GetPooledString( int index ) = 0;
 		virtual int AddThreadedCall( ILuaThreadedCall * ) = 0;
 		virtual void AppendStackTrace( char *, unsigned int ) = 0;
-		virtual void *CreateConVar( const char *, const char *, const char *, int ) = 0;
-		virtual void *CreateConCommand( const char *, const char *, int, void ( * )( const CCommand & ), int ( * )( const char *, char ( * )[128] ) ) = 0;
+		virtual ConVar *CreateConVar( const char *, const char *, const char *, int ) = 0;
+		virtual ConCommand *CreateConCommand( const char *, const char *, int, void ( * )( const CCommand & ), int ( * )( const char *, char ( * )[128] ) ) = 0;
 		virtual const char* CheckStringOpt( int iStackPos, const char* def ) = 0;
 		virtual double CheckNumberOpt( int iStackPos, double def ) = 0;
 		virtual int RegisterMetaTable( const char* name, ILuaObject* obj ) = 0;
-
-		// Not in gmod? Anyways.
-		virtual ~ILuaInterface() {}
+		virtual void FormatError( const char* fmt, ... ) = 0;
 	};
 }
 #endif

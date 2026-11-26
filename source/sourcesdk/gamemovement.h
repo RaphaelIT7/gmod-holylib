@@ -242,6 +242,8 @@ public:
 	// Performs the collision resolution for fliers.
 	void			PerformFlyCollisionResolution( trace_t &pm, Vector &move );
 
+	virtual void	TracePlayerBBoxLower( const Vector& start, const Vector& end, unsigned int fMask, int collisionGroup, trace_t& pm );
+
 	virtual bool	GameHasLadders() const;
 
 	enum

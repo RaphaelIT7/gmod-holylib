@@ -5,11 +5,11 @@
 // $NoKeywords: $
 //
 //=============================================================================//
+#include "util.h"
 #include "cbase.h"
 #include "recipientfilter.h"
 #include "team.h"
 #include "ipredictionsystem.h"
-#include "util.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"

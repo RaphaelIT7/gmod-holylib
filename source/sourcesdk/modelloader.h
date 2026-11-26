@@ -86,8 +86,6 @@ public:
 	virtual void		UnreferenceModel( model_t *model, REFERENCETYPE referencetype ) = 0;
 	// Unmasks the specified reference type across all models
 	virtual void		UnreferenceAllModels( REFERENCETYPE referencetype ) = 0;
-	// Set all models to last loaded on server count -1
-	virtual void		ResetModelServerCounts() = 0;
 
 	// For any models with referencetype blank, frees all memory associated with the model
 	//  and frees up the models slot
