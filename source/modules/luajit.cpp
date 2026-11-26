@@ -11,6 +11,7 @@
 #include "scripts/AngleFFI.h"
 #include "scripts/HolyLibUserDataFFI.h"
 #include "scripts/VoiceDataFFI.h"
+#include "entitylist_base.h"
 #include "edict.h"
 
 extern "C"
@@ -352,6 +353,179 @@ GLOBALS_FIELD_TRACEREC(MaxPlayers, maxClients, TR_TYPE_INT)
 GLOBALS_FIELD_TRACEREC(TickInterval, interval_per_tick, TR_TYPE_DOUBLE)
 #undef GLOBALS_FIELD_TRACEREC
 
+// Entity list lookup
+// We record the whole CBaseEntityList::LookupEntity function
+// This gives JIT the massive benefit of being able to nuke the duplicate lookups
+// making multiple entity calls really cheap
+static const CEntInfo* g_pEntInfoArray = nullptr;
+
+struct EntityHandle
+{
+	lua_TraceEntry ref = 0; // Loaded CBaseHandle::m_Index
+	CBaseHandle value = INVALID_EHANDLE_INDEX; // Runtime value while recording
+};
+
+struct EntityLookup
+{
+	lua_TraceEntry entIndex = 0; // CBaseHandle::GetEntryIndex() if the handle wasn't invalid
+	lua_TraceEntry pEnt = 0; // The entity pointer as intptr or const 0
+	IHandleEntity* pEntity = nullptr; // Runtime entity pointer while recording
+};
+
+// NULL is INVALID_EHANDLE_INDEX
+// Returns false if it isn't an Entity userdata / cannot be recorded
+static bool EntityHandle_Record(lua_TraceRecorder* rec, int arg, EntityHandle& handle)
+{
+	if (!tref_isudata(lj_tr_getbase(rec, arg)))
+		return false;
+
+	GCudata* ud = udataV((TValue*)lj_tr_getrtbase(rec, arg));
+	if (ud->udtype != UDTYPE_USERDATA)
+		return false;
+
+	GMODudata* pData = (GMODudata*)uddata(ud);
+	if (pData->type != GarrysMod::Lua::Type::Entity)
+		return false;
+
+	lua_TraceEntry self = lj_tr_getbase(rec, arg);
+	LJTR_EMIT(rec, TR_GUARD_USERDATA_TYPE, TR_TYPE_U8, self, UDTYPE_USERDATA);
+
+	lua_TraceEntry udType = LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_U8, self, TR_FIELD_GMOD_UDATA_TYPE_DIRECT);
+	LJTR_GEMIT(rec, TR_EQ, TR_TYPE_U8, udType, lj_tr_kint(rec, GarrysMod::Lua::Type::Entity));
+
+	lua_TraceEntry pHandle = LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_PTR, self, TR_FIELD_GMOD_UDATA_DATA_DIRECT);
+	if (!pData->data)
+	{
+		LJTR_GEMIT(rec, TR_EQ, TR_TYPE_PTR, pHandle, lj_tr_knull(rec, TR_TYPE_PTR));
+		handle.ref = lj_tr_kint(rec, (int)INVALID_EHANDLE_INDEX);
+		return true;
+	}
+
+	LJTR_GEMIT(rec, TR_NE, TR_TYPE_PTR, pHandle, lj_tr_knull(rec, TR_TYPE_PTR));
+	handle.value = *(CBaseHandle*)pData->data;
+	handle.ref = LJTR_EMIT(rec, TR_XLOAD, TR_TYPE_INT, pHandle, 0);
+	return true;
+}
+
+// Mimic CBaseEntityList::LookupEntity
+static EntityLookup EntityList_RecordLookup(lua_TraceRecorder* rec, const EntityHandle& handle)
+{
+	EntityLookup lookup;
+	lookup.pEnt = lj_tr_kintp(rec, 0);
+	if (handle.value == (unsigned int)INVALID_EHANDLE_INDEX)
+	{
+		LJTR_GEMIT(rec, TR_EQ, TR_TYPE_INT, handle.ref, lj_tr_kint(rec, (int)INVALID_EHANDLE_INDEX));
+		return lookup;
+	}
+
+	LJTR_GEMIT(rec, TR_NE, TR_TYPE_INT, handle.ref, lj_tr_kint(rec, (int)INVALID_EHANDLE_INDEX));
+
+	// With the mask we also guarantee the index couldn't go out of bounds :3
+	lookup.entIndex = LJTR_EMIT(rec, TR_BAND, TR_TYPE_INT, handle.ref, lj_tr_kint(rec, ENT_ENTRY_MASK));
+	lua_TraceEntry serial = LJTR_EMIT(rec, TR_BSHR, TR_TYPE_INT, handle.ref, lj_tr_kint(rec, NUM_ENT_ENTRY_BITS));
+
+	// CEntInfo* pInfo = &m_EntPtrArray[entIndex]
+	lua_TraceEntry offset = lookup.entIndex;
+#if PLATFORM_64BITS
+	offset = LJTR_EMIT(rec, TR_CONV, TR_TYPE_I64, offset, 0);
+#endif
+	offset = LJTR_EMIT(rec, TR_MUL, TR_TYPE_INTP, offset, lj_tr_kintp(rec, sizeof(CEntInfo)));
+
+	lua_TraceEntry pInfo = LJTR_EMIT(rec, TR_ADD, TR_TYPE_PTR, lj_tr_kptr(rec, (void*)g_pEntInfoArray), offset);
+	lua_TraceEntry infoSerial = LJTR_EMIT(rec, TR_XRLOAD, TR_TYPE_INT, pInfo, offsetof(CEntInfo, m_SerialNumber));
+	const CEntInfo& info = g_pEntInfoArray[handle.value.GetEntryIndex()];
+	if (info.m_SerialNumber != handle.value.GetSerialNumber())
+	{
+		LJTR_GEMIT(rec, TR_NE, TR_TYPE_INT, infoSerial, serial);
+		return lookup;
+	}
+
+	LJTR_GEMIT(rec, TR_EQ, TR_TYPE_INT, infoSerial, serial);
+	lua_TraceEntry pEnt = LJTR_EMIT(rec, TR_XRLOAD, TR_TYPE_INTP, pInfo, offsetof(CEntInfo, m_pEntity));
+	if (!info.m_pEntity)
+	{
+		LJTR_GEMIT(rec, TR_EQ, TR_TYPE_INTP, pEnt, lj_tr_kintp(rec, 0));
+		return lookup;
+	}
+
+	LJTR_GEMIT(rec, TR_NE, TR_TYPE_INTP, pEnt, lj_tr_kintp(rec, 0));
+	lookup.pEnt = pEnt;
+	lookup.pEntity = info.m_pEntity;
+	return lookup;
+}
+
+static int TraceRecord_Entity_EntIndex(lua_TraceRecorder* rec)
+{
+	EntityHandle handle;
+	if (!EntityHandle_Record(rec, 0, handle))
+		return -1;
+
+	EntityLookup lookup = EntityList_RecordLookup(rec, handle);
+	if (!lookup.pEntity || handle.value.GetEntryIndex() >= MAX_EDICTS)
+		return -1;
+
+	LJTR_GEMIT(rec, TR_ULT, TR_TYPE_INT, lookup.entIndex, lj_tr_kint(rec, MAX_EDICTS));
+	lj_tr_setbase(rec, 0, lookup.entIndex);
+	return 1;
+}
+
+static lua_CFunctionInfo ASMINFO_Entity_EntIndex = [] { \
+	lua_CFunctionInfo info{}; \
+	info.traceFunc = TraceRecord_Entity_EntIndex; \
+	info.argType[0] = TR_TYPE_USERDATA; \
+	return info; \
+}();
+
+// GMod does pEnt != NULL && pEnt != GetWorldEntity()
+static int TraceRecord_Entity_IsValid(lua_TraceRecorder* rec)
+{
+	EntityHandle handle;
+	if (!EntityHandle_Record(rec, 0, handle))
+		return -1;
+
+	EntityLookup lookup = EntityList_RecordLookup(rec, handle);
+	bool bValid = lookup.pEntity != nullptr;
+	if (bValid)
+	{
+		bValid = handle.value.GetEntryIndex() != 0;
+		LJTR_GEMIT(rec, bValid ? TR_NE : TR_EQ, TR_TYPE_INT, lookup.entIndex, lj_tr_kint(rec, 0));
+	}
+
+	lj_tr_setbase(rec, 0, bValid ? lj_tr_reftrue(rec) : lj_tr_reffalse(rec));
+	return 1;
+}
+
+static lua_CFunctionInfo ASMINFO_Entity_IsValid = [] { \
+	lua_CFunctionInfo info{}; \
+	info.traceFunc = TraceRecord_Entity_IsValid; \
+	info.argType[0] = TR_TYPE_USERDATA; \
+	return info; \
+}();
+
+static int TraceRecord_Entity_Equal(lua_TraceRecorder* rec)
+{
+	EntityHandle handleA, handleB;
+	if (!EntityHandle_Record(rec, 0, handleA) || !EntityHandle_Record(rec, 1, handleB))
+		return -1;
+
+	EntityLookup a = EntityList_RecordLookup(rec, handleA);
+	EntityLookup b = EntityList_RecordLookup(rec, handleB);
+
+	bool bEqual = a.pEntity == b.pEntity;
+	LJTR_GEMIT(rec, bEqual ? TR_EQ : TR_NE, TR_TYPE_INTP, a.pEnt, b.pEnt);
+
+	lj_tr_setbase(rec, 0, bEqual ? lj_tr_reftrue(rec) : lj_tr_reffalse(rec));
+	return 1;
+}
+
+static lua_CFunctionInfo ASMINFO_Entity_Equal = [] { \
+	lua_CFunctionInfo info{}; \
+	info.traceFunc = TraceRecord_Entity_Equal; \
+	info.argType[0] = TR_TYPE_USERDATA; \
+	info.argType[1] = TR_TYPE_USERDATA; \
+	return info; \
+}();
+
 extern int table_setreadonly(lua_State* L);
 extern int table_isreadonly(lua_State* L);
 extern int func_setdebugblocked(lua_State* L);
@@ -414,6 +588,23 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	lua_sethook(L, nullptr, 0, 0);
 
 	bOpenLibs = false;
+}
+
+static void RegisterEntityJIT(lua_State* L, const char* funcName, lua_CFunctionInfo* info)
+{
+	lua_getfield(L, LUA_REGISTRYINDEX, "Entity");
+	if (lua_istable(L, -1))
+	{
+		lua_getfield(L, -1, funcName);
+		if (lua_isfunction(L, -1)) {
+			lua_settracablecclosure(L, -1, info);
+			Msg(PROJECT_NAME " - jit: Added JIT support for Entity:%s\n", funcName);
+		}
+
+		lua_pop(L, 1);
+	}
+
+	lua_pop(L, 1);
 }
 
 static void RegisterGlobalJIT(lua_State* L, const char* tableName, const char* funcName, lua_CFunctionInfo* info)
@@ -514,6 +705,15 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		RegisterGlobalJIT(L, "engine", "TickCount", &ASMINFO_TickCount);
 		RegisterGlobalJIT(L, "game", "MaxPlayers", &ASMINFO_MaxPlayers);
 		RegisterGlobalJIT(L, "engine", "TickInterval", &ASMINFO_TickInterval);
+	}
+
+	if (g_pEntityList)
+	{
+		g_pEntInfoArray = g_pEntityList->GetEntInfoPtrByIndex(0);
+
+		RegisterEntityJIT(L, "EntIndex", &ASMINFO_Entity_EntIndex);
+		RegisterEntityJIT(L, "IsValid", &ASMINFO_Entity_IsValid);
+		RegisterEntityJIT(L, "__eq", &ASMINFO_Entity_Equal);
 	}
 }
 
