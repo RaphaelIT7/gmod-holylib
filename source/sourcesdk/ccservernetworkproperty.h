@@ -101,31 +101,40 @@ inline bool CCServerNetworkProperty::IsInPVS( const CCheckTransmitInfo *pInfo )
 	if (!g_bSkipAreaCheckInPVS)
 	{
 		// Early out if the areas are connected
-		if ( !m_PVSInfo.m_nAreaNum2 )
+		// doors can legally straddle two areas, so we may need to check another one
+		// GMod: A long/large prop could easily cross multiple areas so GMod allows multiple extra areas!
+		const int nExtraAreas = m_PVSInfo.m_nExtraAreaCount;
+		for ( i=0; i< pInfo->m_AreasNetworked && i < MAX_WORLD_AREAS; ++i )
 		{
-			for ( i=0; i< pInfo->m_AreasNetworked; ++i )
+			int clientArea = pInfo->m_Areas[i];
+			if ( clientArea == m_PVSInfo.m_nAreaNum )
+				break;
+
+			int nExtra;
+			for ( nExtra=0; nExtra<nExtraAreas; ++nExtra )
 			{
-				int clientArea = pInfo->m_Areas[i];
-				if ( clientArea == m_PVSInfo.m_nAreaNum || CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
+				if ( clientArea == m_PVSInfo.m_nExtraAreas[nExtra] )
 					break;
 			}
-		}
-		else
-		{
-			// doors can legally straddle two areas, so
-			// we may need to check another one
-			for ( i=0; i< pInfo->m_AreasNetworked; ++i )
+
+			if ( nExtra != nExtraAreas )
+				break;
+
+			// RaphaelIT7 (ToDo):
+			// We should profile this as previously GMod did this in the for/if checks
+			// above directly rather than as a second round
+			// It should improve results when props are quite close, though it can hurt results when their far away...
+			if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
+				break;
+
+			for ( nExtra=0; nExtra<nExtraAreas; ++nExtra )
 			{
-				int clientArea = pInfo->m_Areas[i];
-				if ( clientArea == m_PVSInfo.m_nAreaNum || clientArea == m_PVSInfo.m_nAreaNum2 )
-					break;
-
-				if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
-					break;
-
-				if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum2 ) )
+				if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nExtraAreas[nExtra] ) )
 					break;
 			}
+
+			if ( nExtra != nExtraAreas )
+				break;
 		}
 
 		if ( i == pInfo->m_AreasNetworked )

@@ -787,21 +787,32 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			return;
 		}
 
-		int nArea1 = pNetProp->AreaNum(); // Triggers RecomputePVSInformation to stay up to date :3
-		int nArea2 = pNetProp->m_PVSInfo.m_nAreaNum2;
-		bool bValid1 = nArea1 > 0 && nArea1 < MAX_MAP_AREAS;
-		bool bValid2 = nArea2 > 0 && nArea2 < MAX_MAP_AREAS;
-		if (!bValid1 && !bValid2)
+		const int nArea = pNetProp->AreaNum(); // Triggers RecomputePVSInformation to stay up to date :3
+		const PVSInfo_t& pPVSInfo = pNetProp->m_PVSInfo;
+		bool bInAnyArea = false;
+		if (IsValidAreaSplitArea(nArea))
 		{
-			pPVSEntityList[++nPVSEdictCount] = pEntity;
-			return;
+			AddEntityToArea(nArea, pEntity);
+			bInAnyArea = true;
 		}
 
-		if (bValid1)
-			AddEntityToArea(nArea1, pEntity);
+		for (int nExtra = 0; nExtra < pPVSInfo.m_nExtraAreaCount; ++nExtra)
+		{
+			const int nExtraArea = pPVSInfo.m_nExtraAreas[nExtra];
+			if (!IsValidAreaSplitArea(nExtraArea))
+				continue;
 
-		if (bValid2 && nArea2 != nArea1)
-			AddEntityToArea(nArea2, pEntity);
+			AddEntityToArea(nExtraArea, pEntity);
+			bInAnyArea = true;
+		}
+
+		if (!bInAnyArea)
+			pPVSEntityList[++nPVSEdictCount] = pEntity;
+	}
+
+	static inline bool IsValidAreaSplitArea(int nArea)
+	{
+		return nArea > 0 && nArea < MAX_MAP_AREAS;
 	}
 
 	inline void AddEntityToArea(int areaNum, CBaseEntity* pEntity)
